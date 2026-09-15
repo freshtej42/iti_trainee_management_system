@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Gujarati", "Noto Sans Devanagari", sans-serif;
+  }
+}
+
+/* Print stylesheets for true A4 output */
+@media print {
+  html, body {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  header,
+  nav,
+  button,
+  .no-print,
+  .print\\:hidden,
+  [data-no-print="true"] {
+    display: none !important;
+  }
+
+  /* Reset main wrapper layouts so A4 pages center and don't overflow */
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm 10mm 10mm 10mm;
+  }
+
+  .a4-page,
+  .a4-printable-document {
+    box-shadow: none !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 210mm !important;
+    border: none !important;
+    page-break-after: always;
+    break-after: page;
+    background-color: #ffffff !important;
+  }
+
+  /* Remove input/textarea backgrounds and borders in print for seamless typewritten look */
+  input, textarea {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    resize: none !important;
+  }
+
+  /* When printing from A4 Print Preview modal, hide everything else */
+  body.is-printing-a4-preview > :not(#print-modal-root) {
+    display: none !important;
+  }
+
+  body.is-printing-a4-preview #print-modal-root {
+    position: static !important;
+    background: transparent !important;
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.is-printing-a4-preview #printable-preview-a4-content {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 10mm !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+}

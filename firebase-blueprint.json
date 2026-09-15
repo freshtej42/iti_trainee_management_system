@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "instructors": {
+      "title": "Instructors",
+      "description": "ITI trade instructors and supervisors",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "iti_name": { "type": "string" },
+        "trade": { "type": "string" },
+        "batch": { "type": "string" },
+        "unit": { "type": "string" },
+        "designation": { "type": "string" },
+        "phone": { "type": "string" },
+        "institution_address": { "type": "string" },
+        "outward_code_prefix": { "type": "string" },
+        "letterhead_header_url": { "type": "string" },
+        "signature_footer_url": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "iti_name", "trade"]
+    },
+    "trainees": {
+      "title": "Trainees",
+      "description": "ITI enrolled students and trainees across trades",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "instructor_id": { "type": "string" },
+        "roll_no": { "type": "string" },
+        "enrollment_no": { "type": "string" },
+        "trade": { "type": "string" },
+        "batch": { "type": "string" },
+        "unit": { "type": "string" },
+        "surname": { "type": "string" },
+        "student_name": { "type": "string" },
+        "father_name": { "type": "string" },
+        "grandfather_name": { "type": "string" },
+        "surname_en": { "type": "string" },
+        "student_name_en": { "type": "string" },
+        "father_name_en": { "type": "string" },
+        "grandfather_name_en": { "type": "string" },
+        "address": { "type": "string" },
+        "village": { "type": "string" },
+        "taluka": { "type": "string" },
+        "district": { "type": "string" },
+        "pincode": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "instructor_id", "roll_no", "student_name", "trade"]
+    },
+    "attendance_records": {
+      "title": "Attendance Records",
+      "description": "Monthly attendance statistics and percentage flags",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "trainee_id": { "type": "string" },
+        "instructor_id": { "type": "string" },
+        "month_year": { "type": "string" },
+        "total_working_days": { "type": "number" },
+        "present_days": { "type": "number" },
+        "absent_days": { "type": "number" },
+        "attendance_percentage": { "type": "number" },
+        "flagged_low": { "type": "boolean" },
+        "continuous_absent_since": { "type": "string" },
+        "absent_from_date": { "type": "string" },
+        "absent_to_date": { "type": "string" },
+        "remarks": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "trainee_id", "instructor_id", "month_year", "attendance_percentage"]
+    },
+    "letter_templates": {
+      "title": "Letter Templates",
+      "description": "Customizable Gujarati, Hindi, and English A4 notice templates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "instructor_id": { "type": "string" },
+        "template_name": { "type": "string" },
+        "language": { "type": "string" },
+        "notice_type": { "type": "string" },
+        "subject": { "type": "string" },
+        "content_html": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "template_name", "language", "content_html"]
+    },
+    "dispatch_logs": {
+      "title": "Dispatch Logs",
+      "description": "Official outward registry tracking dispatched letters and warning notices",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "trainee_id": { "type": "string" },
+        "instructor_id": { "type": "string" },
+        "ref_number": { "type": "string" },
+        "outward_number": { "type": "string" },
+        "notice_type": { "type": "string" },
+        "issue_date": { "type": "string" },
+        "attendance_percentage": { "type": "number" },
+        "month_year": { "type": "string" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "trainee_id", "instructor_id", "notice_type", "created_at"]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "ITI Trainee Attendance & Irregularity Letter Generator",
+  "description": "Multi-tenant platform for ITI Supervisor Instructors to manage trainees, track attendance, auto-flag low attendance (<80%), generate Gujarati & Hindi parent notice letters via an MS Word 2021-style editor, and batch export print-ready PDFs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

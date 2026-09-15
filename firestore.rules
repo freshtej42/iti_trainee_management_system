@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Prototype development rules:
+    // Allow read/write to application collections for ITI notice prototype demonstration
+    match /instructors/{instructorId} {
+      allow read, write: if true;
+    }
+    match /trainees/{traineeId} {
+      allow read, write: if true;
+    }
+    match /attendance_records/{recordId} {
+      allow read, write: if true;
+    }
+    match /letter_templates/{templateId} {
+      allow read, write: if true;
+    }
+    match /dispatch_logs/{logId} {
+      allow read, write: if true;
+    }
+  }
+}

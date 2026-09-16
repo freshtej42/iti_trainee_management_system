@@ -17,6 +17,8 @@ import {
   Layers,
   Filter,
   CheckCircle2,
+  LayoutGrid,
+  Table as TableIcon,
 } from 'lucide-react';
 import { transliterateText } from '../utils/phoneticIme';
 import { formatFullName, formatFullAddress } from '../utils/mergeTags';
@@ -52,6 +54,7 @@ export default function TraineeManager({
   // Unit and Batch Filters
   const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>('ALL');
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('ALL');
+  const [mobileViewMode, setMobileViewMode] = useState<'cards' | 'table'>('cards');
 
   const availableBatches = instructor.batches && instructor.batches.length > 0
     ? instructor.batches
@@ -190,7 +193,7 @@ export default function TraineeManager({
       <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-700" />
+            <Users className="w-5 h-5 text-[#346739]" />
             <span>Trainee Records & Demographic Management (તાલીમાર્થી ડેટાબેઝ)</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -198,25 +201,25 @@ export default function TraineeManager({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {/* Import Trainees Button */}
           {onImportTrainees && (
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition-colors"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-bold rounded-lg bg-[#79ae6f] hover:bg-[#669a5c] text-white shadow-xs min-h-[42px] transition-colors"
             >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>આયાત કરો (Import Excel/CSV)</span>
+              <FileSpreadsheet className="w-4 h-4 shrink-0" />
+              <span>આયાત કરો (Import)</span>
             </button>
           )}
 
           {/* Enroll Single Trainee */}
           <button
             onClick={openAddModal}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-blue-700 hover:bg-blue-800 text-white shadow-xs transition-colors"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg bg-[#346739] hover:bg-[#264e2b] text-[#f2edc2] shadow-xs min-h-[42px] transition-colors"
           >
-            <UserPlus className="w-4 h-4" />
-            <span>નવો તાલીમાર્થી ઉમેરો (Enroll Trainee)</span>
+            <UserPlus className="w-4 h-4 shrink-0" />
+            <span>નવો તાલીમાર્થી (Enroll)</span>
           </button>
         </div>
       </div>
@@ -226,7 +229,7 @@ export default function TraineeManager({
         {/* Unit Tabs */}
         <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
           <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
-            <Layers className="w-3.5 h-3.5 text-slate-400" />
+            <Layers className="w-3.5 h-3.5 text-[#346739]" />
             <span>યુનિટ (Unit):</span>
           </span>
           <button
@@ -234,8 +237,8 @@ export default function TraineeManager({
             onClick={() => setSelectedUnitFilter('ALL')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
               selectedUnitFilter === 'ALL'
-                ? 'bg-blue-700 text-white shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                ? 'bg-[#346739] text-[#f2edc2] shadow-xs'
+                : 'bg-[#f2edc2]/40 hover:bg-[#f2edc2] text-[#346739]'
             }`}
           >
             બધા (All)
@@ -247,8 +250,8 @@ export default function TraineeManager({
               onClick={() => setSelectedUnitFilter(u)}
               className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
                 selectedUnitFilter === u
-                  ? 'bg-blue-700 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  ? 'bg-[#346739] text-[#f2edc2] shadow-xs'
+                  : 'bg-[#f2edc2]/40 hover:bg-[#f2edc2] text-[#346739]'
               }`}
             >
               {u}
@@ -277,32 +280,168 @@ export default function TraineeManager({
         </div>
       </div>
 
-      {/* Search & Info Banner */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* Search & Mobile View Switcher */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search Roll No, Name, Mobile, Village..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[40px]"
           />
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-          <span>
-            ફોનેટિક ટાઈપિંગ: અંગ્રેજીમાં લખતા જ (દા.ત. <strong>Ramesh Patel</strong>) આપમેળે{' '}
-            <strong className="text-amber-900 font-sans">રમેશ પટેલ</strong> બની જશે.
-          </span>
+        <div className="flex items-center justify-between sm:justify-end gap-2">
+          {/* Phonetic typing hint */}
+          <div className="hidden lg:flex items-center gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>
+              ફોનેટિક: <strong>Ramesh Patel</strong> &rarr; <strong className="text-amber-900 font-sans">રમેશ પટેલ</strong>
+            </span>
+          </div>
+
+          {/* Mobile View Mode Toggle (Cards vs Table) */}
+          <div className="flex md:hidden items-center bg-white p-1 rounded-lg border border-slate-200 text-xs">
+            <button
+              onClick={() => setMobileViewMode('cards')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors min-h-[34px] ${
+                mobileViewMode === 'cards'
+                  ? 'bg-blue-700 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Cards</span>
+            </button>
+            <button
+              onClick={() => setMobileViewMode('table')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors min-h-[34px] ${
+                mobileViewMode === 'table'
+                  ? 'bg-blue-700 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              <span>Table</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Trainees Grid Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      {/* MOBILE CARDS VIEW (Optimized for phone touchscreens) */}
+      <div className={`${mobileViewMode === 'cards' ? 'block md:hidden' : 'hidden'} space-y-3`}>
+        {filteredTrainees.length === 0 ? (
+          <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-400 text-sm">
+            No trainees found matching your filter or search query.
+          </div>
+        ) : (
+          filteredTrainees.map((trainee) => (
+            <div
+              key={trainee.id}
+              className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:border-slate-300 transition-all"
+            >
+              {/* Header: Roll, Names, Quick Phone Call */}
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span className="w-9 h-9 rounded-lg bg-[#f2edc2] text-[#346739] font-mono font-black text-xs flex items-center justify-center shrink-0 border border-[#9fcb98]">
+                    {trainee.roll_no}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 text-sm leading-snug truncate">
+                      {trainee.surname} {trainee.student_name} {trainee.father_name}
+                      {trainee.grandfather_name && ` ${trainee.grandfather_name}`}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-medium truncate">
+                      {trainee.surname_en} {trainee.student_name_en} {trainee.father_name_en}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      Enroll: {trainee.enrollment_no}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Direct Dial Call Button */}
+                {(trainee.parent_mobile || trainee.mobile) && (
+                  <a
+                    href={`tel:${trainee.parent_mobile || trainee.mobile}`}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 active:scale-95 transition-all shrink-0 min-h-[38px]"
+                    title={`Call: ${trainee.parent_mobile || trainee.mobile}`}
+                  >
+                    <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Call</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Unit, Batch & Demographics */}
+              <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100 mb-3 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                        trainee.unit.includes('A') || trainee.unit.includes('૧')
+                          ? 'bg-blue-100 text-blue-800'
+                          : trainee.unit.includes('B') || trainee.unit.includes('૨')
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {trainee.unit}
+                    </span>
+                    <span className="text-[11px] text-slate-600 font-mono font-medium">
+                      બેચ: {trainee.batch}
+                    </span>
+                  </div>
+
+                  {trainee.mobile && (
+                    <span className="text-[11px] font-mono text-slate-600">
+                      Mob: {trainee.mobile}
+                    </span>
+                  )}
+                </div>
+
+                {/* Address */}
+                <div className="text-[11px] text-slate-600 pt-1 border-t border-slate-200/60">
+                  <div className="text-slate-800 font-medium truncate">{trainee.address}</div>
+                  <div className="text-slate-500 text-[10px]">
+                    મુ. {trainee.village}, તા. {trainee.taluka}, જિ. {trainee.district} - {trainee.pincode}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons: Edit & Remove with touch sizing */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openEditModal(trainee)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 min-h-[40px] transition-colors"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-slate-600" />
+                  <span>વિગતો સુધારો (Edit)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDeleteTrainee(trainee.id)}
+                  className="flex items-center justify-center p-2 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 min-w-[40px] min-h-[40px] transition-colors"
+                  title="Remove Trainee"
+                  aria-label="Remove Trainee"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Trainees Grid Table (Visible on desktop or when mobileViewMode is 'table') */}
+      <div className={`bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden ${
+        mobileViewMode === 'table' ? 'block' : 'hidden md:block'
+      }`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-xs min-w-[700px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4 w-16 text-center">Roll</th>
@@ -710,13 +849,13 @@ export default function TraineeManager({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
+                  className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg min-h-[42px] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800 rounded-lg shadow-xs"
+                  className="flex-1 sm:flex-initial px-5 py-2.5 text-xs font-bold bg-blue-700 text-white hover:bg-blue-800 rounded-lg shadow-xs min-h-[42px] transition-colors"
                 >
                   {editingTrainee ? 'Save Changes' : 'Enroll Trainee'}
                 </button>

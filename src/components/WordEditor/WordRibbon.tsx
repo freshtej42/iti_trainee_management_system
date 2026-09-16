@@ -108,21 +108,21 @@ export default function WordRibbon({
   return (
     <div className="bg-[#f3f5f8] border-b border-[#d2d6dc] select-none text-slate-800">
       {/* Ribbon Top Tabs (Word 2021 Blue Theme) */}
-      <div className="flex items-center justify-between px-3 pt-1 border-b border-[#e2e5e9] bg-[#f8f9fa]">
-        <div className="flex space-x-0.5">
+      <div className="flex items-center justify-between px-2 sm:px-3 pt-1 border-b border-[#e2e5e9] bg-[#f8f9fa] overflow-x-auto">
+        <div className="flex space-x-0.5 shrink-0">
           {(
             [
               { id: 'home', label: 'Home' },
               { id: 'insert', label: 'Insert' },
               { id: 'layout', label: 'Layout' },
-              { id: 'review', label: 'Review (AI Tools)' },
+              { id: 'review', label: 'Review (AI)' },
               { id: 'view', label: 'View' },
             ] as const
           ).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-t transition-all ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-t transition-all whitespace-nowrap min-h-[36px] ${
                 activeTab === tab.id
                   ? 'bg-white text-[#185abd] border-t-2 border-[#185abd] shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-[#e9edf2]'
@@ -134,7 +134,7 @@ export default function WordRibbon({
         </div>
 
         {/* Quick Access Toolbar on right */}
-        <div className="flex items-center gap-1.5 pb-1">
+        <div className="flex items-center gap-1.5 pb-1 shrink-0 ml-2">
           <button
             onClick={() => onExecuteCommand('undo')}
             className="p-1 rounded hover:bg-slate-200 text-slate-600"

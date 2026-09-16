@@ -13,6 +13,11 @@ import {
   Sparkles,
   TrendingDown,
   Users,
+  Phone,
+  Plus,
+  Minus,
+  LayoutGrid,
+  Table as TableIcon,
 } from 'lucide-react';
 import { formatFullName } from '../utils/mergeTags';
 import A4PrintPreviewModal from './A4PrintPreviewModal';
@@ -56,6 +61,7 @@ export default function AttendanceTracker({
   // Working days for this month (from records or default 24)
   const defaultWorkingDays = currentMonthRecords[0]?.total_working_days || 24;
   const [workingDaysInput, setWorkingDaysInput] = useState<number>(defaultWorkingDays);
+  const [mobileViewMode, setMobileViewMode] = useState<'cards' | 'table'>('cards');
 
   // Sync working days input when month changes
   const handleMonthChange = (month: string) => {
@@ -156,6 +162,15 @@ export default function AttendanceTracker({
     onUpdateAttendance(updated);
   };
 
+  // Quick mobile stepper for touch devices (+ / - present days)
+  const handleStepPresentDay = (traineeId: string, delta: number) => {
+    const row = traineeRows.find((r) => r.trainee.id === traineeId);
+    if (!row) return;
+    const current = row.present;
+    const nextVal = Math.min(workingDaysInput, Math.max(0, current + delta));
+    handlePresentDayChange(traineeId, nextVal.toString());
+  };
+
   // Handle global working days change
   const handleGlobalWorkingDaysChange = (newTotal: number) => {
     if (newTotal < 1) return;
@@ -190,15 +205,15 @@ export default function AttendanceTracker({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full">
       {/* Top Controls Bar: Month Selector & Working Days Form */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-5 shadow-xs w-full overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
           {/* Left: Operational Scope & Month */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-lg text-slate-700">
-              <Calendar className="w-4 h-4 text-blue-700" />
-              <span className="text-xs font-semibold">Select Month:</span>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 bg-slate-100 px-2.5 sm:px-3 py-2 rounded-lg text-slate-700 min-h-[38px] sm:min-h-[40px]">
+              <Calendar className="w-4 h-4 text-[#346739] shrink-0" />
+              <span className="text-xs font-semibold">Month:</span>
               <select
                 value={selectedMonth}
                 onChange={(e) => handleMonthChange(e.target.value)}
@@ -213,10 +228,10 @@ export default function AttendanceTracker({
             </div>
 
             {/* Total Working Days input */}
-            <div className="flex items-center gap-2 bg-blue-50/70 border border-blue-200 px-3 py-1.5 rounded-lg">
-              <Clock className="w-4 h-4 text-blue-700" />
-              <label className="text-xs font-semibold text-blue-900">
-                Total Working Days:
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-[#f2edc2]/40 border border-[#9fcb98] px-2.5 sm:px-3 py-1.5 rounded-lg min-h-[38px] sm:min-h-[40px]">
+              <Clock className="w-4 h-4 text-[#346739] shrink-0" />
+              <label className="text-xs font-semibold text-[#346739]">
+                Working Days:
               </label>
               <input
                 type="number"
@@ -224,39 +239,39 @@ export default function AttendanceTracker({
                 max={31}
                 value={workingDaysInput}
                 onChange={(e) => handleGlobalWorkingDaysChange(parseInt(e.target.value, 10) || 1)}
-                className="w-14 px-2 py-0.5 text-center text-xs font-bold bg-white border border-blue-300 rounded text-blue-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-11 sm:w-14 px-1 py-0.5 text-center text-xs font-bold bg-white border border-[#9fcb98] rounded text-[#346739] focus:ring-2 focus:ring-[#346739] focus:outline-none"
               />
-              <span className="text-[11px] text-blue-600 font-medium">Days</span>
+              <span className="text-[11px] text-[#346739]/80 font-medium">Days</span>
             </div>
 
-            <div className="hidden sm:flex text-xs text-slate-500 items-center gap-1">
+            <div className="text-xs text-slate-500 flex items-center gap-1">
               <span>Unit:</span>
-              <strong className="text-slate-800">{instructor.trade} - {instructor.unit}</strong>
+              <strong className="text-slate-800 truncate max-w-[200px]">{instructor.trade} ({instructor.unit || 'Unit A'})</strong>
             </div>
           </div>
 
           {/* Right: Quick Action: Print Register & Bulk Notice */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setIsPrintRegisterOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-700 hover:bg-blue-800 text-white shadow-xs transition-colors"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-bold rounded-lg bg-[#346739] hover:bg-[#264e2b] text-[#f2edc2] shadow-xs transition-colors min-h-[38px] sm:min-h-[40px]"
             >
-              <Printer className="w-4 h-4" />
-              <span>પ્રિન્ટ પત્રક (A4 Print Register)</span>
+              <Printer className="w-4 h-4 shrink-0" />
+              <span>પ્રિન્ટ પત્રક (A4 Print)</span>
             </button>
             <button
               onClick={handleTriggerBulk}
               disabled={stats.flagged === 0}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white shadow-xs transition-colors"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white shadow-xs transition-colors min-h-[38px] sm:min-h-[40px]"
             >
-              <AlertTriangle className="w-4 h-4" />
+              <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>Bulk Notices ({stats.flagged})</span>
             </button>
           </div>
         </div>
 
         {/* Stats Metrics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 pt-4 border-t border-slate-100">
           <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
             <div className="flex items-center justify-between text-slate-500 text-xs font-medium mb-1">
               <span>Enrolled Trainees</span>
@@ -275,80 +290,257 @@ export default function AttendanceTracker({
             <div className="text-[11px] text-rose-600">Requires Parent Notice</div>
           </div>
 
-          <div className="p-3 bg-emerald-50/60 rounded-lg border border-emerald-100">
-            <div className="flex items-center justify-between text-emerald-700 text-xs font-medium mb-1">
+          <div className="p-3 bg-[#79ae6f]/10 rounded-lg border border-[#9fcb98]/50">
+            <div className="flex items-center justify-between text-[#346739] text-xs font-medium mb-1">
               <span>Regular Trainees (&ge;80%)</span>
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#79ae6f]" />
             </div>
-            <div className="text-xl font-bold text-emerald-700">
+            <div className="text-xl font-bold text-[#346739]">
               {stats.total - stats.flagged}
             </div>
-            <div className="text-[11px] text-emerald-600">Eligible for Exam</div>
+            <div className="text-[11px] text-[#346739]/80 font-medium">Eligible for Exam</div>
           </div>
 
-          <div className="p-3 bg-indigo-50/60 rounded-lg border border-indigo-100">
-            <div className="flex items-center justify-between text-indigo-700 text-xs font-medium mb-1">
+          <div className="p-3 bg-[#f2edc2]/40 rounded-lg border border-[#9fcb98]/40">
+            <div className="flex items-center justify-between text-[#346739] text-xs font-medium mb-1">
               <span>Average Attendance</span>
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              <Sparkles className="w-3.5 h-3.5 text-[#79ae6f]" />
             </div>
-            <div className="text-xl font-bold text-indigo-900">{stats.avgPercentage}%</div>
-            <div className="text-[11px] text-indigo-600">Monthly Unit Mean</div>
+            <div className="text-xl font-bold text-[#346739]">{stats.avgPercentage}%</div>
+            <div className="text-[11px] text-[#346739]/80 font-medium">Monthly Unit Mean</div>
           </div>
         </div>
       </div>
 
-      {/* Grid Filter and Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* Grid Filter, Search, and Mobile View Switcher */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by Roll No, Name (English/Gujarati)..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:outline-none min-h-[40px]"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 self-end sm:self-auto bg-white p-1 rounded-lg border border-slate-200 text-xs">
-          <Filter className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-2.5 py-1 rounded font-medium ${
-              statusFilter === 'all'
-                ? 'bg-slate-800 text-white'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            All ({traineeRows.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter('flagged')}
-            className={`px-2.5 py-1 rounded font-medium ${
-              statusFilter === 'flagged'
-                ? 'bg-rose-600 text-white'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Low &lt;80% ({stats.flagged})
-          </button>
-          <button
-            onClick={() => setStatusFilter('regular')}
-            className={`px-2.5 py-1 rounded font-medium ${
-              statusFilter === 'regular'
-                ? 'bg-emerald-600 text-white'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Regular &ge;80% ({stats.total - stats.flagged})
-          </button>
+        <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap w-full sm:w-auto">
+          {/* Status Filters */}
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs overflow-x-auto max-w-full">
+            <Filter className="w-3.5 h-3.5 text-slate-400 ml-1.5 hidden sm:inline shrink-0" />
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-2.5 py-1.5 rounded-md font-medium text-xs transition-colors min-h-[34px] whitespace-nowrap ${
+                statusFilter === 'all'
+                  ? 'bg-[#346739] text-[#f2edc2] font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              All ({traineeRows.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('flagged')}
+              className={`px-2.5 py-1.5 rounded-md font-medium text-xs transition-colors min-h-[34px] whitespace-nowrap ${
+                statusFilter === 'flagged'
+                  ? 'bg-rose-600 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Low &lt;80% ({stats.flagged})
+            </button>
+            <button
+              onClick={() => setStatusFilter('regular')}
+              className={`px-2.5 py-1.5 rounded-md font-medium text-xs transition-colors min-h-[34px] whitespace-nowrap ${
+                statusFilter === 'regular'
+                  ? 'bg-[#79ae6f] text-white font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Regular ({stats.total - stats.flagged})
+            </button>
+          </div>
+
+          {/* Mobile View Mode Toggle (Cards vs Table) */}
+          <div className="flex md:hidden items-center bg-white p-1 rounded-lg border border-slate-200 text-xs">
+            <button
+              onClick={() => setMobileViewMode('cards')}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-semibold transition-colors min-h-[34px] ${
+                mobileViewMode === 'cards'
+                  ? 'bg-[#346739] text-[#f2edc2]'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+              title="Card View (Mobile Optimized)"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Cards</span>
+            </button>
+            <button
+              onClick={() => setMobileViewMode('table')}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-semibold transition-colors min-h-[34px] ${
+                mobileViewMode === 'table'
+                  ? 'bg-[#346739] text-[#f2edc2]'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+              title="Table View (Full Grid)"
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              <span>Table</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Attendance Grid Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      {/* MOBILE CARDS VIEW (Visible on mobile when cards mode is selected, default on phones) */}
+      <div className={`${mobileViewMode === 'cards' ? 'block md:hidden' : 'hidden'} space-y-3`}>
+        {filteredRows.length === 0 ? (
+          <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-400 text-sm">
+            No trainees found matching the selected criteria.
+          </div>
+        ) : (
+          filteredRows.map(({ trainee, record, present, absent, percentage, isFlagged }) => (
+            <div
+              key={trainee.id}
+              className={`bg-white rounded-xl border p-4 shadow-xs transition-all ${
+                isFlagged ? 'border-rose-300 bg-rose-50/10' : 'border-slate-200'
+              }`}
+            >
+              {/* Card Header: Roll No, Names, Phone Call */}
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span className="w-8 h-8 rounded-lg bg-[#f2edc2] text-[#346739] font-mono font-black text-xs flex items-center justify-center shrink-0 border border-[#9fcb98]">
+                    {trainee.roll_no}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 text-sm leading-snug truncate">
+                      {trainee.surname} {trainee.student_name} {trainee.father_name}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-medium truncate">
+                      {trainee.surname_en} {trainee.student_name_en} {trainee.father_name_en}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      Enroll: {trainee.enrollment_no}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Parent Phone Quick Call Button */}
+                {trainee.parent_mobile && (
+                  <a
+                    href={`tel:${trainee.parent_mobile}`}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 active:scale-95 transition-all shrink-0 min-h-[38px]"
+                    title={`Call Parent: ${trainee.parent_mobile}`}
+                  >
+                    <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Call</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Card Attendance Progress Bar & Percentage */}
+              <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100 mb-3">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`font-mono font-bold text-sm ${
+                        isFlagged ? 'text-rose-600' : 'text-emerald-700'
+                      }`}
+                    >
+                      {percentage.toFixed(1)}%
+                    </span>
+                    <span className="text-[11px] text-slate-400">Attendance</span>
+                  </div>
+
+                  {isFlagged ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                      <AlertTriangle className="w-2.5 h-2.5" />
+                      <span>&lt;80% Flagged</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      <CheckCircle2 className="w-2.5 h-2.5" />
+                      <span>Satisfactory</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      isFlagged ? 'bg-rose-500' : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${Math.min(100, percentage)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Stepper Controls: Present Days & Absent Days */}
+              <div className="flex items-center justify-between gap-3 mb-3 pt-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700">હાજર (Present):</span>
+                  <div className="flex items-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => handleStepPresentDay(trainee.id, -1)}
+                      disabled={present <= 0}
+                      className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-30 transition-colors"
+                      aria-label="Decrease present days"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <input
+                      type="number"
+                      min={0}
+                      max={workingDaysInput}
+                      value={present}
+                      onChange={(e) => handlePresentDayChange(trainee.id, e.target.value)}
+                      className="w-12 h-10 text-center font-bold text-sm text-slate-900 border-x border-slate-200 focus:outline-none focus:bg-blue-50/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleStepPresentDay(trainee.id, 1)}
+                      disabled={present >= workingDaysInput}
+                      className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-30 transition-colors"
+                      aria-label="Increase present days"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Absent days count */}
+                <div className="text-right">
+                  <span className="text-xs text-slate-500 block">ગેરહાજર (Absent):</span>
+                  <span className="font-bold text-slate-800 text-sm">{absent} દિવસ</span>
+                </div>
+              </div>
+
+              {/* Action Button: Draft Notice */}
+              <button
+                type="button"
+                onClick={() => onDraftNotice(trainee, record)}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-xs shadow-xs transition-all min-h-[44px] ${
+                  isFlagged
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white active:scale-98'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                }`}
+              >
+                <FileEdit className="w-4 h-4" />
+                <span>
+                  {isFlagged ? 'નોટિસ બનાવો (Draft Irregularity Notice)' : 'નોટિસ તૈયાર કરો (Draft Notice)'}
+                </span>
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Attendance Grid Table (Visible on desktop or when mobileViewMode is 'table') */}
+      <div className={`bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden ${
+        mobileViewMode === 'table' ? 'block' : 'hidden md:block'
+      }`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-xs min-w-[700px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4 w-16 text-center">Roll</th>
@@ -392,18 +584,36 @@ export default function AttendanceTracker({
                         {trainee.enrollment_no}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <input
-                          type="number"
-                          min={0}
-                          max={workingDaysInput}
-                          value={present}
-                          onChange={(e) => handlePresentDayChange(trainee.id, e.target.value)}
-                          className={`w-16 py-1 px-1.5 text-center font-bold text-sm rounded border focus:outline-none focus:ring-2 ${
-                            isFlagged
-                              ? 'border-rose-300 text-rose-700 bg-rose-50/50 focus:ring-rose-400'
-                              : 'border-slate-300 text-slate-900 bg-white focus:ring-blue-400'
-                          }`}
-                        />
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStepPresentDay(trainee.id, -1)}
+                            disabled={present <= 0}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <input
+                            type="number"
+                            min={0}
+                            max={workingDaysInput}
+                            value={present}
+                            onChange={(e) => handlePresentDayChange(trainee.id, e.target.value)}
+                            className={`w-14 py-1 px-1 text-center font-bold text-sm rounded border focus:outline-none focus:ring-2 ${
+                              isFlagged
+                                ? 'border-rose-300 text-rose-700 bg-rose-50/50 focus:ring-rose-400'
+                                : 'border-slate-300 text-slate-900 bg-white focus:ring-blue-400'
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleStepPresentDay(trainee.id, 1)}
+                            disabled={present >= workingDaysInput}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-center font-semibold text-slate-700">
                         {absent}
@@ -441,7 +651,7 @@ export default function AttendanceTracker({
                       <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => onDraftNotice(trainee, record)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold text-xs shadow-2xs transition-colors ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold text-xs shadow-2xs transition-colors min-h-[34px] ${
                             isFlagged
                               ? 'bg-rose-600 hover:bg-rose-700 text-white'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-700'

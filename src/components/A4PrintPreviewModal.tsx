@@ -48,8 +48,10 @@ export default function A4PrintPreviewModal({
       setOrientation(initialOrientation);
       setPrintFeedback(null);
       // Sensible default zoom depending on window width
-      if (window.innerWidth < 640) {
-        setZoomLevel(0.45);
+      if (window.innerWidth < 420) {
+        setZoomLevel(0.38);
+      } else if (window.innerWidth < 640) {
+        setZoomLevel(0.48);
       } else if (window.innerWidth < 1024) {
         setZoomLevel(0.65);
       } else {
@@ -231,24 +233,24 @@ export default function A4PrintPreviewModal({
         </div>
 
         {/* Right Actions: Save PDF, Print Directly, Close */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto justify-end">
           {/* Save as PDF Button */}
           <button
             type="button"
             onClick={handleSavePdf}
             disabled={isExportingPdf}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white shadow-md transition-all disabled:opacity-50"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white shadow-md transition-all disabled:opacity-50 min-h-[38px]"
             title="Download crisp vector A4 PDF file directly to your device"
           >
             {isExportingPdf ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-emerald-100" />
-                <span>{pdfProgress || 'PDF તૈયાર થાય છે...'}</span>
+                <span>{pdfProgress || 'PDF...'}</span>
               </>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>સેવ PDF (Save as PDF)</span>
+                <span>સેવ PDF (Save)</span>
               </>
             )}
           </button>
@@ -257,18 +259,18 @@ export default function A4PrintPreviewModal({
           <button
             type="button"
             onClick={handlePrintDirectly}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-md transition-all"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-md transition-all min-h-[38px]"
             title="Print directly using your browser / system printer dialog (Ctrl+P)"
           >
             <Printer className="w-4 h-4" />
-            <span>સીધી પ્રિન્ટ (Print Directly)</span>
+            <span>પ્રિન્ટ (Print)</span>
           </button>
 
           {/* Close Modal */}
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors ml-1"
+            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors ml-1 min-h-[38px] min-w-[38px] flex items-center justify-center"
             title="Close Preview (Esc)"
           >
             <X className="w-5 h-5" />

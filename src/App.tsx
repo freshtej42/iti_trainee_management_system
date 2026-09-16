@@ -315,7 +315,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f7f9f6] text-slate-900 flex flex-col font-sans w-full max-w-full overflow-x-hidden">
       {/* Header Bar */}
       <Header
         activeTab={activeTab}
@@ -333,7 +333,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 py-3 sm:py-6 pb-24 md:pb-6 overflow-x-hidden">
         {activeTab === 'attendance' && (
           <AttendanceTracker
             trainees={instructorTrainees}

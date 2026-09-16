@@ -26,23 +26,29 @@ export default function ImeFloatWidget({ currentLanguage, onLanguageChange }: Im
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-slate-300 rounded-lg p-1 shadow-sm">
-        <span className="flex items-center gap-1 text-xs font-semibold text-slate-700 pl-2 pr-1">
-          <Languages className="w-3.5 h-3.5 text-blue-600" />
-          <span>Phonetic IME:</span>
+      <div className="flex items-center gap-1 bg-white/95 border border-slate-300 rounded-lg p-0.5 sm:p-1 shadow-2xs">
+        <span className="flex items-center gap-1 text-xs font-semibold text-[#346739] pl-1.5 pr-0.5" title="Phonetic IME Language Selector">
+          <Languages className="w-3.5 h-3.5 text-[#346739] shrink-0" />
+          <span className="hidden md:inline">IME:</span>
         </span>
-        <div className="flex bg-slate-100 p-0.5 rounded-md text-xs font-medium">
+        <div className="flex bg-slate-100 p-0.5 rounded-md text-[11px] sm:text-xs font-medium">
           {(['Gujarati', 'Hindi', 'English'] as const).map((lang) => (
             <button
               key={lang}
               onClick={() => onLanguageChange(lang)}
-              className={`px-2.5 py-1 rounded transition-all ${
+              className={`px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded transition-all ${
                 currentLanguage === lang
-                  ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                  ? 'bg-[#346739] text-[#f2edc2] shadow-xs font-bold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
               }`}
+              title={`Switch typing language to ${lang}`}
             >
-              {lang === 'Gujarati' ? 'ગુજરાતી' : lang === 'Hindi' ? 'हिन्दी' : 'English'}
+              <span className="sm:hidden">
+                {lang === 'Gujarati' ? 'ગુજ' : lang === 'Hindi' ? 'હિ' : 'EN'}
+              </span>
+              <span className="hidden sm:inline">
+                {lang === 'Gujarati' ? 'ગુજરાતી' : lang === 'Hindi' ? 'हिन्दी' : 'English'}
+              </span>
             </button>
           ))}
         </div>
@@ -51,12 +57,12 @@ export default function ImeFloatWidget({ currentLanguage, onLanguageChange }: Im
           title="Open Phonetic Key Guide & Quick Converter"
           className="p-1 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
         >
-          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
       </div>
 
       {isOpen && (
-        <div className="absolute right-0 top-11 z-50 w-80 sm:w-96 bg-white border border-slate-300 rounded-xl shadow-xl p-4 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 top-10 sm:top-11 z-50 w-72 sm:w-96 max-w-[calc(100vw-20px)] bg-white border border-slate-300 rounded-xl shadow-xl p-3 sm:p-4 animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex items-center justify-between pb-2 border-b border-slate-200 mb-3">
             <div className="flex items-center gap-1.5 font-semibold text-sm text-slate-800">
               <Sparkles className="w-4 h-4 text-amber-500" />

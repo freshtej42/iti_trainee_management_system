@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Instructor, Trainee, AttendanceRecord } from '../../types';
-import { Building2, Stamp, CheckCircle } from 'lucide-react';
+import { Building2, Stamp, CheckCircle, Smartphone } from 'lucide-react';
 
 interface A4CanvasProps {
   contentHtml: string;
@@ -34,7 +34,31 @@ export default function A4Canvas({
   instructor,
 }: A4CanvasProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isUpdatingRef = useRef(false);
+  const [containerWidth, setContainerWidth] = useState<number>(850);
+
+  // Measure container width for responsive auto-fit scaling
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+    updateWidth();
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setContainerWidth(entry.contentRect.width);
+        }
+      }
+    });
+
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   // Sync content into editable div without resetting cursor when not actively typing
   useEffect(() => {
@@ -57,42 +81,73 @@ export default function A4Canvas({
 
   // Margin padding mappings
   const marginPaddingClass = {
-    normal: 'p-10 sm:p-12', // approx 20mm
-    narrow: 'p-6 sm:p-8',   // approx 12mm
-    wide: 'p-12 sm:p-16',   // approx 25mm
+    normal: 'p-8 sm:p-12', // approx 20mm
+    narrow: 'p-5 sm:p-8',   // approx 12mm
+    wide: 'p-10 sm:p-16',   // approx 25mm
   }[pageMargin];
 
-  return (
-    <div className="w-full flex justify-center py-6 px-2 overflow-x-auto">
-      <div
-        className="relative transition-transform duration-100 origin-top flex flex-col items-center"
-        style={{ transform: `scale(${zoomLevel})` }}
-      >
-        {/* Horizontal Top Ruler */}
-        {showRuler && (
-          <div className="w-[210mm] max-w-[794px] h-6 bg-[#f1f3f6] border border-[#d1d5db] border-b-0 flex items-end px-10 text-[9px] font-mono text-slate-500 select-none shadow-2xs">
-            <div className="w-full flex justify-between">
-              {Array.from({ length: 21 }).map((_, i) => (
-                <div key={i} className="flex flex-col items-center">
-                  <span className="leading-none mb-0.5">{i % 2 === 0 ? i : ''}</span>
-                  <div className={`w-px bg-slate-400 ${i % 2 === 0 ? 'h-2' : 'h-1'}`}></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+  // A4 standard pixel dimension reference at 96 DPI: 210mm x 297mm -> 794px x 1123px
+  const BASE_A4_WIDTH = 794;
+  const BASE_A4_HEIGHT = 1123;
 
-        {/* A4 Page Container (210mm x 297mm standard ratio) */}
+  // Auto-fit scale factor for mobile viewports
+  // When viewport is smaller than A4 document width (794px), scale down proportionally
+  const availableWidth = Math.max(280, containerWidth - 24);
+  const autoFitScale = availableWidth < BASE_A4_WIDTH ? availableWidth / BASE_A4_WIDTH : 1;
+  const effectiveScale = Number((zoomLevel * autoFitScale).toFixed(3));
+  const isScaledDown = effectiveScale < 0.95;
+
+  return (
+    <div ref={containerRef} className="w-full flex flex-col items-center py-4 px-1 sm:px-2 overflow-x-auto">
+      {/* Mobile Auto-Fit Scale Status Indicator */}
+      {isScaledDown && (
+        <div className="mb-3 px-3 py-1 bg-white/90 border border-blue-200 rounded-full text-[11px] text-blue-800 font-medium flex items-center gap-1.5 shadow-2xs">
+          <Smartphone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+          <span>Mobile Auto-Fit: {Math.round(effectiveScale * 100)}%</span>
+          <span className="text-slate-400 hidden xs:inline">• Layout preserved at 210mm</span>
+        </div>
+      )}
+
+      {/* Sized Wrapper to prevent layout collapse when scaling via transform */}
+      <div
+        className="relative flex justify-center transition-all duration-100"
+        style={{
+          width: `${Math.round(BASE_A4_WIDTH * effectiveScale)}px`,
+          minHeight: `${Math.round(BASE_A4_HEIGHT * effectiveScale)}px`,
+        }}
+      >
         <div
-          id="notice-a4-sheet"
-          className={`w-[210mm] max-w-[794px] min-h-[297mm] bg-white text-slate-900 shadow-xl border border-slate-300 relative flex flex-col justify-between a4-printable-document ${marginPaddingClass} ${
-            showMarginGuides ? 'ring-1 ring-dashed ring-blue-300 ring-offset-4' : ''
-          }`}
+          className="relative transition-transform duration-100 flex flex-col items-center origin-top"
           style={{
-            fontFamily: fontFamily,
-            fontSize: `${fontSize}pt`,
+            transform: `scale(${effectiveScale})`,
+            width: `${BASE_A4_WIDTH}px`,
           }}
         >
+          {/* Horizontal Top Ruler */}
+          {showRuler && (
+            <div className="w-[794px] h-6 bg-[#f1f3f6] border border-[#d1d5db] border-b-0 flex items-end px-10 text-[9px] font-mono text-slate-500 select-none shadow-2xs">
+              <div className="w-full flex justify-between">
+                {Array.from({ length: 21 }).map((_, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <span className="leading-none mb-0.5">{i % 2 === 0 ? i : ''}</span>
+                    <div className={`w-px bg-slate-400 ${i % 2 === 0 ? 'h-2' : 'h-1'}`}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* A4 Page Container (210mm x 297mm standard ratio = 794px x 1123px) */}
+          <div
+            id="notice-a4-sheet"
+            className={`w-[794px] min-h-[1123px] bg-white text-slate-900 shadow-xl border border-slate-300 relative flex flex-col justify-between a4-printable-document ${marginPaddingClass} ${
+              showMarginGuides ? 'ring-1 ring-dashed ring-blue-300 ring-offset-4' : ''
+            }`}
+            style={{
+              fontFamily: fontFamily,
+              fontSize: `${fontSize}pt`,
+            }}
+          >
           {/* Top Letterhead Overlay */}
           {showLetterhead && (
             <div className="mb-6 border-b-2 border-slate-800 pb-3 select-none">
@@ -197,5 +252,6 @@ export default function A4Canvas({
         </div>
       </div>
     </div>
+  </div>
   );
 }

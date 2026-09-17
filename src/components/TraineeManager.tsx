@@ -56,21 +56,73 @@ export default function TraineeManager({
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('ALL');
   const [mobileViewMode, setMobileViewMode] = useState<'cards' | 'table'>('cards');
 
-  const availableBatches = instructor.batches && instructor.batches.length > 0
-    ? instructor.batches
-    : [instructor.batch || '૨૦૨૫–૨૦૨૬'];
+  // Dynamic Hierarchy resolution from instructor.academic_hierarchy
+  const academicHierarchy =
+    instructor.academic_hierarchy && instructor.academic_hierarchy.length > 0
+      ? instructor.academic_hierarchy
+      : [
+          {
+            id: 'trade-copa',
+            name: instructor.trade || 'Computer Operator and Programming Assistant (COPA)',
+            batches: [
+              {
+                id: 'batch-default',
+                name: instructor.batch || '૨૦૨૫–૨૦૨૬',
+                units: [
+                  { id: 'u-1', name: instructor.unit || 'Unit A' },
+                  { id: 'u-2', name: 'Unit B' },
+                ],
+              },
+            ],
+          },
+        ];
 
-  const availableUnits = instructor.units && instructor.units.length > 0
-    ? instructor.units
-    : ['Unit A', 'Unit B', 'Unit C'];
+  const availableTrades = academicHierarchy.map((t) => t.name);
+
+  // Overall unique batches & units for filters
+  const filterBatches = Array.from(
+    new Set(
+      academicHierarchy.flatMap((t) => t.batches?.map((b) => b.name) || [])
+    )
+  );
+  const allFilterBatches =
+    filterBatches.length > 0 ? filterBatches : [instructor.batch || '૨૦૨૫–૨૦૨૬'];
+
+  const filterUnits = Array.from(
+    new Set(
+      academicHierarchy.flatMap((t) =>
+        t.batches?.flatMap((b) => b.units?.map((u) => u.name) || []) || []
+      )
+    )
+  );
+  const allFilterUnits =
+    filterUnits.length > 0 ? filterUnits : ['Unit A', 'Unit B', 'Unit C'];
+
+  // Default values for initial form state
+  const defaultTrade = availableTrades[0] || instructor.trade;
+  const defaultTradeObj =
+    academicHierarchy.find((t) => t.name === defaultTrade) || academicHierarchy[0];
+  const defaultBatches =
+    defaultTradeObj?.batches && defaultTradeObj.batches.length > 0
+      ? defaultTradeObj.batches.map((b) => b.name)
+      : [instructor.batch || '૨૦૨૫–૨૦૨૬'];
+  const defaultBatch = defaultBatches[0];
+  const defaultBatchObj =
+    defaultTradeObj?.batches?.find((b) => b.name === defaultBatch) ||
+    defaultTradeObj?.batches?.[0];
+  const defaultUnits =
+    defaultBatchObj?.units && defaultBatchObj.units.length > 0
+      ? defaultBatchObj.units.map((u) => u.name)
+      : ['Unit A', 'Unit B', 'Unit C'];
+  const defaultUnit = defaultUnits[0];
 
   // Form State
   const initialFormState = {
     roll_no: '',
     enrollment_no: '',
-    trade: instructor.trade,
-    batch: instructor.batch || '૨૦૨૫–૨૦૨૬',
-    unit: instructor.unit || 'Unit A',
+    trade: defaultTrade,
+    batch: defaultBatch,
+    unit: defaultUnit,
     surname: '',
     student_name: '',
     father_name: '',
@@ -90,16 +142,56 @@ export default function TraineeManager({
 
   const [formData, setFormData] = useState(initialFormState);
 
+  // Form Cascading Hierarchy (computed safely AFTER formData is declared)
+  const currentTradeObj =
+    academicHierarchy.find((t) => t.name === formData.trade) || defaultTradeObj;
+
+  const formBatches =
+    currentTradeObj?.batches && currentTradeObj.batches.length > 0
+      ? currentTradeObj.batches.map((b) => b.name)
+      : [instructor.batch || '૨૦૨૫–૨૦૨૬'];
+
+  const currentBatchObj =
+    currentTradeObj?.batches?.find((b) => b.name === formData.batch) ||
+    currentTradeObj?.batches?.[0];
+
+  const formUnits =
+    currentBatchObj?.units && currentBatchObj.units.length > 0
+      ? currentBatchObj.units.map((u) => u.name)
+      : ['Unit A', 'Unit B', 'Unit C'];
+
+  const handleTradeChange = (tradeName: string) => {
+    const tradeObj = academicHierarchy.find((t) => t.name === tradeName);
+    const firstBatch = tradeObj?.batches?.[0]?.name || defaultBatch;
+    const firstUnit = tradeObj?.batches?.[0]?.units?.[0]?.name || defaultUnit;
+    setFormData((prev) => ({
+      ...prev,
+      trade: tradeName,
+      batch: firstBatch,
+      unit: firstUnit,
+    }));
+  };
+
+  const handleBatchChange = (batchName: string) => {
+    const batchObj = currentTradeObj?.batches?.find((b) => b.name === batchName);
+    const firstUnit = batchObj?.units?.[0]?.name || defaultUnit;
+    setFormData((prev) => ({
+      ...prev,
+      batch: batchName,
+      unit: firstUnit,
+    }));
+  };
+
   const openAddModal = () => {
     setEditingTrainee(null);
     const nextRoll = (trainees.length + 101).toString();
     setFormData({
       ...initialFormState,
       roll_no: nextRoll,
-      enrollment_no: `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/${new Date().getFullYear()}/${nextRoll}`,
-      trade: instructor.trade,
-      batch: instructor.batch || availableBatches[0],
-      unit: instructor.unit || availableUnits[0],
+      enrollment_no: `ITI/${defaultTrade.substring(0, 3).toUpperCase()}/${new Date().getFullYear()}/${nextRoll}`,
+      trade: defaultTrade,
+      batch: defaultBatch,
+      unit: defaultUnit,
     });
     setIsModalOpen(true);
   };
@@ -243,7 +335,7 @@ export default function TraineeManager({
           >
             બધા (All)
           </button>
-          {availableUnits.map((u) => (
+          {allFilterUnits.map((u) => (
             <button
               type="button"
               key={u}
@@ -268,7 +360,7 @@ export default function TraineeManager({
             className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800"
           >
             <option value="ALL">બધી બેચ (All Batches)</option>
-            {availableBatches.map((b) => (
+            {allFilterBatches.map((b) => (
               <option key={b} value={b}>
                 {b}
               </option>
@@ -593,44 +685,67 @@ export default function TraineeManager({
                 </div>
               </div>
 
-              {/* Trade, Batch, Unit (A/B/C) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">ટ્રેડ (Trade)</label>
-                  <input
-                    type="text"
-                    value={formData.trade || ''}
-                    onChange={(e) => setFormData({ ...formData, trade: e.target.value })}
-                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg"
-                  />
+              {/* Academic Hierarchy Cascading Selectors (Trade -> Batch -> Unit) */}
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-[#346739]" />
+                    શૈક્ષણિક વર્ગીકરણ (Academic Hierarchy)
+                  </span>
+                  <span className="text-[10px] text-emerald-700 font-medium">Trade &rarr; Batch &rarr; Unit</span>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">બેચ (Batch)</label>
-                  <select
-                    value={formData.batch || ''}
-                    onChange={(e) => setFormData({ ...formData, batch: e.target.value })}
-                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-bold"
-                  >
-                    {availableBatches.map((b) => (
-                      <option key={b} value={b}>
-                        {b}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">યુનિટ (Unit A / B / C) *</label>
-                  <select
-                    value={formData.unit || ''}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-bold text-blue-800"
-                  >
-                    {availableUnits.map((u) => (
-                      <option key={u} value={u}>
-                        {u}
-                      </option>
-                    ))}
-                  </select>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      ૧. ટ્રેડ (Trade) *
+                    </label>
+                    <select
+                      value={formData.trade || availableTrades[0]}
+                      onChange={(e) => handleTradeChange(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-medium bg-white focus:ring-2 focus:ring-[#346739] focus:outline-none"
+                    >
+                      {availableTrades.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      ૨. બેચ (Batch) *
+                    </label>
+                    <select
+                      value={formData.batch || formBatches[0]}
+                      onChange={(e) => handleBatchChange(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-bold bg-white focus:ring-2 focus:ring-[#346739] focus:outline-none"
+                    >
+                      {formBatches.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      ૩. યુનિટ (Unit A / B / C) *
+                    </label>
+                    <select
+                      value={formData.unit || formUnits[0]}
+                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-bold text-[#346739] bg-white focus:ring-2 focus:ring-[#346739] focus:outline-none"
+                    >
+                      {formUnits.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 

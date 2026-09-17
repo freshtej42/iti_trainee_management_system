@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Bold,
   Italic,
@@ -30,6 +30,8 @@ import {
   RotateCw,
   Download,
   Loader2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import VariableDropdown from './VariableDropdown';
 
@@ -64,11 +66,15 @@ interface WordRibbonProps {
   onTriggerAiCommentary: () => void;
   onTriggerGrammarCheck: () => void;
   isAiLoading: boolean;
+  // Image Upload Support
+  onUploadHeaderLogo?: (slot: 'left' | 'right', dataUrl: string) => void;
   // Save & Print & PDF Export
   onSaveTemplate: () => void;
   onPrintDocument: () => void;
   onExportPdf: () => void;
   isExportingPdf?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export default function WordRibbon({
@@ -98,12 +104,49 @@ export default function WordRibbon({
   onTriggerAiCommentary,
   onTriggerGrammarCheck,
   isAiLoading,
+  onUploadHeaderLogo,
   onSaveTemplate,
   onPrintDocument,
   onExportPdf,
   isExportingPdf = false,
+  isCollapsed = false,
+  onToggleCollapse,
 }: WordRibbonProps) {
   const [showTablePicker, setShowTablePicker] = useState(false);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [imageUploadTarget, setImageUploadTarget] = useState<'left' | 'right' | 'body'>('left');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTriggerUpload = (target: 'left' | 'right' | 'body') => {
+    setImageUploadTarget(target);
+    setShowImagePicker(false);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (!file.type.startsWith('image/')) {
+        alert('કૃપા કરીને માન્ય ઇમેજ ફાઇલ પસંદ કરો.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        if (!dataUrl) return;
+        if (imageUploadTarget === 'left' || imageUploadTarget === 'right') {
+          onUploadHeaderLogo?.(imageUploadTarget, dataUrl);
+        } else {
+          // Insert into document body
+          onExecuteCommand(
+            'insertHTML',
+            `<img src="${dataUrl}" style="max-width: 100%; height: auto; border-radius: 6px; margin: 10px 0;" /><p></p>`
+          );
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <div className="bg-[#f3f5f8] border-b border-[#d2d6dc] select-none text-slate-800">
@@ -121,7 +164,13 @@ export default function WordRibbon({
           ).map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                // If collapsed and user clicks a tab, expand it
+                if (isCollapsed && onToggleCollapse) {
+                  onToggleCollapse();
+                }
+              }}
               className={`px-3 py-1.5 text-xs font-semibold rounded-t transition-all whitespace-nowrap min-h-[36px] ${
                 activeTab === tab.id
                   ? 'bg-white text-[#185abd] border-t-2 border-[#185abd] shadow-xs'
@@ -134,7 +183,7 @@ export default function WordRibbon({
         </div>
 
         {/* Quick Access Toolbar on right */}
-        <div className="flex items-center gap-1.5 pb-1 shrink-0 ml-2">
+        <div className="flex items-center gap-1 pb-1 shrink-0 ml-2">
           <button
             onClick={() => onExecuteCommand('undo')}
             className="p-1 rounded hover:bg-slate-200 text-slate-600"
@@ -149,21 +198,21 @@ export default function WordRibbon({
           >
             <RotateCw className="w-3.5 h-3.5" />
           </button>
-          <div className="h-4 w-px bg-slate-300 mx-1"></div>
+          <div className="h-4 w-px bg-slate-300 mx-0.5" />
           <button
             onClick={onSaveTemplate}
-            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 shadow-2xs transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 shadow-2xs transition-colors"
             title="Save Template to System"
           >
             <Save className="w-3.5 h-3.5 text-blue-700" />
-            <span>Save</span>
+            <span className="hidden md:inline">Save</span>
           </button>
 
           {/* Export PDF Button */}
           <button
             onClick={onExportPdf}
             disabled={isExportingPdf}
-            className="flex items-center gap-1 px-3 py-1 rounded text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition-colors disabled:opacity-50"
             title="Download this Notice as A4 PDF"
           >
             {isExportingPdf ? (
@@ -171,53 +220,66 @@ export default function WordRibbon({
             ) : (
               <Download className="w-3.5 h-3.5" />
             )}
-            <span>Export PDF (A4)</span>
+            <span className="hidden md:inline">PDF</span>
           </button>
 
           {/* Print Button */}
           <button
             onClick={onPrintDocument}
-            className="flex items-center gap-1 px-3 py-1 rounded text-xs font-bold bg-[#185abd] hover:bg-[#104899] text-white shadow-xs transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold bg-[#185abd] hover:bg-[#104899] text-white shadow-xs transition-colors"
             title="Print Document in A4 format"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Print</span>
+            <span className="hidden md:inline">Print</span>
           </button>
+
+          {/* Ribbon Expand / Collapse Toggle Button */}
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="p-1 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-900 ml-0.5"
+              title={isCollapsed ? "રિબન ટૂલબાર ખોલો (Expand Ribbon)" : "રિબન સંકોચો (Collapse Ribbon)"}
+            >
+              {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Ribbon Toolbars Content */}
-      <div className="px-4 py-2 bg-white flex items-center gap-3 overflow-x-auto min-h-[58px]">
-        {/* HOME TAB */}
-        {activeTab === 'home' && (
-          <>
-            {/* Font Family & Size Section */}
-            <div className="flex items-center gap-1.5 pr-3 border-r border-slate-200">
-              <select
-                value={fontFamily}
-                onChange={(e) => setFontFamily(e.target.value)}
-                className="text-xs font-medium border border-slate-300 rounded px-2 py-1 bg-white focus:outline-none focus:border-blue-500 w-44"
-              >
-                <option value="'Noto Sans Gujarati', sans-serif">Noto Sans Gujarati (ગુજરાતી)</option>
-                <option value="'Noto Serif Gujarati', serif">Noto Serif Gujarati</option>
-                <option value="'Noto Sans Devanagari', sans-serif">Noto Sans Devanagari (हिन्दी)</option>
-                <option value="'Segoe UI', sans-serif">Segoe UI (Default)</option>
-                <option value="Arial, sans-serif">Arial</option>
-                <option value="'Times New Roman', serif">Times New Roman</option>
-              </select>
+      {/* Ribbon Toolbars Content (Collapsible) */}
+      {!isCollapsed && (
+        <div className="px-3 sm:px-4 py-2 bg-white flex items-center gap-3 overflow-x-auto min-h-[58px]">
+          {/* HOME TAB */}
+          {activeTab === 'home' && (
+            <>
+              {/* Font Family & Size Section */}
+              <div className="flex items-center gap-1.5 pr-3 border-r border-slate-200 shrink-0">
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className="text-xs font-medium border border-slate-300 rounded px-2 py-1 bg-white focus:outline-none focus:border-blue-500 w-36 sm:w-44 truncate"
+                >
+                  <option value="'Noto Sans Gujarati', sans-serif">ગુજરાતી (Noto Sans)</option>
+                  <option value="'Noto Serif Gujarati', serif">ગુજરાતી (Serif)</option>
+                  <option value="'Noto Sans Devanagari', sans-serif">हिन्दी (Devanagari)</option>
+                  <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                  <option value="Arial, sans-serif">Arial</option>
+                  <option value="'Times New Roman', serif">Times New Roman</option>
+                </select>
 
-              <select
-                value={fontSize}
-                onChange={(e) => setFontSize(e.target.value)}
-                className="text-xs font-medium border border-slate-300 rounded px-2 py-1 bg-white focus:outline-none focus:border-blue-500 w-16"
-              >
-                {['10', '11', '12', '13', '14', '16', '18', '20', '24', '28', '32'].map((sz) => (
-                  <option key={sz} value={sz}>
-                    {sz} pt
-                  </option>
-                ))}
-              </select>
-            </div>
+                <select
+                  value={fontSize}
+                  onChange={(e) => setFontSize(e.target.value)}
+                  className="text-xs font-medium border border-slate-300 rounded px-2 py-1 bg-white focus:outline-none focus:border-blue-500 w-16 shrink-0"
+                >
+                  {['10', '11', '12', '13', '14', '16', '18', '20', '24', '28', '32'].map((sz) => (
+                    <option key={sz} value={sz}>
+                      {sz} pt
+                    </option>
+                  ))}
+                </select>
+              </div>
 
             {/* Character Styles: B, I, U, S */}
             <div className="flex items-center gap-1 pr-3 border-r border-slate-200">
@@ -373,6 +435,60 @@ export default function WordRibbon({
                 </div>
               )}
             </div>
+
+            {/* Image & Logo Insertion from Computer */}
+            <div className="relative pr-3 border-r border-slate-200">
+              <button
+                type="button"
+                onClick={() => setShowImagePicker(!showImagePicker)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded hover:bg-slate-100 border border-slate-200 text-slate-800"
+                title="Insert Images / Logos from your computer"
+              >
+                <ImageIcon className="w-4 h-4 text-emerald-700" />
+                <span>Insert Picture / Logo</span>
+              </button>
+
+              {showImagePicker && (
+                <div className="absolute left-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-xl p-2 z-50 w-56 animate-in fade-in zoom-in-95 duration-100 text-xs">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
+                    કમ્પ્યુટરમાંથી છબી ઉમેરો:
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerUpload('left')}
+                    className="w-full text-left px-2 py-1.5 rounded hover:bg-blue-50 text-slate-800 flex items-center gap-2"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                    <span>ડાબો હેડર લોગો (Left Logo)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerUpload('right')}
+                    className="w-full text-left px-2 py-1.5 rounded hover:bg-blue-50 text-slate-800 flex items-center gap-2"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-orange-600"></span>
+                    <span>જમણો હેડર લોગો (Right Logo)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerUpload('body')}
+                    className="w-full text-left px-2 py-1.5 rounded hover:bg-blue-50 text-slate-800 flex items-center gap-2 border-t border-slate-100 mt-1 pt-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    <span>દસ્તાવેજમાં છબી (In Document)</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Hidden Input for Ribbon File Upload */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
 
             {/* Horizontal Line & Seal */}
             <div className="flex items-center gap-1.5">
@@ -544,6 +660,7 @@ export default function WordRibbon({
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

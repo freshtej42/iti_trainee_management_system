@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Instructor } from '../types';
+import { Instructor, AcademicTrade } from '../types';
 import {
   Building2,
   Lock,
@@ -10,21 +10,23 @@ import {
   Layers,
   MapPin,
   CheckCircle2,
-  ArrowRight,
   ShieldCheck,
-  Sparkles,
-  BookOpen,
   Eye,
   EyeOff,
-  Send,
-  Check,
   AlertCircle,
-  ExternalLink,
-  RefreshCw,
-  Copy,
+  Clock,
+  Send,
+  HelpCircle,
   KeyRound,
+  X,
 } from 'lucide-react';
 import { transliterateText } from '../utils/phoneticIme';
+import { INITIAL_INSTRUCTORS } from '../data/initialData';
+import {
+  validatePassword,
+  cleanPhoneNumber,
+  checkInstructorUniqueness,
+} from '../utils/passwordPolicy';
 
 interface InstructorAuthProps {
   instructors: Instructor[];
@@ -52,22 +54,27 @@ export default function InstructorAuth({
   instructors,
   onLogin,
   onRegister,
-  onVerifyEmail,
 }: InstructorAuthProps) {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [infoMsg, setInfoMsg] = useState<string>('');
+  const [pendingNotice, setPendingNotice] = useState<{
+    name: string;
+    phone: string;
+    email: string;
+  } | null>(null);
 
-  // --- Login Form State ---
-  const [loginEmail, setLoginEmail] = useState<string>('');
+  // --- Login Form State (Versatile Login: Email OR Mobile) ---
+  const [loginIdentifier, setLoginIdentifier] = useState<string>('');
   const [loginPassword, setLoginPassword] = useState<string>('');
-  const [selectedDemoId, setSelectedDemoId] = useState<string>('');
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState<boolean>(false);
 
-  // --- Registration Form State (Email ID is primary Login ID) ---
+  // --- Registration Form State ---
   const [regNameEn, setRegNameEn] = useState<string>('');
   const [regNameGu, setRegNameGu] = useState<string>('');
   const [regEmail, setRegEmail] = useState<string>('');
+  const [regPhone, setRegPhone] = useState<string>('');
   const [regPassword, setRegPassword] = useState<string>('');
   const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
   const [regItiName, setRegItiName] = useState<string>('ઔદ્યોગિક તાલીમ સંસ્થા (Government ITI)');
@@ -75,23 +82,12 @@ export default function InstructorAuth({
   const [regTrade, setRegTrade] = useState<string>('કોપા (COPA)');
   const [customTrade, setCustomTrade] = useState<string>('');
   const [regBatch, setRegBatch] = useState<string>('૨૦૨૫–૨૦૨૬');
-  const [selectedUnits, setSelectedUnits] = useState<string[]>(['Unit A', 'Unit B']);
-  const [regPrimaryUnit, setRegPrimaryUnit] = useState<string>('Unit A');
-  const [regPhone, setRegPhone] = useState<string>('');
+  const [regUnit, setRegUnit] = useState<string>('Unit A');
   const [regAddress, setRegAddress] = useState<string>('');
-  const [regOutwardPrefix, setRegOutwardPrefix] = useState<string>('ઔતાસં/તલમ/૨૦૨૫');
-  const [sendVerificationOnRegister, setSendVerificationOnRegister] = useState<boolean>(true);
 
-  // --- Email Verification Modal State ---
-  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState<boolean>(false);
-  const [verificationEmailTarget, setVerificationEmailTarget] = useState<string>('');
-  const [verificationInstructor, setVerificationInstructor] = useState<Instructor | null>(null);
-  const [isSendingVerificationLink, setIsSendingVerificationLink] = useState<boolean>(false);
-  const [verificationSuccess, setVerificationSuccess] = useState<boolean>(false);
-  const [verificationOtp, setVerificationOtp] = useState<string>('849201');
-  const [enteredOtp, setEnteredOtp] = useState<string>('');
-  const [otpError, setOtpError] = useState<string>('');
-  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  // Live password validation
+  const passwordValidation = validatePassword(regPassword);
+  const passwordsMatch = regPassword.length > 0 && regPassword === regConfirmPassword;
 
   // Auto-transliteration for registration instructor name
   const handleRegNameEnChange = (val: string) => {
@@ -100,145 +96,76 @@ export default function InstructorAuth({
     setRegNameGu(converted);
   };
 
-  // Toggle Unit selection in registration
-  const toggleUnit = (unitName: string) => {
-    if (selectedUnits.includes(unitName)) {
-      if (selectedUnits.length > 1) {
-        const next = selectedUnits.filter((u) => u !== unitName);
-        setSelectedUnits(next);
-        if (regPrimaryUnit === unitName) {
-          setRegPrimaryUnit(next[0]);
-        }
-      }
-    } else {
-      setSelectedUnits([...selectedUnits, unitName]);
-    }
-  };
-
-  // Handle Login submission using Email ID as primary Login ID
+  // Handle Login submission with Dual Login (Email OR Mobile Number)
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setInfoMsg('');
+    setPendingNotice(null);
 
-    const query = loginEmail.trim().toLowerCase();
-    if (!query) {
-      setErrorMsg('કૃપા કરીને તમારું ઈમેલ આઈડી દાખલ કરો (Please enter your Email ID).');
+    const rawQuery = loginIdentifier.trim();
+    if (!rawQuery) {
+      setErrorMsg('કૃપા કરીને આપનો મોબાઈલ નંબર અથવા ઈમેલ આઈડી દાખલ કરો (Please enter Mobile Number or Email ID).');
       return;
     }
 
-    // Match against official Email ID (with fallback to user_id/phone for backward compatibility)
-    const found = instructors.find((inst) => {
-      const emailMatch = Boolean(inst.email && inst.email.trim().toLowerCase() === query);
-      const userIdMatch = Boolean(inst.user_id && inst.user_id.trim().toLowerCase() === query);
-      const idMatch = Boolean(inst.id && inst.id.trim().toLowerCase() === query);
-      return emailMatch || userIdMatch || idMatch;
+    const cleanQuery = rawQuery.toLowerCase();
+    const cleanPhone = cleanPhoneNumber(rawQuery);
+
+    // Search by Email OR 10-digit Mobile Number OR User ID
+    const searchPool = [...instructors, ...INITIAL_INSTRUCTORS];
+    const found = searchPool.find((inst) => {
+      const emailMatch = inst.email && inst.email.trim().toLowerCase() === cleanQuery;
+      const phoneMatch = cleanPhone.length >= 10 && cleanPhoneNumber(inst.phone) === cleanPhone;
+      const userIdMatch = inst.user_id && inst.user_id.trim().toLowerCase() === cleanQuery;
+      const idMatch = inst.id && inst.id.trim().toLowerCase() === cleanQuery;
+      return emailMatch || phoneMatch || userIdMatch || idMatch;
     });
 
     if (!found) {
-      setErrorMsg('આ ઈમેલ આઈડી સાથે કોઈ ઇન્સ્ટ્રક્ટર નોંધાયેલ નથી. કૃપા કરીને સાચું ઈમેલ દાખલ કરો અથવા નવું રજીસ્ટ્રેશન કરો.');
+      setErrorMsg(
+        'આ મોબાઈલ નંબર અથવા ઈમેલ સાથે કોઈ એકાઉન્ટ મળ્યું નથી. કૃપા કરીને સાચી વિગત દાખલ કરો અથવા નવું રજીસ્ટ્રેશન કરો.'
+      );
       return;
     }
 
     if (!loginPassword) {
-      setErrorMsg('કૃપા કરીને પાસવર્ડ દાખલ કરો (Please enter your password).');
+      setErrorMsg('કૃપા કરીને પાસવર્ડ દાખલ કરો (Please enter password).');
       return;
     }
 
-    // Verify password (or allow demo passwords)
-    if (
-      found.password &&
-      found.password !== loginPassword &&
-      loginPassword !== 'iti123' &&
-      loginPassword !== 'admin123'
-    ) {
-      setErrorMsg('પાસવર્ડ ખોટો છે (Incorrect password). Demo password: ' + found.password);
+    // Check account verification status
+    if (found.status === 'pending') {
+      setPendingNotice({
+        name: found.name,
+        phone: found.phone || 'તમારા મોબાઈલ',
+        email: found.email,
+      });
+      return;
+    }
+
+    if (found.status === 'rejected') {
+      setErrorMsg('આ એકાઉન્ટ સુપર એડમિન દ્વારા અસ્વીકાર (Rejected) કરવામાં આવ્યું છે. કૃપા કરીને વહીવટકર્તાનો સંપર્ક કરો.');
+      return;
+    }
+
+    if (found.status === 'suspended') {
+      setErrorMsg('આ એકાઉન્ટ હાલ પૂરતું સ્થગિત (Suspended) કરેલ છે.');
+      return;
+    }
+
+    // Verify password strictly against stored account password
+    const isPasswordValid = found.password === loginPassword;
+
+    if (!isPasswordValid) {
+      setErrorMsg('પાસવર્ડ ખોટો છે (Incorrect password). જો પાસવર્ડ ભૂલી ગયા હોવ તો સુપર એડમિનનો સંપર્ક કરો.');
       return;
     }
 
     onLogin(found);
   };
 
-  // Handle Quick Demo Selection
-  const handleSelectDemo = (instId: string) => {
-    setSelectedDemoId(instId);
-    const found = instructors.find((i) => i.id === instId);
-    if (found) {
-      setLoginEmail(found.email);
-      setLoginPassword(found.password || 'iti123');
-      setErrorMsg('');
-      setInfoMsg('');
-    }
-  };
-
-  // Open verification link modal for any instructor
-  const handleTriggerEmailVerification = async (inst: Instructor) => {
-    setVerificationInstructor(inst);
-    setVerificationEmailTarget(inst.email);
-    setIsVerificationModalOpen(true);
-    setVerificationSuccess(false);
-    setIsSendingVerificationLink(true);
-    setEnteredOtp('');
-    setOtpError('');
-    setCopiedLink(false);
-
-    const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    setVerificationOtp(fallbackOtp);
-
-    try {
-      const res = await fetch('/api/auth/send-verification-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inst.email, name: inst.name }),
-      });
-      const data = await res.json();
-      if (data.otp) {
-        setVerificationOtp(data.otp);
-      }
-    } catch {
-      // Keep fallback OTP
-    } finally {
-      setIsSendingVerificationLink(false);
-    }
-  };
-
-  // Instant 1-Click Verification
-  const handleInstantVerify = () => {
-    setIsSendingVerificationLink(true);
-    setTimeout(() => {
-      setIsSendingVerificationLink(false);
-      setVerificationSuccess(true);
-      if (verificationInstructor && onVerifyEmail) {
-        onVerifyEmail(verificationInstructor.id);
-      }
-    }, 400);
-  };
-
-  // Verify with OTP code
-  const handleVerifyOtp = () => {
-    const cleanEntered = enteredOtp.trim();
-    if (
-      cleanEntered === verificationOtp ||
-      cleanEntered === '849201' ||
-      cleanEntered === '123456' ||
-      cleanEntered.length === 6
-    ) {
-      setOtpError('');
-      handleInstantVerify();
-    } else {
-      setOtpError('કૃપા કરીને ૬-આંકડાનો સાચો સુરક્ષા કોડ દાખલ કરો અથવા તાત્કાલિક વેરિફિકેશન બટન વાપરો.');
-    }
-  };
-
-  // Copy Verification URL to clipboard
-  const handleCopyVerificationUrl = () => {
-    const url = `https://iti.gujarat.gov.in/verify-email?token=sec_iti_det_${Date.now()}&email=${encodeURIComponent(verificationEmailTarget || loginEmail)}`;
-    navigator.clipboard.writeText(url);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
-  };
-
-  // Handle Registration submission: Email ID is the primary Login ID
+  // Handle Registration
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -246,940 +173,598 @@ export default function InstructorAuth({
 
     const finalName = regNameGu.trim() || regNameEn.trim();
     if (!finalName) {
-      setErrorMsg('કૃપા કરીને ઇન્સ્ટ્રક્ટરનું નામ દાખલ કરો (Please enter Instructor name).');
-      return;
-    }
-    if (!regEmail.trim() || !regEmail.includes('@')) {
-      setErrorMsg('કૃપા કરીને સત્તાવાર સાચું ઈમેલ સરનામું દાખલ કરો (Please enter a valid official email).');
-      return;
-    }
-    if (regPassword.length < 4) {
-      setErrorMsg('પાસવર્ડ ઓછામાં ઓછો ૪ અક્ષરનો હોવો જોઈએ (Password must be at least 4 characters).');
-      return;
-    }
-    if (regPassword !== regConfirmPassword) {
-      setErrorMsg('પાસવર્ડ અને કન્ફર્મ પાસવર્ડ સરખા નથી (Passwords do not match).');
-      return;
-    }
-    if (!regItiName.trim()) {
-      setErrorMsg('કૃપા કરીને આઈ.ટી.આઈ. સંસ્થાનું નામ દાખલ કરો (Please enter ITI institute name).');
+      setErrorMsg('કૃપા કરીને ઇન્સ્ટ્રક્ટરનું પૂરું નામ દાખલ કરો (Please enter full name).');
       return;
     }
 
     const cleanEmail = regEmail.trim().toLowerCase();
-
-    // Check email uniqueness
-    const exists = instructors.some(
-      (i) => i.email.trim().toLowerCase() === cleanEmail
-    );
-    if (exists) {
-      setErrorMsg('આ ઈમેલ આઈડી સાથે પહેલેથી જ એકાઉન્ટ છે. કૃપા કરીને તે ઈમેલ આઈડી વડે લોગિન કરો.');
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMsg('કૃપા કરીને માન્ય ઈમેલ આઈડી દાખલ કરો (Please enter valid email address).');
       return;
     }
 
-    const finalTrade = regTrade === 'Other' ? (customTrade.trim() || 'COPA') : regTrade;
-    const emailPrefix = cleanEmail.split('@')[0];
+    const cleanPhone = cleanPhoneNumber(regPhone);
+    if (!cleanPhone || cleanPhone.length < 10) {
+      setErrorMsg('કૃપા કરીને માન્ય ૧૦ આંકડાનો મોબાઈલ નંબર દાખલ કરો (Please enter 10-digit mobile number).');
+      return;
+    }
 
-    const newInstructorData = {
-      user_id: emailPrefix,
-      username: emailPrefix,
+    // Strict Uniqueness Check
+    const uniqueness = checkInstructorUniqueness(cleanEmail, cleanPhone, instructors);
+    if (!uniqueness.isUnique) {
+      setErrorMsg(uniqueness.message);
+      return;
+    }
+
+    // Strict Password Validation
+    if (!passwordValidation.isValid) {
+      setErrorMsg('પાસવર્ડ સુરક્ષા માપદંડો મુજબનો નથી. કૃપા કરીને મજબૂત પાસવર્ડ બનાવો.');
+      return;
+    }
+
+    if (regPassword !== regConfirmPassword) {
+      setErrorMsg('પાસવર્ડ અને કન્ફર્મ પાસવર્ડ સરખા નથી (Passwords do not match).');
+      return;
+    }
+
+    const effectiveTrade = regTrade === 'other' ? customTrade.trim() : regTrade;
+    if (!effectiveTrade) {
+      setErrorMsg('કૃપા કરીને આપનો ટ્રેડ દાખલ કરો (Please select/enter Trade).');
+      return;
+    }
+
+    const initialAcademicHierarchy: AcademicTrade[] = [
+      {
+        id: `trade-${Date.now()}`,
+        name: effectiveTrade,
+        batches: [
+          {
+            id: `batch-${Date.now()}`,
+            name: regBatch || '૨૦૨૫–૨૦૨૬',
+            units: [
+              { id: `unit-${Date.now()}-1`, name: regUnit || 'Unit A' },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const newInstructorData: Omit<Instructor, 'id' | 'created_at'> = {
       name: finalName,
+      name_gu: regNameGu.trim() || finalName,
       email: cleanEmail,
-      email_verified: !sendVerificationOnRegister, // If link verification requested, mark pending till verified
+      phone: cleanPhone,
       password: regPassword,
-      iti_name: regItiName.trim(),
-      designation: regDesignation.trim(),
-      trade: finalTrade,
-      batch: regBatch.trim() || '૨૦૨૫–૨૦૨૬',
-      batches: [regBatch.trim() || '૨૦૨૫–૨૦૨૬', '૨૦૨૪–૨૦૨૬'],
-      unit: regPrimaryUnit,
-      units: selectedUnits.length > 0 ? selectedUnits : ['Unit A', 'Unit B'],
-      phone: regPhone.trim() || '+91 98250 00000',
-      institution_address: regAddress.trim() || 'Government ITI Campus, Gujarat',
-      outward_code_prefix: regOutwardPrefix.trim() || 'ઔતાસં/તલમ/૨૦૨૫',
-      letterhead_header_url: '',
-      signature_footer_url: '',
+      role: 'instructor',
+      status: 'pending', // Requires Super Admin approval!
+      email_verified: false,
+      mobile_verified: false,
+      iti_name: regItiName,
+      designation: regDesignation,
+      trade: effectiveTrade,
+      trades: [effectiveTrade],
+      batch: regBatch || '૨૦૨૫–૨૦૨૬',
+      batches: [regBatch || '૨૦૨૫–૨૦૨૬'],
+      unit: regUnit || 'Unit A',
+      units: [regUnit || 'Unit A'],
+      academic_hierarchy: initialAcademicHierarchy,
+      institution_address: regAddress,
+      outward_code_prefix: 'ઔતાસં/તલમ/૨૦૨૫',
+      header_config: {
+        show_logo: true,
+        institute_name_gu: regItiName,
+        institute_name_en: 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE',
+        department_subtitle: 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત રાજ્ય',
+        address: regAddress,
+        ref_prefix: 'આઈટીઆઈ/તલમ/૨૦૨૫',
+      },
     };
 
     onRegister(newInstructorData);
 
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    setVerificationOtp(generatedOtp);
-    setEnteredOtp('');
-    setOtpError('');
-    setCopiedLink(false);
-
-    if (sendVerificationOnRegister) {
-      // Open verification modal to preview the verification email flow
-      setVerificationEmailTarget(cleanEmail);
-      setVerificationInstructor({
-        ...newInstructorData,
-        id: `inst-temp-${Date.now()}`,
-        created_at: new Date().toISOString(),
-      });
-      setIsVerificationModalOpen(true);
-      setVerificationSuccess(false);
-
-      fetch('/api/auth/send-verification-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, name: finalName }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.otp) setVerificationOtp(data.otp);
-        })
-        .catch(console.warn);
-    }
+    // Show pending approval notice
+    setPendingNotice({
+      name: finalName,
+      phone: cleanPhone,
+      email: cleanEmail,
+    });
+    setAuthMode('login');
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center items-center py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background Graphic Accents */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
-
-      {/* Portal Branding Header */}
-      <div className="text-center max-w-xl mx-auto mb-6 relative z-10">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-xl shadow-lg border border-blue-400/30 mb-3">
-          ITI
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-[#1b381e] to-slate-950 flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#346739] text-[#f2edc2] shadow-xl border border-[#9fcb98]/40 mb-3">
+          <Building2 className="w-8 h-8" />
         </div>
-        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-          ગુજરાત સરકાર - ઔદ્યોગિક તાલીમ સંસ્થા
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+          ITI Trainee Attendance Portal
         </h1>
-        <p className="text-sm font-semibold text-blue-300 mt-1">
-          ITI Trainee Attendance & Irregularity Notice System
-        </p>
-        <p className="text-xs text-slate-400 mt-1">
-          ડિરેક્ટોરેટ ઓફ એમ્પ્લોયમેન્ટ એન્ડ ટ્રેનિંગ (DET) - ગાંધીનગર • NCVT / GCVT
+        <p className="mt-1 text-xs sm:text-sm text-slate-300">
+          રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી • ગુજરાત રાજ્ય
         </p>
       </div>
 
-      {/* Main Authentication Card */}
-      <div className="w-full max-w-2xl bg-white text-slate-900 rounded-2xl shadow-2xl border border-slate-200 overflow-hidden relative z-10">
-        {/* Tab Toggle: Login vs Register */}
-        <div className="flex border-b border-slate-200 bg-slate-50">
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMode('login');
-              setErrorMsg('');
-              setInfoMsg('');
-            }}
-            className={`flex-1 py-3.5 text-center font-bold text-xs sm:text-sm transition-all border-b-2 ${
-              authMode === 'login'
-                ? 'border-blue-600 text-blue-700 bg-white shadow-xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            ઇન્સ્ટ્રક્ટર લોગિન (Email ID Login)
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMode('register');
-              setErrorMsg('');
-              setInfoMsg('');
-            }}
-            className={`flex-1 py-3.5 text-center font-bold text-xs sm:text-sm transition-all border-b-2 ${
-              authMode === 'register'
-                ? 'border-blue-600 text-blue-700 bg-white shadow-xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            નવું રજીસ્ટ્રેશન (Register with Email ID)
-          </button>
-        </div>
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl">
+        <div className="bg-white py-6 px-4 shadow-2xl rounded-2xl sm:px-8 border border-slate-200">
+          {/* Top Auth Mode Tabs */}
+          <div className="flex border-b border-slate-200 mb-6">
+            <button
+              onClick={() => {
+                setAuthMode('login');
+                setErrorMsg('');
+                setPendingNotice(null);
+              }}
+              className={`flex-1 pb-3 text-center text-sm font-bold border-b-2 transition-colors ${
+                authMode === 'login'
+                  ? 'border-[#346739] text-[#346739]'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              ઇન્સ્ટ્રક્ટર લોગિન (Login)
+            </button>
+            <button
+              onClick={() => {
+                setAuthMode('register');
+                setErrorMsg('');
+                setPendingNotice(null);
+              }}
+              className={`flex-1 pb-3 text-center text-sm font-bold border-b-2 transition-colors ${
+                authMode === 'register'
+                  ? 'border-[#346739] text-[#346739]'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              નવું રજીસ્ટ્રેશન (Register)
+            </button>
+          </div>
 
-        {/* Content Container */}
-        <div className="p-6 sm:p-8">
           {/* Error Message */}
           {errorMsg && (
-            <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl p-3 flex items-start gap-2">
-              <span className="font-bold">ભૂલ:</span>
-              <span>{errorMsg}</span>
+            <div className="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-start gap-2 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div className="flex-1">{errorMsg}</div>
             </div>
           )}
 
-          {/* Info Message */}
-          {infoMsg && (
-            <div className="mb-4 bg-blue-50 border border-blue-200 text-blue-700 text-xs rounded-xl p-3 flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-              <span>{infoMsg}</span>
+          {/* Pending Approval Notice Dialog */}
+          {pendingNotice && (
+            <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs shadow-xs">
+              <div className="flex items-center gap-2 mb-2 font-bold text-sm text-amber-900">
+                <Clock className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>ખાતું મંજૂરી માટે પેન્ડિંગ છે (Pending Approval)</span>
+              </div>
+              <p className="mb-2 leading-relaxed">
+                નમસ્તે <strong className="text-slate-900">{pendingNotice.name}</strong>, આપનું રજીસ્ટ્રેશન સફળતાપૂર્વક નોંધાયેલ છે.
+                સુપર એડમિન દ્વારા આપનું ખાતું વેરિફાય કરવામાં આવી રહ્યું છે.
+              </p>
+              <div className="bg-white/80 p-2.5 rounded-lg border border-amber-200 space-y-1 text-[11px] text-slate-700">
+                <div>• નોંધાયેલ મોબાઈલ નંબર: <strong className="text-slate-900">{pendingNotice.phone}</strong></div>
+                <div>• નોંધાયેલ ઈમેલ આઈડી: <strong className="text-slate-900">{pendingNotice.email}</strong></div>
+              </div>
+              <p className="mt-2 text-[11px] text-amber-800 font-medium">
+                ખાતું મંજૂર થતાં જ સુપર એડમિન આપના મોબાઈલ નંબર પર સંપર્ક/સંદેશ મોકલશે. ત્યારબાદ આપ અહીં સીધા લોગિન કરી શકશો.
+              </p>
             </div>
           )}
 
-          {/* ======================= LOGIN VIEW ======================= */}
-          {authMode === 'login' ? (
-            <div className="space-y-6">
-              {/* Quick Instructor Selector with Email IDs & Verification Badges */}
-              <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    <span>ઝડપી પસંદગી (Quick Select Instructor Account):</span>
-                  </span>
-                  <span className="text-[10px] text-blue-700 font-semibold bg-blue-100 px-2 py-0.5 rounded-full">
-                    {instructors.length} Profiles
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {instructors.map((inst) => (
-                    <div
-                      key={inst.id}
-                      className={`p-2.5 rounded-lg border text-xs transition-all ${
-                        selectedDemoId === inst.id
-                          ? 'bg-white border-blue-600 shadow-xs ring-2 ring-blue-500/20'
-                          : 'bg-white/80 border-slate-200 hover:border-blue-300 hover:bg-white'
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleSelectDemo(inst.id)}
-                        className="w-full text-left"
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-bold text-slate-900 truncate">{inst.name}</span>
-                          {inst.email_verified ? (
-                            <span className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
-                              <Check className="w-2.5 h-2.5" />
-                              <span>Verified</span>
-                            </span>
-                          ) : (
-                            <span className="shrink-0 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                              Pending
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                          {inst.trade} • {inst.unit}
-                        </div>
-                        <div className="text-[10px] text-blue-700 font-mono mt-1 truncate">
-                          {inst.email}
-                        </div>
-                      </button>
-
-                      {/* Resend / Verify Link Button if not verified */}
-                      {!inst.email_verified && (
-                        <div className="pt-1 mt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400">ઈમેલ ચકાસણી બાકી:</span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTriggerEmailVerification(inst);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 font-semibold underline flex items-center gap-1"
-                          >
-                            <Send className="w-2.5 h-2.5" />
-                            <span>લિંક મોકલો</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    સત્તાવાર ઈમેલ આઈડી (Official Email ID - Login ID) *
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="દા.ત. tejz2342@gmail.com અથવા iti.shankheshwar.mahila@gujarat.gov.in"
-                      className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                    />
+          {/* LOGIN VIEW */}
+          {authMode === 'login' && (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  મોબાઈલ નંબર અથવા ઈમેલ આઈડી (Mobile Number or Email ID)
+                </label>
+                <div className="relative rounded-lg shadow-2xs">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Phone className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] text-slate-400 mt-1 block">
-                    તમારું સત્તાવાર ઈમેલ આઈડી જ તમારું પોર્ટલ લોગિન આઈડી છે. (Your Email ID is your Login ID).
-                  </span>
-
-                  {/* Smart Email Detection & Instant One-Click Login/Verify */}
-                  {loginEmail.trim() && (() => {
-                    const query = loginEmail.trim().toLowerCase();
-                    const matched = instructors.find(
-                      (i) =>
-                        (i.email && i.email.trim().toLowerCase() === query) ||
-                        (i.user_id && i.user_id.trim().toLowerCase() === query)
-                    );
-                    if (matched) {
-                      return (
-                        <div className="mt-2.5 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl text-xs space-y-2">
-                          <div className="flex items-center justify-between flex-wrap gap-1">
-                            <span className="font-bold text-blue-900 flex items-center gap-1.5">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                              <span>ઓળખાયેલ ખાતું: <strong>{matched.name}</strong></span>
-                            </span>
-                            {matched.email_verified ? (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
-                                <Check className="w-3 h-3" />
-                                <span>ચકાસાયેલ (Verified)</span>
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                                વેરિફિકેશન બાકી
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-slate-600">
-                            {matched.iti_name} • {matched.trade} ({matched.unit})
-                          </div>
-                          <div className="flex items-center gap-2 pt-1 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setLoginPassword(matched.password || 'iti123');
-                                onLogin(matched);
-                              }}
-                              className="px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-lg shadow-xs flex items-center gap-1.5"
-                            >
-                              <span>૧-ક્લિકમાં સાઇન ઇન કરો (Sign In Now)</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                            {!matched.email_verified && (
-                              <button
-                                type="button"
-                                onClick={() => handleTriggerEmailVerification(matched)}
-                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center gap-1"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>તાત્કાલિક વેરિફાય કરો</span>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
+                  <input
+                    type="text"
+                    required
+                    value={loginIdentifier}
+                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                    placeholder="દા.ત. 9825012345 અથવા email@gujarat.gov.in"
+                    className="block w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white transition-all text-slate-900 font-medium"
+                  />
                 </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-slate-700">
-                      પાસવર્ડ (Password) *
-                    </label>
-                    <span className="text-[10px] text-slate-400">Demo Password: iti123 / iti@shankheshwar</span>
-                  </div>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="Enter password..."
-                      className="w-full pl-9 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 px-4 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2"
-                >
-                  <Mail className="w-4 h-4" />
-                  <span>ઈમેલ આઈડી વડે સાઇન ઇન કરો (Sign In with Email ID)</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </form>
-
-              <div className="pt-3 border-t border-slate-100 text-center">
-                <p className="text-xs text-slate-500">
-                  નવા ઇન્સ્ટ્રક્ટર છો?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode('register');
-                      setErrorMsg('');
-                      setInfoMsg('');
-                    }}
-                    className="font-bold text-blue-700 hover:underline"
-                  >
-                    અહીં તમારા ઈમેલ આઈડીથી નવું એકાઉન્ટ રજીસ્ટર કરો
-                  </button>
-                </p>
-              </div>
-            </div>
-          ) : (
-            /* ======================= REGISTRATION VIEW (No separate User ID) ======================= */
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
-              <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2">
-                <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>સરળ રજીસ્ટ્રેશન:</strong> અલગ યુઝર આઈડી બનાવવાની જરૂર નથી. તમારું સત્તાવાર <strong>ઈમેલ આઈડી</strong> જ તમારું લોગિન આઈડી રહેશે.
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  આપ આપના ૧૦ આંકડાના મોબાઈલ નંબર અથવા નોંધાયેલ ઈમેલ વડે લોગિન કરી શકો છો.
                 </span>
               </div>
 
-              {/* Names Section */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    પાસવર્ડ (Password)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPasswordModal(true)}
+                    className="text-[11px] font-bold text-[#346739] hover:text-[#264e2b] hover:underline flex items-center gap-1"
+                  >
+                    <KeyRound className="w-3 h-3 text-[#346739]" />
+                    <span>પાસવર્ડ ભૂલી ગયા? (Forgot Password?)</span>
+                  </button>
+                </div>
+                <div className="relative rounded-lg shadow-2xs">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="આપનો પાસવર્ડ દાખલ કરો"
+                    className="block w-full pl-9 pr-10 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white transition-all text-slate-900 font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#346739] hover:bg-[#264e2b] text-[#f2edc2] text-sm font-bold shadow-md transition-all active:scale-[0.99] min-h-[44px]"
+              >
+                <Lock className="w-4 h-4" />
+                <span>સુરક્ષિત લોગિન કરો (Sign In)</span>
+              </button>
+            </form>
+          )}
+
+          {/* REGISTRATION VIEW */}
+          {authMode === 'register' && (
+            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs">
+                <strong>સૂચના:</strong> નવું ખાતું બનાવ્યા પછી સુપર એડમિન દ્વારા આપનું વેરિફિકેશન કરવામાં આવશે.
+                મોબાઈલ નંબર અને ઈમેલ આઈડી યુનિક હોવા જરૂરી છે.
+              </div>
+
+              {/* Name Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    ઇન્સ્ટ્રક્ટર નામ (English Name) *
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={regNameEn}
-                      onChange={(e) => handleRegNameEnChange(e.target.value)}
-                      placeholder="e.g. Pravinbhai C. Suthar"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    ગુજરાતી લિપિ નામ (Regional Script) *
+                    ઇન્સ્ટ્રક્ટરનું પૂરું નામ (અંગ્રેજીમાં)
                   </label>
                   <input
                     type="text"
                     required
+                    value={regNameEn}
+                    onChange={(e) => handleRegNameEnChange(e.target.value)}
+                    placeholder="e.g. Tejas Suthar"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    ઇન્સ્ટ્રક્ટર નામ (ગુજરાતીમાં)
+                  </label>
+                  <input
+                    type="text"
                     value={regNameGu}
                     onChange={(e) => setRegNameGu(e.target.value)}
-                    placeholder="દા.ત. પ્રવિણભાઈ સી. સુથાર"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none font-semibold text-blue-900"
+                    placeholder="દા.ત. તેજસભાઈ સુથાર"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium font-gujarati"
                   />
                 </div>
               </div>
 
-              {/* Official Email (Sole Login ID) & Mobile */}
+              {/* Email and Mobile Number (Dual Login IDs - Strictly Unique) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-slate-700">
-                      સત્તાવાર ઈમેલ સરનામું (Official Email - Login ID) *
-                    </label>
-                    <span className="text-[10px] text-blue-700 font-semibold bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
-                      Primary Login ID
-                    </span>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>ઈમેલ આઈડી (Email ID) *</span>
+                    <span className="text-[10px] text-blue-700 font-semibold">લોગિન આઈડી</span>
+                  </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
                     <input
                       type="email"
                       required
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
-                      placeholder="instructor@iti.gov.in"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      placeholder="instructor@iti.gujarat.gov.in"
+                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">
-                    આ ઈમેલ આઈડી વડે જ ભવિષ્યમાં લોગિન કરી શકાશે.
-                  </span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    સંપર્ક નંબર (Phone / Mobile)
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>મોબાઈલ નંબર (Mobile No) *</span>
+                    <span className="text-[10px] text-blue-700 font-semibold">લોગિન આઈડી</span>
                   </label>
                   <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
                     <input
-                      type="text"
+                      type="tel"
+                      required
+                      maxLength={10}
                       value={regPhone}
-                      onChange={(e) => setRegPhone(e.target.value)}
-                      placeholder="+91 94280 12345"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, ''))}
+                      placeholder="૧૦ આંકડાનો મોબાઈલ દા.ત. 9825012345"
+                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium"
                     />
                   </div>
                 </div>
-              </div>
-
-              {/* Passwords */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    પાસવર્ડ (Password) *
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="Min 4 characters"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    કન્ફર્મ પાસવર્ડ (Confirm Password) *
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={regConfirmPassword}
-                      onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      placeholder="Repeat password"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Email Verification Link Option */}
-              <div className="bg-blue-50/60 border border-blue-200 rounded-xl p-3">
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={sendVerificationOnRegister}
-                    onChange={(e) => setSendVerificationOnRegister(e.target.checked)}
-                    className="mt-0.5 rounded border-blue-400 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-blue-950 block">
-                      સત્તાવાર ઈમેલ આઈડી પર ચકાસણી લિંક મોકલો (Send Verification Link to Email)
-                    </span>
-                    <span className="text-[11px] text-blue-800/80 block mt-0.5">
-                      રજીસ્ટ્રેશન થતાં જ ઈમેલ પર વેરિફિકેશન લિંક જશે જેથી તમારું એકાઉન્ટ સત્તાવાર માન્ય થશે.
-                    </span>
-                  </div>
-                </label>
               </div>
 
               {/* ITI & Designation */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    આઈ.ટી.આઈ. સંસ્થાનું નામ (ITI Name) *
+                    સંસ્થાનું નામ (ITI Name)
                   </label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={regItiName}
-                      onChange={(e) => setRegItiName(e.target.value)}
-                      placeholder="e.g. ઔદ્યોગિક તાલીમ સંસ્થા, શંખેશ્વર"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={regItiName}
+                    onChange={(e) => setRegItiName(e.target.value)}
+                    placeholder="ઔદ્યોગિક તાલીમ સંસ્થા, પાટણ"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium"
+                  />
                 </div>
-
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    હોદ્દો (Designation) *
+                    હોદ્દો (Designation)
                   </label>
-                  <div className="relative">
-                    <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={regDesignation}
-                      onChange={(e) => setRegDesignation(e.target.value)}
-                      placeholder="Supervisor Instructor / Craft Instructor"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={regDesignation}
+                    onChange={(e) => setRegDesignation(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium"
+                  />
                 </div>
               </div>
 
-              {/* Trade & Batch */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    ટ્રેડ (ITI Trade) *
-                  </label>
-                  <select
-                    value={regTrade}
-                    onChange={(e) => setRegTrade(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none font-medium"
-                  >
-                    {COMMON_TRADES.map((tr) => (
-                      <option key={tr} value={tr}>
-                        {tr}
-                      </option>
-                    ))}
-                    <option value="Other">અન્ય ટ્રેડ (Other Custom Trade)...</option>
-                  </select>
-                  {regTrade === 'Other' && (
-                    <input
-                      type="text"
-                      value={customTrade}
-                      onChange={(e) => setCustomTrade(e.target.value)}
-                      placeholder="ટ્રેડનું નામ લખો..."
-                      className="mt-1.5 w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600"
-                    />
-                  )}
+              {/* Trade, Batch, Unit Hierarchy Initialization */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#346739]">
+                  <Layers className="w-4 h-4 text-[#346739]" />
+                  <span>પ્રાથમિક શૈક્ષણિક વિગતો (Initial Trade, Batch & Unit)</span>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      ૧. ટ્રેડ (Trade)
+                    </label>
+                    <select
+                      value={regTrade}
+                      onChange={(e) => setRegTrade(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-medium"
+                    >
+                      {COMMON_TRADES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                      <option value="other">અન્ય ટ્રેડ (Custom)...</option>
+                    </select>
+                    {regTrade === 'other' && (
+                      <input
+                        type="text"
+                        placeholder="ટ્રેડનું નામ દાખલ કરો"
+                        value={customTrade}
+                        onChange={(e) => setCustomTrade(e.target.value)}
+                        className="mt-1 w-full px-2 py-1 text-xs border rounded"
+                      />
+                    )}
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    પ્રાથમિક બેચ (Batch) *
-                  </label>
-                  <div className="relative">
-                    <BookOpen className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      ૨. બેચ (Batch)
+                    </label>
                     <input
                       type="text"
                       required
                       value={regBatch}
                       onChange={(e) => setRegBatch(e.target.value)}
-                      placeholder="૨૦૨૫–૨૦૨૬ અથવા 2025–2027"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      placeholder="૨૦૨૫–૨૦૨૬"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-medium"
                     />
                   </div>
-                </div>
-              </div>
 
-              {/* Unit (A/B/C) Configuration */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-blue-700" />
-                    <span>યુનિટ પસંદગી (Select Allowed Units: Unit A / B / C) *</span>
-                  </label>
-                  <span className="text-[10px] text-slate-500">Instructor can manage multiple units</span>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {STANDARD_UNITS.map((unitName) => {
-                    const isSelected = selectedUnits.includes(unitName);
-                    return (
-                      <button
-                        type="button"
-                        key={unitName}
-                        onClick={() => toggleUnit(unitName)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
-                          isSelected
-                            ? 'bg-blue-700 text-white border-blue-700 shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
-                        }`}
-                      >
-                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        <span>{unitName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="pt-2 flex items-center gap-2">
-                  <span className="text-[11px] font-semibold text-slate-600">મુખ્ય સક્રિય યુનિટ (Primary Unit):</span>
-                  <select
-                    value={regPrimaryUnit}
-                    onChange={(e) => setRegPrimaryUnit(e.target.value)}
-                    className="px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-md font-bold text-blue-800"
-                  >
-                    {selectedUnits.map((u) => (
-                      <option key={u} value={u}>
-                        {u}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Address & Outward Code */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    સંસ્થાનું સરનામું (Institution Address)
-                  </label>
-                  <div className="relative">
-                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      ૩. યુનિટ (Unit)
+                    </label>
                     <input
                       type="text"
-                      value={regAddress}
-                      onChange={(e) => setRegAddress(e.target.value)}
-                      placeholder="ITI Campus, Highway Road, City"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      required
+                      value={regUnit}
+                      onChange={(e) => setRegUnit(e.target.value)}
+                      placeholder="Unit A / યુનિટ ૧"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Strong Password Section with Live Standard Meter */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-[#346739]" />
+                    <span>પાસવર્ડ બનાવો (Create Strong Password) *</span>
+                  </label>
+                  {regPassword.length > 0 && (
+                    <span
+                      className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: `${passwordValidation.strengthColor}20`,
+                        color: passwordValidation.strengthColor,
+                      }}
+                    >
+                      {passwordValidation.strength}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      placeholder="મજબૂત પાસવર્ડ દાખલ કરો"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] text-slate-900 font-medium"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      placeholder="કન્ફર્મ પાસવર્ડ ફરીથી દાખલ કરો"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] text-slate-900 font-medium"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    જાવક નંબર ઉપસર્ગ (Outward Code Prefix)
-                  </label>
-                  <input
-                    type="text"
-                    value={regOutwardPrefix}
-                    onChange={(e) => setRegOutwardPrefix(e.target.value)}
-                    placeholder="e.g. ઔતાસં/શંખેશ્વર/તલમ"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  />
+                {/* Live Password Criteria Checklist */}
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200 text-[11px] space-y-1.5">
+                  <div className="font-semibold text-slate-700">આંતરરાષ્ટ્રીય સુરક્ષા માપદંડો (Security Criteria):</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px]">
+                    <div className={`flex items-center gap-1.5 ${passwordValidation.criteria.minLength ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                      <CheckCircle2 className="w-3 h-3 shrink-0" />
+                      <span>ઓછામાં ઓછા ૮ અક્ષરો (Min 8 chars)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${passwordValidation.criteria.hasUpper ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                      <CheckCircle2 className="w-3 h-3 shrink-0" />
+                      <span>કેપિટલ અક્ષર (A-Z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${passwordValidation.criteria.hasLower ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                      <CheckCircle2 className="w-3 h-3 shrink-0" />
+                      <span>સ્મોલ અક્ષર (a-z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${passwordValidation.criteria.hasNumber ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                      <CheckCircle2 className="w-3 h-3 shrink-0" />
+                      <span>અંક (0-9)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${passwordValidation.criteria.hasSpecial ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                      <CheckCircle2 className="w-3 h-3 shrink-0" />
+                      <span>સ્પેશિયલ સિમ્બોલ (@$!%*#?&)</span>
+                    </div>
+                    {regConfirmPassword.length > 0 && (
+                      <div className={`flex items-center gap-1.5 ${passwordsMatch ? 'text-emerald-700 font-semibold' : 'text-rose-600'}`}>
+                        <CheckCircle2 className="w-3 h-3 shrink-0" />
+                        <span>{passwordsMatch ? 'પાસવર્ડ મેચ થાય છે' : 'પાસવર્ડ મેળ ખાતા નથી'}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Submit Registration */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2"
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>ઇન્સ્ટ્રક્ટર તરીકે રજીસ્ટ્રેશન પૂર્ણ કરો (Register with Email ID)</span>
-                </button>
+              {/* Institution Address */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  સંસ્થાનું સરનામું (Institution Postal Address)
+                </label>
+                <textarea
+                  rows={2}
+                  value={regAddress}
+                  onChange={(e) => setRegAddress(e.target.value)}
+                  placeholder="દા.ત. કેમ્પસ રોડ, તા. પાટણ, જી. પાટણ-૩૮૪૨૬૫"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium"
+                />
               </div>
 
-              <div className="pt-2 text-center">
-                <p className="text-xs text-slate-500">
-                  પહેલેથી જ એકાઉન્ટ છે?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode('login');
-                      setErrorMsg('');
-                      setInfoMsg('');
-                    }}
-                    className="font-bold text-blue-700 hover:underline"
-                  >
-                    અહીં તમારા ઈમેલ આઈડી વડે લોગિન કરો
-                  </button>
-                </p>
-              </div>
+              <button
+                type="submit"
+                disabled={!passwordValidation.isValid || !passwordsMatch}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#346739] hover:bg-[#264e2b] disabled:opacity-50 text-[#f2edc2] text-sm font-bold shadow-md transition-all active:scale-[0.99] min-h-[44px]"
+              >
+                <Send className="w-4 h-4" />
+                <span>રજીસ્ટ્રેશન કરો અને મંજૂરી માટે મોકલો (Submit for Verification)</span>
+              </button>
             </form>
           )}
         </div>
-
-        {/* Footer info bar */}
-        <div className="bg-slate-50 border-t border-slate-200 px-6 py-3 flex items-center justify-between text-[11px] text-slate-500">
-          <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Secure Email-Based Instructor Authentication</span>
-          </span>
-          <span>Directorate of Employment & Training, Gujarat</span>
-        </div>
       </div>
 
-      {/* ======================= EMAIL VERIFICATION LINK MODAL ======================= */}
-      {isVerificationModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white text-slate-900 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
-                  <Mail className="w-5 h-5 text-blue-200" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base">સત્તાવાર ઈમેલ ચકાસણી (Email ID Verification)</h3>
-                  <p className="text-[11px] text-blue-200">Directorate of Employment & Training Portal</p>
-                </div>
+      {/* Forgot Password Help Modal */}
+      {showForgotPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative animate-in fade-in duration-200">
+            <button
+              onClick={() => setShowForgotPasswordModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                <KeyRound className="w-6 h-6 text-amber-600" />
               </div>
-              <button
-                type="button"
-                onClick={() => setIsVerificationModalOpen(false)}
-                className="text-white/70 hover:text-white text-lg font-bold p-1"
-              >
-                ✕
-              </button>
+              <div>
+                <h3 className="text-base font-black text-slate-900 leading-tight">
+                  પાસવર્ડ રીસેટ સહાય (Password Reset)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  રોજગાર અને તાલીમ નિયામકશ્રી કચેરી સુરક્ષા માર્ગદર્શિકા
+                </p>
+              </div>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-4">
-              <div className="text-center space-y-2">
-                <div className="w-12 h-12 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center mx-auto">
-                  <Send className="w-6 h-6" />
-                </div>
-                <h4 className="font-bold text-slate-900 text-base">
-                  ઈમેલ આઈડી ચકાસણી & સક્રિયકરણ (Account Activation)
-                </h4>
-                <p className="text-xs text-slate-600 max-w-md mx-auto">
-                  સરકારી આઈ.ટી.આઈ. પોર્ટલ પર તમારા ખાતાની સુરક્ષા માટે નીચેના ઈમેલ માટે વેરિફિકેશન જનરેટ કરવામાં આવ્યું છે:
+            <div className="space-y-3.5 text-xs text-slate-700 leading-relaxed">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 font-medium space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-amber-900">
+                  <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>સુપર એડમિન દ્વારા પાસવર્ડ રીસેટ સુવિધા:</span>
                 </p>
-                <div className="inline-block bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 font-mono text-xs font-bold text-blue-900 shadow-xs">
-                  {verificationEmailTarget || loginEmail}
-                </div>
-              </div>
-
-              {/* Sandbox / Gmail Explanatory Notice */}
-              <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl text-xs space-y-1">
-                <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>ઈમેલ ઇનબોક્સમાં ન મળ્યો? (Didn't receive email in your Gmail?)</span>
-                </div>
-                <p className="text-[11px] text-amber-800 leading-relaxed">
-                  વેબ સેન્ડબોક્સ સિક્યુરિટી અને સ્પામ ફિલ્ટરના કારણે બાહ્ય જીમેલ (External Gmail) સર્વર પર ઈમેલ ડિલિવરી વિલંબિત થઈ શકે છે. <strong>તમારે રાહ જોવાની જરૂર નથી!</strong> તમે નીચેના <strong>'તાત્કાલિક એકાઉન્ટ સક્રિય કરો'</strong> બટન પર ક્લિક કરીને અથવા ૬-આંકડાનો કોડ દાખલ કરીને તમારું એકાઉન્ટ હમણાં જ શરૂ કરી શકો છો.
+                <p>
+                  જો આપ આપનો પાસવર્ડ ભૂલી ગયા હોવ, તો આપના રાજ્ય સ્તરીય <strong>સુપર એડમિનિસ્ટ્રેટર</strong> તેમના એડમિન કન્સોલ દ્વારા આપના એકાઉન્ટ માટે તાત્કાલિક નવો પાસવર્ડ જનરેટ અથવા બદલી આપશે.
                 </p>
               </div>
 
-              {/* OPTION 1: Instant 1-Click Verification */}
-              <div className="p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-300 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-emerald-600" />
-                    <span>વિકલ્પ ૧: તાત્કાલિક ૧-ક્લિક વેરિફિકેશન (સૌથી સરળ & ઝડપી)</span>
-                  </span>
-                  <span className="text-[10px] font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full">
-                    No Waiting
-                  </span>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <div className="font-bold text-slate-800 text-[11px]">
+                  સુપર એડમિન સંપર્ક વિગતો (Super Admin Contact):
                 </div>
-                <p className="text-[11px] text-emerald-800">
-                  કોઈપણ બાહ્ય ઈમેલની રાહ જોયા વિના તમારું સત્તાવાર ખાતું તુરંત વેરિફાઇડ કરો:
-                </p>
-                <button
-                  type="button"
-                  onClick={handleInstantVerify}
-                  disabled={isSendingVerificationLink || verificationSuccess}
-                  className={`w-full py-2.5 px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all ${
-                    verificationSuccess
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-lg'
-                  }`}
-                >
-                  {isSendingVerificationLink ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>ચકાસણી થઈ રહી છે...</span>
-                    </>
-                  ) : verificationSuccess ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-white" />
-                      <span>ઈમેલ સફળતાપૂર્વક વેરિફાઇડ થયો છે! (Verified)</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>તાત્કાલિક એકાઉન્ટ સક્રિય કરો (Instant Verify & Activate)</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* OPTION 2: 6-Digit OTP Security Code */}
-              <div className="p-3.5 bg-indigo-50/80 border border-indigo-200 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                    <KeyRound className="w-4 h-4 text-indigo-600" />
-                    <span>વિકલ્પ ૨: ૬-આંકડાનો સુરક્ષા કોડ (OTP Verification)</span>
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-indigo-700 font-medium">સત્તાવાર કોડ:</span>
-                    <span className="text-xs font-mono font-black bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded tracking-widest">
-                      {verificationOtp}
-                    </span>
+                <div className="space-y-1 font-mono text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="font-sans font-semibold text-slate-900">તેજસ સુથાર (સુપર એડમિનિસ્ટ્રેટર)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="text-slate-800">tejassuthar21696@gmail.com</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span className="text-blue-700 font-bold">9825012345</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="font-sans text-slate-600">રોજગાર અને તાલીમ નિયામકશ્રી કચેરી, બ્લોક ૧/૩, ગાંધીનગર</span>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={enteredOtp}
-                    onChange={(e) => {
-                      setEnteredOtp(e.target.value);
-                      if (otpError) setOtpError('');
-                    }}
-                    placeholder="૬-આંકડાનો કોડ દાખલ કરો..."
-                    className="flex-1 px-3 py-2 text-xs font-mono font-bold bg-white border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-600 tracking-widest text-center"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setEnteredOtp(verificationOtp)}
-                    className="px-2.5 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-xs font-semibold rounded-lg shrink-0 transition-colors"
-                  >
-                    ઓટો-ફિલ
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleVerifyOtp}
-                    className="px-3.5 py-2 bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold rounded-lg shrink-0 transition-colors"
-                  >
-                    કોડ ચકાસો
-                  </button>
-                </div>
-                {otpError && <p className="text-[11px] text-rose-600 font-semibold">{otpError}</p>}
               </div>
 
-              {/* OPTION 3: External Gmail Inbox & Link Utilities */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
-                <span className="text-xs font-bold text-slate-700 block">
-                  વિકલ્પ ૩: બાહ્ય જીમેલ અને લિંક સાધનો (Gmail & Link Tools)
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <a
-                    href="https://mail.google.com/mail/u/0/#search/iti"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2 px-3 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <Mail className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    <span>Gmail ખોલો (Open Gmail Inbox)</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={handleCopyVerificationUrl}
-                    className="py-2 px-3 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    {copiedLink ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5 text-blue-600" />
-                    )}
-                    <span>{copiedLink ? 'લિંક કોપી થઈ ગઈ!' : 'વેરિફિકેશન લિંક કોપી કરો'}</span>
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-400 text-center">
-                  જો તમે Gmail તપાસો, તો કૃપા કરીને <span className="font-semibold text-slate-600">Spam / Junk</span> અને <span className="font-semibold text-slate-600">Promotions</span> ફોલ્ડર પણ તપાસો.
-                </p>
-              </div>
-
-              {/* Status Message */}
-              {verificationSuccess && (
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-3.5 text-xs flex items-start gap-2.5 shadow-xs animate-in fade-in">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="text-sm font-bold text-emerald-900">અભિનંદન!</strong> તમારું ઈમેલ સરનામું <strong>{verificationEmailTarget}</strong> સફળતાપૂર્વક ચકાસાઈ ગયું છે. એકાઉન્ટ સંપૂર્ણપણે સક્રિય છે.
-                  </div>
-                </div>
-              )}
+              <p className="text-[11px] text-slate-500">
+                સુપર એડમિનને આપનું પૂરું નામ, ITI નું નામ અને મોબાઈલ નંબર જણાવશો જેથી આપનો પાસવર્ડ સત્વરે રીસેટ કરી આપવામાં આવે.
+              </p>
             </div>
 
-            {/* Modal Actions */}
-            <div className="bg-slate-50 border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+            <div className="mt-5 pt-3 border-t border-slate-100 flex justify-end">
               <button
-                type="button"
-                onClick={() => {
-                  setVerificationSuccess(false);
-                  if (verificationInstructor) {
-                    handleTriggerEmailVerification(verificationInstructor);
-                  }
-                }}
-                disabled={isSendingVerificationLink}
-                className="text-xs text-blue-700 hover:text-blue-900 font-semibold flex items-center gap-1"
+                onClick={() => setShowForgotPasswordModal(false)}
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-colors"
               >
-                <RefreshCw className="w-3 h-3" />
-                <span>ફરીથી કોડ / લિંક મોકલો (Resend Code)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsVerificationModalOpen(false);
-                  if (verificationSuccess && verificationInstructor) {
-                    onLogin(verificationInstructor);
-                  }
-                }}
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
-                  verificationSuccess
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                    : 'bg-slate-800 hover:bg-slate-900 text-white'
-                }`}
-              >
-                {verificationSuccess ? 'પોર્ટલ શરૂ કરો (Continue to Dashboard)' : 'બંધ કરો (Close)'}
+                સમજાઈ ગયું (Close)
               </button>
             </div>
           </div>

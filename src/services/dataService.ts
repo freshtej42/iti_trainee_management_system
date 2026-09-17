@@ -334,6 +334,38 @@ export async function deleteTraineeFromCloud(traineeId: string): Promise<void> {
 }
 
 /**
+ * Delete an instructor from Firestore and local cache
+ */
+export async function deleteInstructorFromCloud(instructorId: string): Promise<void> {
+  const current = getLocalCache<Instructor[]>(CACHE_KEYS.INSTRUCTORS, INITIAL_INSTRUCTORS);
+  const updated = current.filter((i) => i.id !== instructorId);
+  setLocalCache(CACHE_KEYS.INSTRUCTORS, updated);
+
+  try {
+    const ref = doc(db, COLLECTION_INSTRUCTORS, instructorId);
+    await deleteDoc(ref);
+  } catch {
+    // Handled locally
+  }
+}
+
+/**
+ * Delete a template from Firestore and local cache
+ */
+export async function deleteTemplateFromCloud(templateId: string): Promise<void> {
+  const current = getLocalCache<LetterTemplate[]>(CACHE_KEYS.TEMPLATES, INITIAL_TEMPLATES);
+  const updated = current.filter((t) => t.id !== templateId);
+  setLocalCache(CACHE_KEYS.TEMPLATES, updated);
+
+  try {
+    const ref = doc(db, COLLECTION_TEMPLATES, templateId);
+    await deleteDoc(ref);
+  } catch {
+    // Handled locally
+  }
+}
+
+/**
  * Save single attendance record to Firestore and local cache
  */
 export async function saveAttendanceToCloud(record: AttendanceRecord): Promise<void> {

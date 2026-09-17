@@ -28,24 +28,34 @@ import {
   saveTraineeToCloud,
   deleteTraineeFromCloud,
   saveBatchTraineesToCloud,
+  deleteInstructorFromCloud,
+  deleteTemplateFromCloud,
 } from './services/dataService';
 
 import Header, { ActiveTab } from './components/Header';
-import TenantModal from './components/TenantModal';
+import InstructorProfileModal from './components/InstructorProfileModal';
 import AttendanceTracker from './components/AttendanceTracker';
 import TraineeManager from './components/TraineeManager';
-import WordEditor from './components/WordEditor/WordEditor';
 import DispatchHistory from './components/DispatchHistory';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import BatchNoticeModal from './components/BatchNoticeModal';
 import PrincipalReport from './components/PrincipalReport';
 import InstructorAuth from './components/InstructorAuth';
 import BatchUnitManagerModal from './components/BatchUnitManagerModal';
+import AcademicHierarchyManager from './components/AcademicHierarchyManager';
+import TemplateStudio from './components/TemplateStudio';
+import ReportGenerator from './components/ReportGenerator';
+import { HeaderConfig } from './types';
 
 export default function App() {
   // Multi-Tenant Data States
   const [instructors, setInstructors] = useState<Instructor[]>(INITIAL_INSTRUCTORS);
-  const [currentInstructorId, setCurrentInstructorId] = useState<string>(INITIAL_INSTRUCTORS[0].id);
+  const [currentInstructorId, setCurrentInstructorId] = useState<string>(() => {
+    const stored = localStorage.getItem('iti_auth_instructor_id');
+    if (stored) return stored;
+    const defaultInst = INITIAL_INSTRUCTORS.find((i) => i.role !== 'super_admin') || INITIAL_INSTRUCTORS[0];
+    return defaultInst.id;
+  });
   const [trainees, setTrainees] = useState<Trainee[]>(INITIAL_TRAINEES);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE);
   const [templates, setTemplates] = useState<LetterTemplate[]>(INITIAL_TEMPLATES);
@@ -69,14 +79,18 @@ export default function App() {
       ]);
 
       if (insts && insts.length > 0) {
-        // Ensure inst-tejas (tejz2342@gmail.com) is in the instructor list and marked verified
-        const hasTejas = insts.some((i) => i.email.toLowerCase() === 'tejz2342@gmail.com');
-        if (!hasTejas) {
-          const tejasInst = INITIAL_INSTRUCTORS.find((i) => i.id === 'inst-tejas');
-          if (tejasInst) {
-            insts.push(tejasInst);
-            saveInstructorToCloud(tejasInst).catch(console.warn);
-          }
+        // Ensure Super Admin Tejas Suthar (tejassuthar21696@gmail.com) is in the instructor list and marked approved
+        const superAdminInst = INITIAL_INSTRUCTORS.find((i) => i.role === 'super_admin') || INITIAL_INSTRUCTORS[0];
+        const hasSuperAdmin = insts.some(
+          (i) =>
+            i.role === 'super_admin' ||
+            (i.email && i.email.toLowerCase() === 'tejassuthar21696@gmail.com') ||
+            (i.phone && i.phone === '9825012345')
+        );
+
+        if (!hasSuperAdmin && superAdminInst) {
+          insts.unshift(superAdminInst);
+          saveInstructorToCloud(superAdminInst).catch(console.warn);
         }
         setInstructors(insts);
       }
@@ -116,7 +130,7 @@ export default function App() {
     const stored = localStorage.getItem('iti_auth_authenticated');
     return stored === 'false' ? false : true;
   });
-  const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isBatchUnitModalOpen, setIsBatchUnitModalOpen] = useState(false);
 
@@ -126,6 +140,17 @@ export default function App() {
       instructors.find((i) => i.id === currentInstructorId) || instructors[0]
     );
   }, [instructors, currentInstructorId]);
+
+  const isSuperAdmin = currentInstructor.role === 'super_admin';
+
+  // Strict role isolation: Super Admin is locked to 'admin' console; Instructors never access 'admin'
+  useEffect(() => {
+    if (isSuperAdmin && activeTab !== 'admin') {
+      setActiveTab('admin');
+    } else if (!isSuperAdmin && activeTab === 'admin') {
+      setActiveTab('attendance');
+    }
+  }, [isSuperAdmin, activeTab]);
 
   // Current instructor's isolated trainees (or shared for inst-tejas)
   const instructorTrainees = useMemo(() => {
@@ -152,6 +177,11 @@ export default function App() {
     setIsAuthenticated(true);
     localStorage.setItem('iti_auth_authenticated', 'true');
     localStorage.setItem('iti_auth_instructor_id', inst.id);
+    if (inst.role === 'super_admin') {
+      setActiveTab('admin');
+    } else {
+      setActiveTab('attendance');
+    }
   };
 
   const handleVerifyInstructorEmail = async (instructorId: string) => {
@@ -276,22 +306,49 @@ export default function App() {
 
   // 4. Template Handlers
   const handleSaveTemplate = async (updated: LetterTemplate) => {
-    setTemplates((prev) =>
-      prev.map((t) => (t.id === updated.id ? updated : t))
-    );
-    // Persist template edits to Cloud Firestore
+    setTemplates((prev) => {
+      const exists = prev.some((t) => t.id === updated.id);
+      if (exists) {
+        return prev.map((t) => (t.id === updated.id ? updated : t));
+      }
+      return [updated, ...prev];
+    });
     await saveTemplateToCloud(updated);
   };
 
+  const handleDeleteTemplate = async (templateId: string) => {
+    setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+    await deleteTemplateFromCloud(templateId);
+  };
+
+  const handleUpdateInstructorHeader = async (headerConfig: HeaderConfig) => {
+    const updated: Instructor = {
+      ...currentInstructor,
+      header_config: headerConfig,
+    };
+    await handleUpdateInstructor(updated);
+  };
+
   // 5. Tenant Handlers
-  const handleAddInstructor = (inst: Omit<Instructor, 'id' | 'created_at'>) => {
+  const handleAddInstructor = async (inst: Omit<Instructor, 'id' | 'created_at'> | Instructor) => {
     const created: Instructor = {
       ...inst,
-      id: `inst-${Date.now()}`,
+      id: 'id' in inst && inst.id ? inst.id : `inst-${Date.now()}`,
       created_at: new Date().toISOString(),
     };
-    setInstructors((prev) => [...prev, created]);
-    setCurrentInstructorId(created.id);
+    setInstructors((prev) => [created, ...prev]);
+    await saveInstructorToCloud(created);
+  };
+
+  const handleDeleteInstructor = async (id: string) => {
+    setInstructors((prev) => prev.filter((i) => i.id !== id));
+    await deleteInstructorFromCloud(id);
+    if (currentInstructorId === id) {
+      const remaining = instructors.filter((i) => i.id !== id);
+      if (remaining.length > 0) {
+        setCurrentInstructorId(remaining[0].id);
+      }
+    }
   };
 
   const handleSelectTraineeForNotice = (traineeId: string, templateId?: string) => {
@@ -299,7 +356,7 @@ export default function App() {
     if (templateId) {
       setActiveTemplateId(templateId);
     }
-    setActiveTab('editor');
+    setActiveTab('report');
   };
 
   // If instructor is logged out or visiting auth screen
@@ -314,6 +371,56 @@ export default function App() {
     );
   }
 
+  // Check if current user's account is pending approval (non-super-admin)
+  const isSuperAdminUser =
+    currentInstructor.role === 'super_admin' ||
+    currentInstructor.email === 'tejassuthar21696@gmail.com';
+
+  if (currentInstructor.status === 'pending' && !isSuperAdminUser) {
+    return (
+      <div className="min-h-screen bg-[#f7f9f6] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-amber-200 shadow-xl text-center space-y-5">
+          <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <span className="text-2xl font-black">⏳</span>
+          </div>
+
+          <div>
+            <h2 className="text-lg font-black text-slate-900">
+              ખાતું મંજૂરી માટે પેન્ડિંગ છે (Pending Super Admin Approval)
+            </h2>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+              નમસ્તે <strong>{currentInstructor.name}</strong>, આપનું ઇન્સ્ટ્રક્ટર રજીસ્ટ્રેશન પ્રાપ્ત થયું છે. સુપર એડમિન (<strong>tejassuthar21696@gmail.com</strong>) દ્વારા આપના એકાઉન્ટનું વેરિફિકેશન પ્રક્રિયામાં છે.
+            </p>
+          </div>
+
+          <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-left text-xs space-y-1.5 text-amber-950">
+            <div>• રજીસ્ટર્ડ મોબાઈલ: <strong>{currentInstructor.phone}</strong></div>
+            <div>• ઈમેલ આઈડી: <strong>{currentInstructor.email}</strong></div>
+            <div>• સંસ્થા: <strong>{currentInstructor.iti_name}</strong></div>
+            <div className="text-[11px] text-amber-800 pt-1">
+              સુપર એડમિન આપના મોબાઈલ નંબર પર સંપર્ક કરી એકાઉન્ટ મંજૂર કરશે.
+            </div>
+          </div>
+
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <button
+              onClick={handleInstructorLogout}
+              className="px-5 py-2.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-colors shadow-xs"
+            >
+              લોગ આઉટ કરો (Log Out)
+            </button>
+            <button
+              onClick={syncFromCloud}
+              className="px-4 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors"
+            >
+              સ્ટેટસ રિફ્રેશ કરો
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f7f9f6] text-slate-900 flex flex-col font-sans w-full max-w-full overflow-x-hidden">
       {/* Header Bar */}
@@ -321,7 +428,7 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         instructor={currentInstructor}
-        onOpenTenantModal={() => setIsTenantModalOpen(true)}
+        onOpenProfileModal={() => setIsProfileModalOpen(true)}
         onOpenBatchUnitModal={() => setIsBatchUnitModalOpen(true)}
         onLogout={handleInstructorLogout}
         imeLanguage={imeLanguage}
@@ -334,99 +441,128 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 py-3 sm:py-6 pb-24 md:pb-6 overflow-x-hidden">
-        {activeTab === 'attendance' && (
-          <AttendanceTracker
-            trainees={instructorTrainees}
-            attendanceRecords={attendanceRecords}
-            instructor={currentInstructor}
-            onUpdateAttendance={handleUpdateAttendance}
-            onDraftNotice={handleDraftNotice}
-            onBulkDraft={handleBulkDraft}
-          />
-        )}
-
-        {activeTab === 'principal-report' && (
-          <PrincipalReport
-            instructor={currentInstructor}
-            trainees={instructorTrainees}
-            attendanceRecords={attendanceRecords}
-            dispatchLogs={dispatchLogs}
-            onOpenBatchModal={() => setIsBatchModalOpen(true)}
-            onSelectTraineeForNotice={handleSelectTraineeForNotice}
-          />
-        )}
-
-        {activeTab === 'editor' && (
-          <WordEditor
-            templates={templates}
-            activeTemplateId={activeTemplateId}
-            onSelectTemplate={setActiveTemplateId}
-            onSaveTemplate={handleSaveTemplate}
-            trainees={instructorTrainees}
-            attendanceRecords={attendanceRecords}
-            dispatchLogs={dispatchLogs}
-            instructor={currentInstructor}
-            selectedTraineeId={selectedTraineeId}
-            onSelectTrainee={setSelectedTraineeId}
-            onLogDispatch={handleLogDispatch}
-            onTriggerPrint={() => window.print()}
-          />
-        )}
-
-        {activeTab === 'trainees' && (
-          <TraineeManager
-            trainees={instructorTrainees}
-            instructor={currentInstructor}
-            imeLanguage={imeLanguage}
-            onAddTrainee={handleAddTrainee}
-            onUpdateTrainee={handleUpdateTrainee}
-            onDeleteTrainee={handleDeleteTrainee}
-            onImportTrainees={handleImportTrainees}
-            onOpenBatchUnitModal={() => setIsBatchUnitModalOpen(true)}
-          />
-        )}
-
-        {activeTab === 'dispatch' && (
-          <DispatchHistory
-            dispatchLogs={dispatchLogs}
-            trainees={trainees}
-            instructor={currentInstructor}
-            onUpdateStatus={handleUpdateDispatchStatus}
-            onViewNotice={(traineeId) => {
-              setSelectedTraineeId(traineeId);
-              setActiveTab('editor');
-            }}
-          />
-        )}
-
-        {activeTab === 'admin' && (
+        {isSuperAdmin ? (
+          /* Super Admin Console: Pure administrative jurisdiction (verification, approvals, audit, directory) */
           <SuperAdminDashboard
             instructors={instructors}
             trainees={trainees}
             attendanceRecords={attendanceRecords}
             dispatchLogs={dispatchLogs}
-            onSelectTenant={(tenantId) => {
-              setCurrentInstructorId(tenantId);
-              setActiveTab('attendance');
-            }}
+            onAddInstructor={handleAddInstructor}
+            onUpdateInstructor={handleUpdateInstructor}
+            onDeleteInstructor={handleDeleteInstructor}
           />
+        ) : (
+          /* Instructor Classroom Management Tools */
+          <>
+            {activeTab === 'hierarchy' && (
+              <AcademicHierarchyManager
+                instructor={currentInstructor}
+                trainees={instructorTrainees}
+                onUpdateInstructor={handleUpdateInstructor}
+                onNavigateToTrainees={(trade, batch, unit) => {
+                  setActiveTab('trainees');
+                }}
+              />
+            )}
+
+            {activeTab === 'trainees' && (
+              <TraineeManager
+                trainees={instructorTrainees}
+                instructor={currentInstructor}
+                imeLanguage={imeLanguage}
+                onAddTrainee={handleAddTrainee}
+                onUpdateTrainee={handleUpdateTrainee}
+                onDeleteTrainee={handleDeleteTrainee}
+                onImportTrainees={handleImportTrainees}
+                onOpenBatchUnitModal={() => setIsBatchUnitModalOpen(true)}
+              />
+            )}
+
+            {activeTab === 'templates' && (
+              <TemplateStudio
+                instructor={currentInstructor}
+                templates={templates}
+                trainees={instructorTrainees}
+                attendanceRecords={attendanceRecords}
+                dispatchLogs={dispatchLogs}
+                onSaveTemplate={handleSaveTemplate}
+                onDeleteTemplate={handleDeleteTemplate}
+                onUpdateInstructorHeader={handleUpdateInstructorHeader}
+                onUseTemplateForReport={(tmpl) => {
+                  setActiveTemplateId(tmpl.id);
+                  setActiveTab('report');
+                }}
+              />
+            )}
+
+            {activeTab === 'report' && (
+              <ReportGenerator
+                instructor={currentInstructor}
+                trainees={instructorTrainees}
+                attendanceRecords={attendanceRecords}
+                templates={templates}
+                onBatchLogDispatch={handleBatchLogDispatch}
+              />
+            )}
+
+            {activeTab === 'attendance' && (
+              <AttendanceTracker
+                trainees={instructorTrainees}
+                attendanceRecords={attendanceRecords}
+                instructor={currentInstructor}
+                onUpdateAttendance={handleUpdateAttendance}
+                onDraftNotice={(trainee) => {
+                  setSelectedTraineeId(trainee.id);
+                  setActiveTab('report');
+                }}
+                onBulkDraft={() => {
+                  setActiveTab('report');
+                }}
+              />
+            )}
+
+            {activeTab === 'principal-report' && (
+              <PrincipalReport
+                instructor={currentInstructor}
+                trainees={instructorTrainees}
+                attendanceRecords={attendanceRecords}
+                dispatchLogs={dispatchLogs}
+                onOpenBatchModal={() => setIsBatchModalOpen(true)}
+                onSelectTraineeForNotice={handleSelectTraineeForNotice}
+              />
+            )}
+
+            {activeTab === 'dispatch' && (
+              <DispatchHistory
+                dispatchLogs={dispatchLogs}
+                trainees={trainees}
+                instructor={currentInstructor}
+                onUpdateStatus={handleUpdateDispatchStatus}
+                onViewNotice={(traineeId) => {
+                  setSelectedTraineeId(traineeId);
+                  setActiveTab('report');
+                }}
+              />
+            )}
+          </>
         )}
       </main>
 
-      {/* Multi-Tenant Instructor Switch Modal */}
-      {isTenantModalOpen && (
-        <TenantModal
-          isOpen={isTenantModalOpen}
-          onClose={() => setIsTenantModalOpen(false)}
-          instructors={instructors}
-          currentInstructorId={currentInstructorId}
-          onSelectInstructor={setCurrentInstructorId}
-          onAddInstructor={handleAddInstructor}
+      {/* Instructor Profile Modal */}
+      {isProfileModalOpen && (
+        <InstructorProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          instructor={currentInstructor}
+          allInstructors={instructors}
+          onUpdateInstructor={handleUpdateInstructor}
+          onLogout={handleInstructorLogout}
         />
       )}
 
-      {/* Instructor Batches & Units (A/B/C) Manager Modal */}
-      {isBatchUnitModalOpen && (
+      {/* Instructor Batches & Units (A/B/C) Manager Modal (Instructors Only) */}
+      {isBatchUnitModalOpen && !isSuperAdmin && (
         <BatchUnitManagerModal
           isOpen={isBatchUnitModalOpen}
           onClose={() => setIsBatchUnitModalOpen(false)}
@@ -435,8 +571,8 @@ export default function App() {
         />
       )}
 
-      {/* Batch Notice Multi-Page PDF Print Modal */}
-      {isBatchModalOpen && (
+      {/* Batch Notice Multi-Page PDF Print Modal (Instructors Only) */}
+      {isBatchModalOpen && !isSuperAdmin && (
         <BatchNoticeModal
           isOpen={isBatchModalOpen}
           onClose={() => setIsBatchModalOpen(false)}

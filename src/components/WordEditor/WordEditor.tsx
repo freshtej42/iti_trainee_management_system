@@ -470,6 +470,7 @@ export default function WordEditor({
             previewMerged={previewMerged}
             mergedHtml={mergedHtml}
             instructor={instructor}
+            onZoomChange={setZoomLevel}
           />
         </div>
       </div>

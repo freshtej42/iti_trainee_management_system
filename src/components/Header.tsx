@@ -6,7 +6,6 @@ import {
   CalendarCheck2,
   SendHorizontal,
   ShieldCheck,
-  Building,
   Printer,
   ClipboardList,
   Cloud,
@@ -16,7 +15,6 @@ import {
   LogOut,
   Menu,
   X,
-  Palette,
   User,
   AlertCircle,
 } from 'lucide-react';
@@ -99,54 +97,35 @@ export default function Header({
                     </>
                   )}
                 </h1>
-                {isSuperAdmin ? (
-                  <span className="hidden lg:inline-flex text-[11px] font-bold bg-slate-900 text-amber-400 border border-slate-800 px-2 py-0.5 rounded-full shrink-0">
+                {isSuperAdmin && (
+                  <span className="hidden lg:inline-flex text-[11px] font-bold bg-slate-900 text-amber-400 border border-slate-800 px-2.5 py-0.5 rounded-full shrink-0">
                     Super Admin Console
                   </span>
-                ) : (
-                  <span className="hidden lg:inline-flex text-[11px] font-semibold bg-[#f2edc2] text-[#346739] border border-[#9fcb98] px-2 py-0.5 rounded-full shrink-0">
-                    NCVT/GCVT
-                  </span>
-                )}
-                {/* Color Hunt Palette Swatch Badge (Only for instructors) */}
-                {!isSuperAdmin && (
-                  <div
-                    className="hidden xl:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f2edc2]/40 border border-[#9fcb98] text-[10px] font-semibold text-[#346739] shrink-0"
-                    title="Color Hunt Palette: #346739 (Forest) • #79AE6F (Sage) • #9FCB98 (Mint) • #F2EDC2 (Cream)"
-                  >
-                    <Palette className="w-3 h-3 text-[#346739] shrink-0" />
-                    <div className="flex items-center -space-x-1">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#346739] border border-white" title="#346739 Forest Green"></span>
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#79ae6f] border border-white" title="#79AE6F Sage Green"></span>
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#9fcb98] border border-white" title="#9FCB98 Mint Green"></span>
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#f2edc2] border border-slate-300" title="#F2EDC2 Warm Cream"></span>
-                    </div>
-                  </div>
                 )}
                 {/* Firestore Cloud Sync Badge */}
                 <button
                   type="button"
                   onClick={onSyncCloud}
-                  className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full cursor-pointer transition-colors shrink-0 ${
+                  className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-full cursor-pointer transition-colors shrink-0 ${
                     isSuperAdmin
-                      ? 'bg-slate-100 text-slate-800 border border-slate-300 hover:bg-slate-200'
-                      : 'bg-[#f2edc2]/70 text-[#264e2b] border border-[#9fcb98] hover:bg-[#f2edc2]'
+                      ? 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200'
+                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
                   }`}
-                  title="Google Cloud Firestore Live Database Connected (Click to sync)"
+                  title="Google Cloud Firestore Live Database (Click to sync)"
                 >
-                  <Cloud className={`w-3 h-3 shrink-0 ${isSuperAdmin ? 'text-slate-700' : 'text-[#346739]'}`} />
+                  <Cloud className={`w-3 h-3 shrink-0 ${isSuperAdmin ? 'text-slate-600' : 'text-emerald-700'}`} />
                   <span className="hidden md:inline">Firestore</span>
                   {cloudSyncStatus === 'syncing' ? (
-                    <RefreshCw className={`w-2.5 h-2.5 animate-spin shrink-0 ${isSuperAdmin ? 'text-slate-700' : 'text-[#346739]'}`} />
+                    <RefreshCw className={`w-2.5 h-2.5 animate-spin shrink-0 ${isSuperAdmin ? 'text-slate-700' : 'text-emerald-700'}`} />
                   ) : (
-                    <CheckCircle2 className={`w-2.5 h-2.5 shrink-0 ${isSuperAdmin ? 'text-emerald-600' : 'text-[#346739]'}`} />
+                    <CheckCircle2 className={`w-2.5 h-2.5 shrink-0 ${isSuperAdmin ? 'text-emerald-600' : 'text-emerald-600'}`} />
                   )}
                 </button>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate hidden sm:block">
+              <p className="text-[11px] sm:text-xs text-slate-500 font-normal truncate hidden sm:block">
                 {isSuperAdmin
                   ? 'રાજ્ય સ્તરીય ITI સંચાલન • ઇન્સ્ટ્રક્ટર વેરિફિકેશન & મંજૂરી વ્યવસ્થા • સિસ્ટમ ઓડિટ'
-                  : 'Regional Language (ગુજરાતી / हिन्दी) Notices • Word 2021 Engine • Batch PDF'}
+                  : 'ગેરહાજર તાલીમાર્થી નોટિસ જનરેશન • MS Word ફોર્મેટ • બહુભાષી સહાય'}
               </p>
               <div className="sm:hidden text-[10px] text-slate-500 truncate leading-tight">
                 {isSuperAdmin ? 'રાજ્ય વહીવટ • ગાંધીનગર (DET Gujarat)' : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
@@ -155,7 +134,7 @@ export default function Header({
           </div>
 
           {/* Right side controls: IME Widget, Batch/Unit, and Profile */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <ImeFloatWidget
               currentLanguage={imeLanguage}
               onLanguageChange={onImeLanguageChange}
@@ -166,7 +145,7 @@ export default function Header({
               <button
                 onClick={onOpenBatchUnitModal}
                 className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#9fcb98] bg-[#f2edc2]/30 hover:bg-[#f2edc2] text-[#346739] transition-colors shadow-2xs min-h-[36px]"
-                title="Add / Configure Batches and Units (A/B/C)"
+                title="Add / Configure Batches and Units"
               >
                 <Layers className="w-3.5 h-3.5 text-[#346739]" />
                 <span className="font-bold">{instructor.unit || 'Unit A'}</span>
@@ -178,7 +157,7 @@ export default function Header({
             {!isSuperAdmin && (
               <button
                 onClick={onOpenBatchModal}
-                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#79ae6f] hover:bg-[#669a5c] text-white shadow-xs transition-colors min-h-[34px] sm:min-h-[36px] shrink-0"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#346739] hover:bg-[#264e2b] text-white shadow-xs transition-colors min-h-[34px] sm:min-h-[36px] shrink-0"
                 title="Batch Export Multi-Page PDF"
               >
                 <Printer className="w-3.5 h-3.5 shrink-0" />
@@ -194,7 +173,7 @@ export default function Header({
             {/* Account Profile Button */}
             <button
               onClick={onOpenProfileModal}
-              className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors shadow-2xs min-h-[34px] sm:min-h-[36px] shrink-0 ${
+              className={`flex items-center gap-2 px-2 sm:px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors shadow-2xs min-h-[34px] sm:min-h-[36px] shrink-0 ${
                 isSuperAdmin
                   ? 'border-slate-800 bg-slate-900 text-white hover:bg-slate-800'
                   : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800'
@@ -202,18 +181,18 @@ export default function Header({
               title={isSuperAdmin ? 'સુપર એડમિન પ્રોફાઇલ' : `આપનું ઇન્સ્ટ્રક્ટર પ્રોફાઇલ: ${instructor.name}`}
             >
               <div className={`w-2 h-2 rounded-full shrink-0 ${isSuperAdmin ? 'bg-amber-400 ring-2 ring-amber-400/30' : 'bg-emerald-500'}`}></div>
-              <div className="text-left max-w-[55px] sm:max-w-[140px] truncate hidden sm:block">
-                <div className="font-bold truncate flex items-center gap-1 text-[11px] sm:text-xs">
-                  <span className="truncate">{instructor.name.split(' ')[0]}</span>
+              <div className="text-left max-w-[90px] sm:max-w-[150px] truncate hidden sm:block">
+                <div className="font-semibold truncate flex items-center gap-1 text-[11px] sm:text-xs text-slate-800">
+                  <span className="truncate">{instructor.name}</span>
                   {instructor.email_verified && (
                     <CheckCircle2 className={`w-3 h-3 shrink-0 inline ${isSuperAdmin ? 'text-amber-400' : 'text-emerald-600'}`} title="Verified" />
                   )}
                 </div>
-                <div className={`text-[9px] sm:text-[10px] truncate hidden md:block ${isSuperAdmin ? 'text-slate-300' : 'text-slate-500'}`}>
-                  {isSuperAdmin ? 'સુપર એડમિન • ગાંધીનગર' : `${instructor.trade} • ${instructor.unit}`}
+                <div className={`text-[10px] truncate hidden md:block ${isSuperAdmin ? 'text-slate-300' : 'text-slate-500'}`}>
+                  {isSuperAdmin ? 'સુપર એડમિન • ગાંધીનગર' : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
                 </div>
               </div>
-              <User className={`w-3.5 h-3.5 shrink-0 ${isSuperAdmin ? 'text-amber-400' : 'text-slate-600'}`} />
+              <User className={`w-3.5 h-3.5 shrink-0 ${isSuperAdmin ? 'text-amber-400' : 'text-slate-500'}`} />
             </button>
 
             {/* Logout Button */}
@@ -261,68 +240,68 @@ export default function Header({
             </div>
           ) : (
             /* Standard Instructor Navigation Tabs - Strictly Instructors Only */
-            <nav className="flex space-x-1 sm:space-x-2 py-1 overflow-x-auto text-xs sm:text-sm font-medium scrollbar-none">
+            <nav className="flex space-x-1 sm:space-x-1.5 py-1.5 overflow-x-auto text-xs sm:text-sm font-medium scrollbar-none items-center">
               <button
                 onClick={() => onTabChange('hierarchy')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[40px] ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
                   activeTab === 'hierarchy'
-                    ? 'bg-[#346739] text-[#f2edc2] font-semibold shadow-xs hover:bg-[#264e2b]'
-                    : 'text-slate-700 hover:text-[#346739] hover:bg-[#f2edc2]/40'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <Layers className="w-4 h-4" />
-                <span>શૈક્ષણિક માળખું (Trade → Batch → Unit)</span>
+                <Layers className="w-4 h-4 shrink-0" />
+                <span>શૈક્ષણિક માળખું</span>
               </button>
 
               <button
                 onClick={() => onTabChange('trainees')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[40px] ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
                   activeTab === 'trainees'
-                    ? 'bg-[#346739] text-[#f2edc2] font-semibold shadow-xs hover:bg-[#264e2b]'
-                    : 'text-slate-700 hover:text-[#346739] hover:bg-[#f2edc2]/40'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <Users className="w-4 h-4" />
-                <span>તાલીમાર્થી મેનેજમેન્ટ (Trainees)</span>
+                <Users className="w-4 h-4 shrink-0" />
+                <span>તાલીમાર્થીઓ</span>
               </button>
 
               <button
                 onClick={() => onTabChange('templates')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[40px] ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
                   activeTab === 'templates'
-                    ? 'bg-[#346739] text-[#f2edc2] font-semibold shadow-xs hover:bg-[#264e2b]'
-                    : 'text-slate-700 hover:text-[#346739] hover:bg-[#f2edc2]/40'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <FileText className="w-4 h-4" />
-                <span>વર્ડ રિપોર્ટ ડિઝાઇનર (MS Word Studio)</span>
+                <FileText className="w-4 h-4 shrink-0" />
+                <span>વર્ડ ડિઝાઇનર</span>
               </button>
 
               <button
                 onClick={() => onTabChange('report')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[40px] ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
                   activeTab === 'report'
-                    ? 'bg-[#346739] text-[#f2edc2] font-semibold shadow-xs hover:bg-[#264e2b]'
-                    : 'text-slate-700 hover:text-[#346739] hover:bg-[#f2edc2]/40'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <Printer className="w-4 h-4" />
-                <span>રિપોર્ટ જનરેટર (Unified Reports)</span>
+                <Printer className="w-4 h-4 shrink-0" />
+                <span>રિપોર્ટ જનરેટર</span>
               </button>
 
               <button
                 onClick={() => onTabChange('attendance')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[40px] ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
                   activeTab === 'attendance'
-                    ? 'bg-[#346739] text-[#f2edc2] font-semibold shadow-xs hover:bg-[#264e2b]'
-                    : 'text-slate-700 hover:text-[#346739] hover:bg-[#f2edc2]/40'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <CalendarCheck2 className="w-4 h-4" />
-                <span>માસિક હાજરી (Attendance)</span>
+                <CalendarCheck2 className="w-4 h-4 shrink-0" />
+                <span>માસિક હાજરી</span>
                 {lowAttendanceCount > 0 && (
                   <span
-                    className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold ${
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-0.5 ${
                       activeTab === 'attendance'
                         ? 'bg-rose-500 text-white'
                         : 'bg-rose-100 text-rose-700'
@@ -335,26 +314,26 @@ export default function Header({
 
               <button
                 onClick={() => onTabChange('principal-report')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[40px] ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
                   activeTab === 'principal-report'
-                    ? 'bg-[#346739] text-[#f2edc2] font-semibold shadow-xs hover:bg-[#264e2b]'
-                    : 'text-slate-700 hover:text-[#346739] hover:bg-[#f2edc2]/40'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <ClipboardList className="w-4 h-4" />
-                <span>આચાર્યશ્રી રિપોર્ટ (Principal Report)</span>
+                <ClipboardList className="w-4 h-4 shrink-0" />
+                <span>આચાર્યશ્રી રિપોર્ટ</span>
               </button>
 
               <button
                 onClick={() => onTabChange('dispatch')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[40px] ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
                   activeTab === 'dispatch'
-                    ? 'bg-[#346739] text-[#f2edc2] font-semibold shadow-xs hover:bg-[#264e2b]'
-                    : 'text-slate-700 hover:text-[#346739] hover:bg-[#f2edc2]/40'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <SendHorizontal className="w-4 h-4" />
-                <span>આવક-જાવક રજીસ્ટર (Outward Logs)</span>
+                <SendHorizontal className="w-4 h-4 shrink-0" />
+                <span>આવક-જાવક રજીસ્ટર</span>
               </button>
             </nav>
           )}

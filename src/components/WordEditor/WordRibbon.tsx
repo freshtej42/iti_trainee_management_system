@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Bold,
   Italic,
@@ -116,6 +116,23 @@ export default function WordRibbon({
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [imageUploadTarget, setImageUploadTarget] = useState<'left' | 'right' | 'body'>('left');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const tablePickerRef = useRef<HTMLDivElement>(null);
+  const imagePickerRef = useRef<HTMLDivElement>(null);
+
+  // Close floating pickers on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      if (tablePickerRef.current && !tablePickerRef.current.contains(target)) {
+        setShowTablePicker(false);
+      }
+      if (imagePickerRef.current && !imagePickerRef.current.contains(target)) {
+        setShowImagePicker(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleTriggerUpload = (target: 'left' | 'right' | 'body') => {
     setImageUploadTarget(target);
@@ -149,7 +166,7 @@ export default function WordRibbon({
   };
 
   return (
-    <div className="bg-[#f3f5f8] border-b border-[#d2d6dc] select-none text-slate-800">
+    <div className="bg-[#f3f5f8] border-b border-[#d2d6dc] select-none text-slate-800 relative z-30">
       {/* Ribbon Top Tabs (Word 2021 Blue Theme) */}
       <div className="flex items-center justify-between px-2 sm:px-3 pt-1 border-b border-[#e2e5e9] bg-[#f8f9fa] overflow-x-auto">
         <div className="flex space-x-0.5 shrink-0">
@@ -249,7 +266,7 @@ export default function WordRibbon({
 
       {/* Ribbon Toolbars Content (Collapsible) */}
       {!isCollapsed && (
-        <div className="px-3 sm:px-4 py-2 bg-white flex items-center gap-3 overflow-x-auto min-h-[58px]">
+        <div className="px-3 sm:px-4 py-2 bg-white flex flex-wrap lg:flex-nowrap items-center gap-2.5 min-h-[58px] relative overflow-visible">
           {/* HOME TAB */}
           {activeTab === 'home' && (
             <>
@@ -391,7 +408,7 @@ export default function WordRibbon({
             </div>
 
             {/* Table Insertion */}
-            <div className="relative pr-3 border-r border-slate-200">
+            <div className="relative pr-3 border-r border-slate-200" ref={tablePickerRef}>
               <button
                 onClick={() => setShowTablePicker(!showTablePicker)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded hover:bg-slate-100 border border-slate-200"
@@ -401,7 +418,7 @@ export default function WordRibbon({
               </button>
 
               {showTablePicker && (
-                <div className="absolute left-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-xl p-3 z-50 w-48 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 bg-white border border-slate-300 rounded-lg shadow-2xl p-3 z-50 w-52 animate-in fade-in zoom-in-95 duration-100">
                   <div className="text-xs font-bold text-slate-700 mb-2">Preset Tables:</div>
                   <div className="space-y-1">
                     <button
@@ -409,7 +426,7 @@ export default function WordRibbon({
                         onInsertTable(3, 3);
                         setShowTablePicker(false);
                       }}
-                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-blue-50 hover:text-blue-900"
+                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-blue-50 hover:text-blue-900 font-medium"
                     >
                       3 × 3 Grid Table
                     </button>
@@ -418,7 +435,7 @@ export default function WordRibbon({
                         onInsertTable(4, 2);
                         setShowTablePicker(false);
                       }}
-                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-blue-50 hover:text-blue-900"
+                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-blue-50 hover:text-blue-900 font-medium"
                     >
                       2-Column Summary Form
                     </button>
@@ -427,7 +444,7 @@ export default function WordRibbon({
                         onInsertTable(2, 4);
                         setShowTablePicker(false);
                       }}
-                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-blue-50 hover:text-blue-900"
+                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-blue-50 hover:text-blue-900 font-medium"
                     >
                       Attendance Metrics Row
                     </button>
@@ -437,7 +454,7 @@ export default function WordRibbon({
             </div>
 
             {/* Image & Logo Insertion from Computer */}
-            <div className="relative pr-3 border-r border-slate-200">
+            <div className="relative pr-3 border-r border-slate-200" ref={imagePickerRef}>
               <button
                 type="button"
                 onClick={() => setShowImagePicker(!showImagePicker)}
@@ -449,7 +466,7 @@ export default function WordRibbon({
               </button>
 
               {showImagePicker && (
-                <div className="absolute left-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-xl p-2 z-50 w-56 animate-in fade-in zoom-in-95 duration-100 text-xs">
+                <div className="absolute left-0 top-full mt-1.5 bg-white border border-slate-300 rounded-lg shadow-2xl p-2.5 z-50 w-60 animate-in fade-in zoom-in-95 duration-100 text-xs">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
                     કમ્પ્યુટરમાંથી છબી ઉમેરો:
                   </div>

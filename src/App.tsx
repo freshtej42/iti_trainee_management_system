@@ -51,10 +51,10 @@ export default function App() {
   // Multi-Tenant Data States
   const [instructors, setInstructors] = useState<Instructor[]>(INITIAL_INSTRUCTORS);
   const [currentInstructorId, setCurrentInstructorId] = useState<string>(() => {
-    const stored = localStorage.getItem('iti_auth_instructor_id');
-    if (stored) return stored;
-    const defaultInst = INITIAL_INSTRUCTORS.find((i) => i.role !== 'super_admin') || INITIAL_INSTRUCTORS[0];
-    return defaultInst.id;
+    const storedAuth = localStorage.getItem('iti_auth_authenticated');
+    const storedId = localStorage.getItem('iti_auth_instructor_id');
+    if (storedAuth === 'true' && storedId) return storedId;
+    return '';
   });
   const [trainees, setTrainees] = useState<Trainee[]>(INITIAL_TRAINEES);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE);
@@ -127,8 +127,9 @@ export default function App() {
 
   // Modals & Auth State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    const stored = localStorage.getItem('iti_auth_authenticated');
-    return stored === 'false' ? false : true;
+    const storedAuth = localStorage.getItem('iti_auth_authenticated');
+    const storedId = localStorage.getItem('iti_auth_instructor_id');
+    return storedAuth === 'true' && Boolean(storedId);
   });
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
@@ -203,16 +204,15 @@ export default function App() {
       created_at: new Date().toISOString(),
     };
     setInstructors((prev) => [created, ...prev]);
-    setCurrentInstructorId(created.id);
-    setIsAuthenticated(true);
-    localStorage.setItem('iti_auth_authenticated', 'true');
-    localStorage.setItem('iti_auth_instructor_id', created.id);
+    // Save to Cloud Firestore so Super Admin sees it in pending approvals
     await saveInstructorToCloud(created);
   };
 
   const handleInstructorLogout = () => {
     setIsAuthenticated(false);
     localStorage.setItem('iti_auth_authenticated', 'false');
+    localStorage.removeItem('iti_auth_instructor_id');
+    setCurrentInstructorId('');
   };
 
   const handleUpdateInstructor = async (updated: Instructor) => {
@@ -334,6 +334,22 @@ export default function App() {
     const created: Instructor = {
       ...inst,
       id: 'id' in inst && inst.id ? inst.id : `inst-${Date.now()}`,
+      batches: inst.batches || [inst.batch || '૨૦૨૫–૨૦૨૬'],
+      units: inst.units || [inst.unit || 'Unit A'],
+      trades: inst.trades || [inst.trade || 'કોપા (COPA)'],
+      academic_hierarchy: inst.academic_hierarchy || [
+        {
+          id: `tr-${Date.now()}`,
+          name: inst.trade || 'કોપા (COPA)',
+          batches: [
+            {
+              id: `b-${Date.now()}`,
+              name: inst.batch || '૨૦૨૫–૨૦૨૬',
+              units: [{ id: `u-${Date.now()}`, name: inst.unit || 'Unit A' }],
+            },
+          ],
+        },
+      ],
       created_at: new Date().toISOString(),
     };
     setInstructors((prev) => [created, ...prev]);

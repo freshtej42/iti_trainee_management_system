@@ -393,7 +393,7 @@ export default function WordEditor({
       )}
 
       {/* MS Word 2021 Container */}
-      <div className="bg-[#e9edf2] rounded-xl border border-slate-300 shadow-sm overflow-hidden">
+      <div className="bg-[#e9edf2] rounded-xl border border-slate-300 shadow-sm relative">
         {/* Word 2021 Ribbon Header & Tabs */}
         <WordRibbon
           activeTab={activeRibbonTab}

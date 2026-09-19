@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Instructor } from '../types';
 import {
   FileText,
@@ -19,6 +19,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import ImeFloatWidget from './ImeFloatWidget';
+import LanguageSelector from './LanguageSelector';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export type ActiveTab =
   | 'hierarchy'
@@ -37,8 +39,8 @@ interface HeaderProps {
   onOpenProfileModal: () => void;
   onOpenBatchUnitModal?: () => void;
   onLogout?: () => void;
-  imeLanguage: 'Gujarati' | 'Hindi' | 'English';
-  onImeLanguageChange: (lang: 'Gujarati' | 'Hindi' | 'English') => void;
+  imeLanguage?: 'Gujarati' | 'Hindi' | 'English';
+  onImeLanguageChange?: (lang: 'Gujarati' | 'Hindi' | 'English') => void;
   lowAttendanceCount: number;
   onOpenBatchModal: () => void;
   cloudSyncStatus?: 'connected' | 'syncing' | 'offline';
@@ -52,7 +54,7 @@ export default function Header({
   onOpenProfileModal,
   onOpenBatchUnitModal,
   onLogout,
-  imeLanguage,
+  imeLanguage: propImeLanguage,
   onImeLanguageChange,
   lowAttendanceCount,
   onOpenBatchModal,
@@ -60,6 +62,18 @@ export default function Header({
   onSyncCloud,
 }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { t, tText, imeLanguageName } = useLanguage();
+  const [localImeLanguage, setLocalImeLanguage] = useState<'Gujarati' | 'Hindi' | 'English'>('Gujarati');
+
+  const activeImeLanguage = propImeLanguage || localImeLanguage;
+  const handleImeChange = onImeLanguageChange || setLocalImeLanguage;
+
+  // Sync IME language automatically when portal language is switched
+  useEffect(() => {
+    if (imeLanguageName) {
+      handleImeChange(imeLanguageName);
+    }
+  }, [imeLanguageName]);
 
   const handleMobileTabSelect = (tab: ActiveTab) => {
     onTabChange(tab);
@@ -85,21 +99,11 @@ export default function Header({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
                 <h1 className="text-xs sm:text-base font-bold text-slate-900 tracking-tight leading-tight truncate">
-                  {isSuperAdmin ? (
-                    <>
-                      <span className="sm:hidden">DET Super Admin</span>
-                      <span className="hidden sm:inline">રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી - સુપર એડમિન પોર્ટલ</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="sm:hidden">ITI Attendance</span>
-                      <span className="hidden sm:inline">ITI Trainee Attendance & Irregularity Notice System</span>
-                    </>
-                  )}
+                  {isSuperAdmin ? t('superAdminTitle') : t('portalTitle')}
                 </h1>
                 {isSuperAdmin && (
                   <span className="hidden lg:inline-flex text-[11px] font-bold bg-slate-900 text-amber-400 border border-slate-800 px-2.5 py-0.5 rounded-full shrink-0">
-                    Super Admin Console
+                    {t('tabSuperAdmin')}
                   </span>
                 )}
                 {/* Firestore Cloud Sync Badge */}
@@ -123,21 +127,23 @@ export default function Header({
                 </button>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-500 font-normal truncate hidden sm:block">
-                {isSuperAdmin
-                  ? 'રાજ્ય સ્તરીય ITI સંચાલન • ઇન્સ્ટ્રક્ટર વેરિફિકેશન & મંજૂરી વ્યવસ્થા • સિસ્ટમ ઓડિટ'
-                  : 'ગેરહાજર તાલીમાર્થી નોટિસ જનરેશન • MS Word ફોર્મેટ • બહુભાષી સહાય'}
+                {isSuperAdmin ? t('superAdminSubtitle') : t('portalSubtitle')}
               </p>
               <div className="sm:hidden text-[10px] text-slate-500 truncate leading-tight">
-                {isSuperAdmin ? 'રાજ્ય વહીવટ • ગાંધીનગર (DET Gujarat)' : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
+                {isSuperAdmin ? tText('રાજ્ય વહીવટ • ગાંધીનગર', 'राज्य प्रशासन • गांधीनगर', 'State Administration • Gandhinagar') : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
               </div>
             </div>
           </div>
 
-          {/* Right side controls: IME Widget, Batch/Unit, and Profile */}
+          {/* Right side controls: Portal Language Selector, Batch/Unit, Batch Print, and Profile */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Global Portal Language Switcher (Eng, Hin, Guj) */}
+            <LanguageSelector />
+
+            {/* Phonetic IME Typing Companion */}
             <ImeFloatWidget
-              currentLanguage={imeLanguage}
-              onLanguageChange={onImeLanguageChange}
+              currentLanguage={activeImeLanguage}
+              onLanguageChange={handleImeChange}
             />
 
             {/* Batch & Unit Quick Manager Button - Desktop (Instructors Only) */}
@@ -145,7 +151,7 @@ export default function Header({
               <button
                 onClick={onOpenBatchUnitModal}
                 className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#9fcb98] bg-[#f2edc2]/30 hover:bg-[#f2edc2] text-[#346739] transition-colors shadow-2xs min-h-[36px]"
-                title="Add / Configure Batches and Units"
+                title="Configure Batches and Units"
               >
                 <Layers className="w-3.5 h-3.5 text-[#346739]" />
                 <span className="font-bold">{instructor.unit || 'Unit A'}</span>
@@ -161,7 +167,7 @@ export default function Header({
                 title="Batch Export Multi-Page PDF"
               >
                 <Printer className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden md:inline">Batch Print</span>
+                <span className="hidden md:inline">{t('batchPrint')}</span>
                 {lowAttendanceCount > 0 && (
                   <span className="px-1.5 py-0.2 bg-[#f2edc2] text-[#346739] rounded-full font-bold text-[10px]">
                     {lowAttendanceCount}
@@ -178,7 +184,7 @@ export default function Header({
                   ? 'border-slate-800 bg-slate-900 text-white hover:bg-slate-800'
                   : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800'
               }`}
-              title={isSuperAdmin ? 'સુપર એડમિન પ્રોફાઇલ' : `આપનું ઇન્સ્ટ્રક્ટર પ્રોફાઇલ: ${instructor.name}`}
+              title={isSuperAdmin ? t('superAdminTitle') : `${t('profile')}: ${instructor.name}`}
             >
               <div className={`w-2 h-2 rounded-full shrink-0 ${isSuperAdmin ? 'bg-amber-400 ring-2 ring-amber-400/30' : 'bg-emerald-500'}`}></div>
               <div className="text-left max-w-[90px] sm:max-w-[150px] truncate hidden sm:block">
@@ -189,7 +195,7 @@ export default function Header({
                   )}
                 </div>
                 <div className={`text-[10px] truncate hidden md:block ${isSuperAdmin ? 'text-slate-300' : 'text-slate-500'}`}>
-                  {isSuperAdmin ? 'સુપર એડમિન • ગાંધીનગર' : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
+                  {isSuperAdmin ? tText('સુપર એડમિન • ગાંધીનગર', 'सुपर एडमिन • गांधीनगर', 'Super Admin • Gandhinagar') : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
                 </div>
               </div>
               <User className={`w-3.5 h-3.5 shrink-0 ${isSuperAdmin ? 'text-amber-400' : 'text-slate-500'}`} />
@@ -200,7 +206,7 @@ export default function Header({
               <button
                 onClick={onLogout}
                 className="hidden lg:flex p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors min-h-[36px] items-center justify-center shrink-0"
-                title="Log Out (લોગ આઉટ કરો)"
+                title={t('logout')}
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -225,16 +231,16 @@ export default function Header({
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 text-white font-bold text-xs shadow-xs">
                   <ShieldCheck className="w-4 h-4 text-amber-400" />
-                  <span>સુપર એડમિનિસ્ટ્રેટર કંટ્રોલ સેન્ટર (Directorate Console)</span>
+                  <span>{t('superAdminTitle')}</span>
                 </div>
                 <span className="text-xs text-slate-600 font-medium">
-                  ઇન્સ્ટ્રક્ટર એકાઉન્ટ મંજૂરી • એકાઉન્ટ વહીવટ • રાજ્યવ્યાપી આંકડાકીય મોનિટરિંગ
+                  {t('superAdminSubtitle')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold">
                   <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                  <span>માત્ર વહીવટી કાર્યક્ષેત્ર (Administrative Tasks Only)</span>
+                  <span>{tText('માત્ર વહીવટી કાર્યક્ષેત્ર', 'केवल प्रशासनिक अधिकार क्षेत्र', 'Administrative Jurisdiction Only')}</span>
                 </span>
               </div>
             </div>
@@ -250,7 +256,7 @@ export default function Header({
                 }`}
               >
                 <Layers className="w-4 h-4 shrink-0" />
-                <span>શૈક્ષણિક માળખું</span>
+                <span>{t('tabHierarchy')}</span>
               </button>
 
               <button
@@ -262,7 +268,7 @@ export default function Header({
                 }`}
               >
                 <Users className="w-4 h-4 shrink-0" />
-                <span>તાલીમાર્થીઓ</span>
+                <span>{t('tabTrainees')}</span>
               </button>
 
               <button
@@ -274,7 +280,7 @@ export default function Header({
                 }`}
               >
                 <FileText className="w-4 h-4 shrink-0" />
-                <span>વર્ડ ડિઝાઇનર</span>
+                <span>{t('tabWordDesigner')}</span>
               </button>
 
               <button
@@ -286,7 +292,7 @@ export default function Header({
                 }`}
               >
                 <Printer className="w-4 h-4 shrink-0" />
-                <span>રિપોર્ટ જનરેટર</span>
+                <span>{t('tabReportGenerator')}</span>
               </button>
 
               <button
@@ -298,7 +304,7 @@ export default function Header({
                 }`}
               >
                 <CalendarCheck2 className="w-4 h-4 shrink-0" />
-                <span>માસિક હાજરી</span>
+                <span>{t('tabMonthlyAttendance')}</span>
                 {lowAttendanceCount > 0 && (
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-0.5 ${
@@ -321,7 +327,7 @@ export default function Header({
                 }`}
               >
                 <ClipboardList className="w-4 h-4 shrink-0" />
-                <span>આચાર્યશ્રી રિપોર્ટ</span>
+                <span>{t('tabPrincipalReport')}</span>
               </button>
 
               <button
@@ -333,7 +339,7 @@ export default function Header({
                 }`}
               >
                 <SendHorizontal className="w-4 h-4 shrink-0" />
-                <span>આવક-જાવક રજીસ્ટર</span>
+                <span>{t('tabDispatchRegister')}</span>
               </button>
             </nav>
           )}
@@ -372,6 +378,9 @@ export default function Header({
               </button>
             </div>
 
+            {/* Language Selector in Mobile Drawer */}
+            <LanguageSelector variant="mobile" className="mb-3" />
+
             {/* Quick Actions Grid in Mobile Menu */}
             {isSuperAdmin ? (
               <div className="grid grid-cols-2 gap-2 mb-4">
@@ -384,8 +393,8 @@ export default function Header({
                 >
                   <User className="w-4 h-4 text-amber-400 shrink-0" />
                   <div>
-                    <div>સુપર એડમિન પ્રોફાઇલ</div>
-                    <div className="text-[10px] text-slate-300 font-normal">Account Details</div>
+                    <div>{t('profile')}</div>
+                    <div className="text-[10px] text-slate-300 font-normal">{tText('સુપર એડમિન', 'सुपर एडमिन', 'Super Admin')}</div>
                   </div>
                 </button>
 
@@ -399,7 +408,7 @@ export default function Header({
                   <Cloud className="w-4 h-4 text-slate-700 shrink-0" />
                   <div>
                     <div>Firestore Cloud</div>
-                    <div className="text-[10px] text-slate-500 font-normal">State Database</div>
+                    <div className="text-[10px] text-slate-500 font-normal">{t('cloudLive')}</div>
                   </div>
                 </button>
               </div>
@@ -415,7 +424,7 @@ export default function Header({
                   >
                     <Layers className="w-4 h-4 text-[#346739] shrink-0" />
                     <div>
-                      <div>Units & Batches</div>
+                      <div>{t('unitLabel')} & {t('batch')}</div>
                       <div className="text-[10px] text-[#346739]/80 font-normal">{instructor.unit} ({instructor.batch})</div>
                     </div>
                   </button>
@@ -430,8 +439,8 @@ export default function Header({
                 >
                   <User className="w-4 h-4 text-slate-600 shrink-0" />
                   <div>
-                    <div>મારું પ્રોફાઇલ</div>
-                    <div className="text-[10px] text-slate-500 font-normal">View Profile</div>
+                    <div>{t('profile')}</div>
+                    <div className="text-[10px] text-slate-500 font-normal">{instructor.name}</div>
                   </div>
                 </button>
 
@@ -444,7 +453,7 @@ export default function Header({
                 >
                   <Printer className="w-4 h-4 text-[#346739] shrink-0" />
                   <div>
-                    <div>Batch Print PDF</div>
+                    <div>{t('batchPrint')}</div>
                     <div className="text-[10px] text-[#264e2b] font-normal">{lowAttendanceCount} Notices</div>
                   </div>
                 </button>
@@ -459,7 +468,7 @@ export default function Header({
                   <Cloud className="w-4 h-4 text-[#346739] shrink-0" />
                   <div>
                     <div>Firestore Sync</div>
-                    <div className="text-[10px] text-[#264e2b] font-normal">Cloud Connected</div>
+                    <div className="text-[10px] text-[#264e2b] font-normal">{t('cloudLive')}</div>
                   </div>
                 </button>
               </div>
@@ -474,18 +483,22 @@ export default function Header({
                 >
                   <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0" />
                   <div className="text-left">
-                    <div>સુપર એડમિન કંટ્રોલ સેન્ટર</div>
-                    <div className="text-[11px] text-slate-300 font-normal">ઇન્સ્ટ્રક્ટર મંજૂરી અને રાજ્યવ્યાપી વહીવટ</div>
+                    <div>{t('tabSuperAdmin')}</div>
+                    <div className="text-[11px] text-slate-300 font-normal">{t('superAdminSubtitle')}</div>
                   </div>
                 </button>
 
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>વહીવટી સ્વાયત્તતા સૂચના</span>
+                    <span>{tText('વહીવટી સ્વાયત્તતા સૂચના', 'प्रशासनिक स्वायत्तता सूचना', 'Administrative Notice')}</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-amber-800">
-                    સુપર એડમિન તરીકે આપ માત્ર રાજ્ય કક્ષાના વહીવટ, ઇન્સ્ટ્રક્ટર એકાઉન્ટ મંજૂરી અને સિસ્ટમ ઓડિટની કામગીરી સંભાળો છો. વ્યક્તિગત વર્ગખંડ સંચાલન ઇન્સ્ટ્રક્ટર્સના અધિકારમાં છે.
+                    {tText(
+                      'સુપર એડમિન તરીકે આપ માત્ર રાજ્ય કક્ષાના વહીવટ, ઇન્સ્ટ્રક્ટર એકાઉન્ટ મંજૂરી અને સિસ્ટમ ઓડિટની કામગીરી સંભાળો છો.',
+                      'सुपर एडमिन के रूप में आप राज्य स्तरीय प्रशासन, प्रशिक्षक सत्यापन और सिस्टम ऑडिट का कार्य संभालते हैं।',
+                      'As Super Admin, you oversee state-level administration, instructor account verifications, and system audits.'
+                    )}
                   </p>
                 </div>
               </div>
@@ -500,7 +513,7 @@ export default function Header({
                   }`}
                 >
                   <Layers className="w-5 h-5" />
-                  <span>શૈક્ષણિક માળખું (Trade → Batch → Unit)</span>
+                  <span>{t('tabHierarchy')}</span>
                 </button>
 
                 <button
@@ -512,7 +525,7 @@ export default function Header({
                   }`}
                 >
                   <Users className="w-5 h-5" />
-                  <span>તાલીમાર્થી મેનેજમેન્ટ (Trainee Records)</span>
+                  <span>{t('tabTrainees')}</span>
                 </button>
 
                 <button
@@ -524,7 +537,7 @@ export default function Header({
                   }`}
                 >
                   <FileText className="w-5 h-5" />
-                  <span>વર્ડ રિપોર્ટ ડિઝાઇનર (MS Word Studio)</span>
+                  <span>{t('tabWordDesigner')}</span>
                 </button>
 
                 <button
@@ -536,7 +549,7 @@ export default function Header({
                   }`}
                 >
                   <Printer className="w-5 h-5" />
-                  <span>રિપોર્ટ જનરેટર (Unified Reports & PDF)</span>
+                  <span>{t('tabReportGenerator')}</span>
                 </button>
 
                 <button
@@ -549,7 +562,7 @@ export default function Header({
                 >
                   <div className="flex items-center gap-3">
                     <CalendarCheck2 className="w-5 h-5" />
-                    <span>માસિક હાજરી (Monthly Attendance)</span>
+                    <span>{t('tabMonthlyAttendance')}</span>
                   </div>
                   {lowAttendanceCount > 0 && (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
@@ -570,7 +583,7 @@ export default function Header({
                 >
                   <div className="flex items-center gap-3">
                     <ClipboardList className="w-5 h-5" />
-                    <span>આચાર્યશ્રી રિપોર્ટ (Principal Forwarding)</span>
+                    <span>{t('tabPrincipalReport')}</span>
                   </div>
                 </button>
 
@@ -583,7 +596,7 @@ export default function Header({
                   }`}
                 >
                   <SendHorizontal className="w-5 h-5" />
-                  <span>આવક-જાવક રજીસ્ટર (Outward Logs)</span>
+                  <span>{t('tabDispatchRegister')}</span>
                 </button>
               </div>
             )}
@@ -599,7 +612,7 @@ export default function Header({
                   className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-sm font-bold min-h-[44px]"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>Log Out (લોગ આઉટ કરો)</span>
+                  <span>{t('logout')}</span>
                 </button>
               </div>
             )}
@@ -623,7 +636,7 @@ export default function Header({
               }`}
             >
               <ShieldCheck className="w-5 h-5 mb-0.5 text-amber-600" />
-              <span className="text-[10px] leading-tight">કંટ્રોલ સેન્ટર</span>
+              <span className="text-[10px] leading-tight">{t('tabSuperAdmin')}</span>
             </button>
 
             <button
@@ -631,7 +644,7 @@ export default function Header({
               className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-slate-900 transition-colors min-h-[48px] min-w-[70px]"
             >
               <User className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">પ્રોફાઇલ</span>
+              <span className="text-[10px] leading-tight">{t('profile')}</span>
             </button>
 
             <button
@@ -639,7 +652,7 @@ export default function Header({
               className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-slate-900 transition-colors min-h-[48px] min-w-[70px]"
             >
               <Cloud className="w-5 h-5 mb-0.5 text-[#346739]" />
-              <span className="text-[10px] leading-tight">ક્લાઉડ સિંક</span>
+              <span className="text-[10px] leading-tight">{t('cloudLive')}</span>
             </button>
 
             {onLogout && (
@@ -648,7 +661,7 @@ export default function Header({
                 className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-rose-600 hover:text-rose-800 transition-colors min-h-[48px] min-w-[70px]"
               >
                 <LogOut className="w-5 h-5 mb-0.5" />
-                <span className="text-[10px] leading-tight">લોગ આઉટ</span>
+                <span className="text-[10px] leading-tight">{t('logout')}</span>
               </button>
             )}
           </>
@@ -658,12 +671,12 @@ export default function Header({
               onClick={() => onTabChange('attendance')}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors relative min-h-[48px] min-w-[56px] ${
                 activeTab === 'attendance'
-                  ? 'text-blue-700 font-bold'
+                  ? 'text-[#346739] font-bold'
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               <CalendarCheck2 className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">હાજરી</span>
+              <span className="text-[10px] leading-tight">{t('tabMonthlyAttendance')}</span>
               {lowAttendanceCount > 0 && (
                 <span className="absolute top-0.5 right-1 w-4 h-4 bg-rose-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
                   {lowAttendanceCount > 9 ? '9+' : lowAttendanceCount}
@@ -675,48 +688,48 @@ export default function Header({
               onClick={() => onTabChange('principal-report')}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors min-h-[48px] min-w-[56px] ${
                 activeTab === 'principal-report'
-                  ? 'text-blue-700 font-bold'
+                  ? 'text-[#346739] font-bold'
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               <ClipboardList className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">રિપોર્ટ</span>
+              <span className="text-[10px] leading-tight">{t('tabPrincipalReport')}</span>
             </button>
 
             <button
               onClick={() => onTabChange('templates')}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors min-h-[48px] min-w-[56px] ${
                 activeTab === 'templates'
-                  ? 'text-blue-700 font-bold'
+                  ? 'text-[#346739] font-bold'
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               <FileText className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">ટેમ્પ્લેટ</span>
+              <span className="text-[10px] leading-tight">{t('tabWordDesigner')}</span>
             </button>
 
             <button
               onClick={() => onTabChange('trainees')}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors min-h-[48px] min-w-[56px] ${
                 activeTab === 'trainees'
-                  ? 'text-blue-700 font-bold'
+                  ? 'text-[#346739] font-bold'
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               <Users className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">તાલીમાર્થી</span>
+              <span className="text-[10px] leading-tight">{t('tabTrainees')}</span>
             </button>
 
             <button
               onClick={() => onTabChange('dispatch')}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors min-h-[48px] min-w-[56px] ${
                 activeTab === 'dispatch'
-                  ? 'text-blue-700 font-bold'
+                  ? 'text-[#346739] font-bold'
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               <SendHorizontal className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">આવક/જાવક</span>
+              <span className="text-[10px] leading-tight">{t('tabDispatchRegister')}</span>
             </button>
 
             <button
@@ -724,7 +737,7 @@ export default function Header({
               className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-500 hover:text-slate-900 transition-colors min-h-[48px] min-w-[52px]"
             >
               <Menu className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">વધુ (More)</span>
+              <span className="text-[10px] leading-tight">{tText('વધુ', 'अधिक', 'More')}</span>
             </button>
           </>
         )}
@@ -732,3 +745,4 @@ export default function Header({
     </>
   );
 }
+

@@ -137,11 +137,18 @@ export default function VariableDropdown({ onInsertTag }: VariableDropdownProps)
                         <button
                           key={item.tag}
                           type="button"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', item.tag);
+                            e.dataTransfer.setData('application/x-merge-tag', item.tag);
+                            e.dataTransfer.effectAllowed = 'copy';
+                          }}
                           onClick={() => {
                             onInsertTag(item.tag);
                             setIsOpen(false);
                           }}
-                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-blue-50 hover:text-blue-900 transition-colors flex items-center justify-between group"
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-blue-50 hover:text-blue-900 transition-colors flex items-center justify-between group cursor-grab active:cursor-grabbing"
+                          title="ખેંચીને મૂકો (Drag & Drop) અથવા ક્લિક કરીને કર્સર આગળ ઉમેરો"
                         >
                           <span className="font-medium text-slate-800 group-hover:text-blue-900">
                             {item.label}

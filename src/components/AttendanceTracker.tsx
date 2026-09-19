@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { formatFullName } from '../utils/mergeTags';
 import A4PrintPreviewModal from './A4PrintPreviewModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AttendanceTrackerProps {
   trainees: Trainee[];
@@ -39,6 +40,7 @@ export default function AttendanceTracker({
   onDraftNotice,
   onBulkDraft,
 }: AttendanceTrackerProps) {
+  const { t, tText } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState<string>('August 2025');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'flagged' | 'regular'>('all');
@@ -213,7 +215,7 @@ export default function AttendanceTracker({
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-2 bg-slate-100 px-2.5 sm:px-3 py-2 rounded-lg text-slate-700 min-h-[38px] sm:min-h-[40px]">
               <Calendar className="w-4 h-4 text-[#346739] shrink-0" />
-              <span className="text-xs font-semibold">Month:</span>
+              <span className="text-xs font-semibold">{tText('માસ:', 'माह:', 'Month:')}</span>
               <select
                 value={selectedMonth}
                 onChange={(e) => handleMonthChange(e.target.value)}
@@ -231,7 +233,7 @@ export default function AttendanceTracker({
             <div className="flex items-center gap-1.5 sm:gap-2 bg-[#f2edc2]/40 border border-[#9fcb98] px-2.5 sm:px-3 py-1.5 rounded-lg min-h-[38px] sm:min-h-[40px]">
               <Clock className="w-4 h-4 text-[#346739] shrink-0" />
               <label className="text-xs font-semibold text-[#346739]">
-                Working Days:
+                {t('totalWorkingDays')}:
               </label>
               <input
                 type="number"
@@ -241,11 +243,11 @@ export default function AttendanceTracker({
                 onChange={(e) => handleGlobalWorkingDaysChange(parseInt(e.target.value, 10) || 1)}
                 className="w-11 sm:w-14 px-1 py-0.5 text-center text-xs font-bold bg-white border border-[#9fcb98] rounded text-[#346739] focus:ring-2 focus:ring-[#346739] focus:outline-none"
               />
-              <span className="text-[11px] text-[#346739]/80 font-medium">Days</span>
+              <span className="text-[11px] text-[#346739]/80 font-medium">{tText('દિવસ', 'दिन', 'Days')}</span>
             </div>
 
             <div className="text-xs text-slate-500 flex items-center gap-1">
-              <span>Unit:</span>
+              <span>{t('unit')}:</span>
               <strong className="text-slate-800 truncate max-w-[200px]">{instructor.trade} ({instructor.unit || 'Unit A'})</strong>
             </div>
           </div>
@@ -257,7 +259,7 @@ export default function AttendanceTracker({
               className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-bold rounded-lg bg-[#346739] hover:bg-[#264e2b] text-[#f2edc2] shadow-xs transition-colors min-h-[38px] sm:min-h-[40px]"
             >
               <Printer className="w-4 h-4 shrink-0" />
-              <span>પ્રિન્ટ પત્રક (A4 Print)</span>
+              <span>{tText('પ્રિન્ટ પત્રક (A4)', 'प्रिंट पत्रक (A4)', 'Print Register (A4)')}</span>
             </button>
             <button
               onClick={handleTriggerBulk}
@@ -265,7 +267,7 @@ export default function AttendanceTracker({
               className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white shadow-xs transition-colors min-h-[38px] sm:min-h-[40px]"
             >
               <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>Bulk Notices ({stats.flagged})</span>
+              <span>{t('bulkDraft')} ({stats.flagged})</span>
             </button>
           </div>
         </div>
@@ -274,40 +276,40 @@ export default function AttendanceTracker({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 pt-4 border-t border-slate-100">
           <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
             <div className="flex items-center justify-between text-slate-500 text-xs font-medium mb-1">
-              <span>Enrolled Trainees</span>
+              <span>{tText('નોંધાયેલ તાલીમાર્થીઓ', 'पंजीकृत प्रशिक्षु', 'Enrolled Trainees')}</span>
               <Users className="w-3.5 h-3.5 text-slate-400" />
             </div>
             <div className="text-xl font-bold text-slate-900">{stats.total}</div>
-            <div className="text-[11px] text-slate-400">Total in {instructor.unit}</div>
+            <div className="text-[11px] text-slate-400">{t('total')} ({instructor.unit})</div>
           </div>
 
           <div className="p-3 bg-rose-50/60 rounded-lg border border-rose-100">
             <div className="flex items-center justify-between text-rose-700 text-xs font-medium mb-1">
-              <span>Flagged Irregular (&lt;80%)</span>
+              <span>{t('lowAttendance')} (&lt;80%)</span>
               <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
             </div>
             <div className="text-xl font-bold text-rose-700">{stats.flagged}</div>
-            <div className="text-[11px] text-rose-600">Requires Parent Notice</div>
+            <div className="text-[11px] text-rose-600">{tText('વાલી નોટિસ જરૂરી', 'अभिभावक नोटिस आवश्यक', 'Parent Notice Required')}</div>
           </div>
 
           <div className="p-3 bg-[#79ae6f]/10 rounded-lg border border-[#9fcb98]/50">
             <div className="flex items-center justify-between text-[#346739] text-xs font-medium mb-1">
-              <span>Regular Trainees (&ge;80%)</span>
+              <span>{t('regular')} (&ge;80%)</span>
               <CheckCircle2 className="w-3.5 h-3.5 text-[#79ae6f]" />
             </div>
             <div className="text-xl font-bold text-[#346739]">
               {stats.total - stats.flagged}
             </div>
-            <div className="text-[11px] text-[#346739]/80 font-medium">Eligible for Exam</div>
+            <div className="text-[11px] text-[#346739]/80 font-medium">{t('eligibleForExam')}</div>
           </div>
 
           <div className="p-3 bg-[#f2edc2]/40 rounded-lg border border-[#9fcb98]/40">
             <div className="flex items-center justify-between text-[#346739] text-xs font-medium mb-1">
-              <span>Average Attendance</span>
+              <span>{t('averageAttendance')}</span>
               <Sparkles className="w-3.5 h-3.5 text-[#79ae6f]" />
             </div>
             <div className="text-xl font-bold text-[#346739]">{stats.avgPercentage}%</div>
-            <div className="text-[11px] text-[#346739]/80 font-medium">Monthly Unit Mean</div>
+            <div className="text-[11px] text-[#346739]/80 font-medium">{tText('માસિક એકમ સરેરાશ', 'मासिक औसत', 'Monthly Unit Mean')}</div>
           </div>
         </div>
       </div>
@@ -320,7 +322,7 @@ export default function AttendanceTracker({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Roll No, Name (English/Gujarati)..."
+            placeholder={tText('રોલ નં, નામ વડે શોધો...', 'रोल नं, नाम से खोजें...', 'Search by Roll No, Name...')}
             className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:outline-none min-h-[40px]"
           />
         </div>
@@ -337,7 +339,7 @@ export default function AttendanceTracker({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              All ({traineeRows.length})
+              {t('all')} ({traineeRows.length})
             </button>
             <button
               onClick={() => setStatusFilter('flagged')}
@@ -347,7 +349,7 @@ export default function AttendanceTracker({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Low &lt;80% ({stats.flagged})
+              {tText('ઓછી હાજરી <80%', 'कम उपस्थिति <80%', 'Low <80%')} ({stats.flagged})
             </button>
             <button
               onClick={() => setStatusFilter('regular')}
@@ -357,7 +359,7 @@ export default function AttendanceTracker({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Regular ({stats.total - stats.flagged})
+              {t('regular')} ({stats.total - stats.flagged})
             </button>
           </div>
 
@@ -448,18 +450,18 @@ export default function AttendanceTracker({
                     >
                       {percentage.toFixed(1)}%
                     </span>
-                    <span className="text-[11px] text-slate-400">Attendance</span>
+                    <span className="text-[11px] text-slate-400">{tText('હાજરી', 'उपस्थिति', 'Attendance')}</span>
                   </div>
 
                   {isFlagged ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
                       <AlertTriangle className="w-2.5 h-2.5" />
-                      <span>&lt;80% Flagged</span>
+                      <span>&lt;80% {tText('ચેતવણી', 'चेतावनी', 'Flagged')}</span>
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                       <CheckCircle2 className="w-2.5 h-2.5" />
-                      <span>Satisfactory</span>
+                      <span>{tText('સંતોષકારક', 'संतोषजनक', 'Satisfactory')}</span>
                     </span>
                   )}
                 </div>
@@ -477,7 +479,7 @@ export default function AttendanceTracker({
               {/* Stepper Controls: Present Days & Absent Days */}
               <div className="flex items-center justify-between gap-3 mb-3 pt-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-700">હાજર (Present):</span>
+                  <span className="text-xs font-semibold text-slate-700">{t('presentDays')}:</span>
                   <div className="flex items-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
                     <button
                       type="button"
@@ -510,8 +512,8 @@ export default function AttendanceTracker({
 
                 {/* Absent days count */}
                 <div className="text-right">
-                  <span className="text-xs text-slate-500 block">ગેરહાજર (Absent):</span>
-                  <span className="font-bold text-slate-800 text-sm">{absent} દિવસ</span>
+                  <span className="text-xs text-slate-500 block">{t('absentDays')}:</span>
+                  <span className="font-bold text-slate-800 text-sm">{absent} {tText('દિવસ', 'दिन', 'Days')}</span>
                 </div>
               </div>
 
@@ -526,9 +528,7 @@ export default function AttendanceTracker({
                 }`}
               >
                 <FileEdit className="w-4 h-4" />
-                <span>
-                  {isFlagged ? 'નોટિસ બનાવો (Draft Irregularity Notice)' : 'નોટિસ તૈયાર કરો (Draft Notice)'}
-                </span>
+                <span>{t('draftNotice')}</span>
               </button>
             </div>
           ))
@@ -543,21 +543,21 @@ export default function AttendanceTracker({
           <table className="w-full text-left border-collapse text-xs min-w-[700px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
-                <th className="py-3 px-4 w-16 text-center">Roll</th>
-                <th className="py-3 px-4">Trainee Name (Regional & English)</th>
-                <th className="py-3 px-4 hidden md:table-cell">Enrollment No</th>
-                <th className="py-3 px-4 text-center w-28">Present Days</th>
-                <th className="py-3 px-4 text-center w-28">Absent Days</th>
-                <th className="py-3 px-4 text-center w-36">Attendance %</th>
-                <th className="py-3 px-4 text-center w-28">Status</th>
-                <th className="py-3 px-4 text-right w-44">Notice Action</th>
+                <th className="py-3 px-4 w-16 text-center">{t('rollNo')}</th>
+                <th className="py-3 px-4">{t('studentName')}</th>
+                <th className="py-3 px-4 hidden md:table-cell">{t('enrollmentNo')}</th>
+                <th className="py-3 px-4 text-center w-28">{t('presentDays')}</th>
+                <th className="py-3 px-4 text-center w-28">{t('absentDays')}</th>
+                <th className="py-3 px-4 text-center w-36">{tText('હાજરી', 'उपस्थिति', 'Attendance')} %</th>
+                <th className="py-3 px-4 text-center w-28">{t('status')}</th>
+                <th className="py-3 px-4 text-right w-44">{tText('નોટિસ કાર્યવાહી', 'नोटिस कार्रवाई', 'Notice Action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-slate-400">
-                    No trainees found matching the selected criteria.
+                    {tText('કોઈ તાલીમાર્થી મળ્યા નથી.', 'कोई प्रशिक्षु नहीं मिला।', 'No trainees found.')}
                   </td>
                 </tr>
               ) : (
@@ -639,12 +639,12 @@ export default function AttendanceTracker({
                         {isFlagged ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
                             <AlertTriangle className="w-3 h-3" />
-                            <span>&lt;80% Flagged</span>
+                            <span>&lt;80% {tText('ચેતવણી', 'चेतावनी', 'Flagged')}</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
                             <CheckCircle2 className="w-3 h-3" />
-                            <span>Satisfactory</span>
+                            <span>{tText('સંતોષકારક', 'संतोषजनक', 'Satisfactory')}</span>
                           </span>
                         )}
                       </td>
@@ -658,7 +658,7 @@ export default function AttendanceTracker({
                           }`}
                         >
                           <FileEdit className="w-3.5 h-3.5" />
-                          <span>Draft Notice</span>
+                          <span>{t('draftNotice')}</span>
                         </button>
                       </td>
                     </tr>
@@ -675,7 +675,7 @@ export default function AttendanceTracker({
         <A4PrintPreviewModal
           isOpen={isPrintRegisterOpen}
           onClose={() => setIsPrintRegisterOpen(false)}
-          title={`માસિક હાજરી પત્રક પ્રિન્ટ પ્રીવ્યૂ - ${selectedMonth}`}
+          title={`${tText('માસિક હાજરી પત્રક પ્રિન્ટ પ્રીવ્યૂ', 'मासिक उपस्थिति पत्रक प्रिंट पूर्वावलोकन', 'Monthly Attendance Register Print Preview')} - ${selectedMonth}`}
           subtitle={`${instructor.iti_name} • ${instructor.trade} (${instructor.unit})`}
           filename={`ITI_Attendance_Register_${instructor.trade.replace(/[^a-zA-Z0-9]/g, '_')}_${selectedMonth.replace(/\s+/g, '_')}`}
           initialOrientation="portrait"
@@ -692,42 +692,42 @@ export default function AttendanceTracker({
 
                 <div className="text-center grow">
                   <div className="text-[10px] font-semibold text-slate-600">
-                    શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર
+                    {tText('શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર', 'श्रम, कौशल विकास और रोजगार विभाग, गुजरात सरकार', 'Labour, Skill Development & Employment Dept, Govt of Gujarat')}
                   </div>
                   <h1 className="text-base sm:text-lg font-black text-slate-900 font-serif">
                     {instructor.iti_name}
                   </h1>
                   <div className="text-xs font-bold text-blue-950 mt-0.5">
-                    સત્તાવાર માસિક તાલીમાર્થી હાજરી પત્રક (Monthly Attendance Register)
+                    {tText('સત્તાવાર માસિક તાલીમાર્થી હાજરી પત્રક', 'आधिकारिक मासिक प्रशिक्षु उपस्थिति पत्रक', 'Official Monthly Trainee Attendance Register')}
                   </div>
                 </div>
 
                 <div className="w-14 h-14 rounded-full border border-slate-300 p-1 flex flex-col items-center justify-center text-center shrink-0 bg-blue-50/40">
                   <div className="text-[7px] font-bold text-blue-800 uppercase">Skill</div>
                   <div className="text-[11px] font-black text-orange-600">India</div>
-                  <div className="text-[6px] text-slate-600">કૌશલ ભારત</div>
+                  <div className="text-[6px] text-slate-600">{tText('કૌશલ ભારત', 'कौशल भारत', 'Skill India')}</div>
                 </div>
               </div>
 
               {/* Meta Grid */}
               <div className="grid grid-cols-4 gap-2 mt-3 pt-2 border-t border-slate-300 text-[11px] bg-slate-50 p-2 rounded">
                 <div>
-                  <span className="text-slate-500">વ્યવસાય (Trade):</span>{' '}
+                  <span className="text-slate-500">{tText('વ્યવસાય (Trade):', 'व्यवसाय:', 'Trade:')}</span>{' '}
                   <strong className="text-slate-900">{instructor.trade}</strong>
                 </div>
                 <div>
-                  <span className="text-slate-500">યુનિટ / બેચ:</span>{' '}
+                  <span className="text-slate-500">{tText('યુનિટ / બેચ:', 'यूनिट / बैच:', 'Unit / Batch:')}</span>{' '}
                   <strong className="text-slate-900">
                     {instructor.unit} / {instructor.batch}
                   </strong>
                 </div>
                 <div>
-                  <span className="text-slate-500">માસ / વર્ષ:</span>{' '}
+                  <span className="text-slate-500">{tText('માસ / વર્ષ:', 'माह / वर्ष:', 'Month / Year:')}</span>{' '}
                   <strong className="text-slate-900">{selectedMonth}</strong>
                 </div>
                 <div>
-                  <span className="text-slate-500">કુલ કામકાજના દિવસો:</span>{' '}
-                  <strong className="text-blue-900">{workingDaysInput} Days</strong>
+                  <span className="text-slate-500">{t('totalWorkingDays')}:</span>{' '}
+                  <strong className="text-blue-900">{workingDaysInput} {tText('દિવસ', 'दिन', 'Days')}</strong>
                 </div>
               </div>
             </div>
@@ -736,16 +736,16 @@ export default function AttendanceTracker({
             <table className="w-full border-collapse border border-slate-400 text-[10px] mb-4">
               <thead>
                 <tr className="bg-slate-100 text-slate-800">
-                  <th className="border border-slate-400 py-1.5 px-2 text-center w-10">રોલ નં.</th>
+                  <th className="border border-slate-400 py-1.5 px-2 text-center w-10">{t('rollNo')}</th>
                   <th className="border border-slate-400 py-1.5 px-2 text-left">
-                    તાલીમાર્થીનું પૂરું નામ (Trainee Full Name)
+                    {t('studentName')}
                   </th>
-                  <th className="border border-slate-400 py-1.5 px-2 text-center w-24">નોંધણી ક્રમાંક</th>
-                  <th className="border border-slate-400 py-1.5 px-2 text-center w-14">કુલ દિવસ</th>
-                  <th className="border border-slate-400 py-1.5 px-2 text-center w-14">હાજર</th>
-                  <th className="border border-slate-400 py-1.5 px-2 text-center w-14">ગેરહાજર</th>
-                  <th className="border border-slate-400 py-1.5 px-2 text-center w-16">હાજરી %</th>
-                  <th className="border border-slate-400 py-1.5 px-2 text-center w-20">સ્થિતિ</th>
+                  <th className="border border-slate-400 py-1.5 px-2 text-center w-24">{t('enrollmentNo')}</th>
+                  <th className="border border-slate-400 py-1.5 px-2 text-center w-14">{tText('કુલ દિવસ', 'कुल दिन', 'Total Days')}</th>
+                  <th className="border border-slate-400 py-1.5 px-2 text-center w-14">{tText('હાજર', 'उपस्थित', 'Present')}</th>
+                  <th className="border border-slate-400 py-1.5 px-2 text-center w-14">{tText('ગેરહાજર', 'अनुपस्थित', 'Absent')}</th>
+                  <th className="border border-slate-400 py-1.5 px-2 text-center w-16">{tText('હાજરી', 'उपस्थिति', 'Attendance')} %</th>
+                  <th className="border border-slate-400 py-1.5 px-2 text-center w-20">{t('status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -787,10 +787,10 @@ export default function AttendanceTracker({
                     <td className="border border-slate-400 py-1 px-2 text-center">
                       {row.isFlagged ? (
                         <span className="text-[9px] font-bold text-rose-700 px-1 py-0.5 bg-rose-100 rounded">
-                          ચેતવણીપાત્ર
+                          {tText('ચેતવણીપાત્ર', 'चेतावनीपूर्ण', 'Flagged')}
                         </span>
                       ) : (
-                        <span className="text-[9px] font-semibold text-emerald-700">નિયમિત</span>
+                        <span className="text-[9px] font-semibold text-emerald-700">{tText('નિયમિત', 'नियमित', 'Regular')}</span>
                       )}
                     </td>
                   </tr>
@@ -801,15 +801,15 @@ export default function AttendanceTracker({
             {/* Attendance Analytics Box */}
             <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 border border-slate-300 rounded mb-8 text-[11px]">
               <div>
-                <span className="text-slate-500">કુલ નોંધાયેલ તાલીમાર્થીઓ:</span>{' '}
+                <span className="text-slate-500">{tText('કુલ નોંધાયેલ તાલીમાર્થીઓ:', 'कुल पंजीकृत प्रशिक्षु:', 'Total Enrolled Trainees:')}</span>{' '}
                 <strong className="text-slate-900">{stats.total}</strong>
               </div>
               <div>
-                <span className="text-slate-500">ઓછી હાજરીવાળા (&lt;80%):</span>{' '}
+                <span className="text-slate-500">{tText('ઓછી હાજરીવાળા (<80%):', 'कम उपस्थिति वाले (<80%):', 'Low Attendance (<80%):')}</span>{' '}
                 <strong className="text-rose-700">{stats.flagged}</strong>
               </div>
               <div>
-                <span className="text-slate-500">સરેરાશ બેચ હાજરી:</span>{' '}
+                <span className="text-slate-500">{tText('સરેરાશ બેચ હાજરી:', 'औसत बैच उपस्थिति:', 'Average Batch Attendance:')}</span>{' '}
                 <strong className="text-blue-900">{stats.avgPercentage}%</strong>
               </div>
             </div>
@@ -832,19 +832,19 @@ export default function AttendanceTracker({
 
               {/* Center: Seal */}
               <div className="border border-dashed border-slate-400 p-2 rounded text-[9px] text-slate-400 text-center w-36">
-                <div>સંસ્થાનું ગોળ સીલ</div>
+                <div>{tText('સંસ્થાનું ગોળ સીલ', 'संस्थान की मुहर', 'Institute Seal')}</div>
                 <div className="mt-3">[ ITI Seal ]</div>
               </div>
 
               {/* Right: Principal Sign */}
               <div className="text-center min-w-[180px]">
                 <div className="h-9 flex items-end justify-center pb-1">
-                  <span className="font-serif italic text-slate-400 text-[11px]">સહી / Signature</span>
+                  <span className="font-serif italic text-slate-400 text-[11px]">{tText('સહી / Signature', 'हस्ताक्षर / Signature', 'Signature')}</span>
                 </div>
                 <div className="border-t border-slate-700 pt-1">
-                  <div className="font-bold text-[11px] text-slate-900">આચાર્યશ્રી / સંસ્થા વડા</div>
+                  <div className="font-bold text-[11px] text-slate-900">{tText('આચાર્યશ્રી / સંસ્થા વડા', 'प्राचार्य / संस्था प्रमुख', 'Principal / Head of Institute')}</div>
                   <div className="text-[10px] text-slate-600">{instructor.iti_name.split('(')[0]}</div>
-                  <div className="text-[9px] text-slate-500">તારીખ: {new Date().toLocaleDateString('en-GB')}</div>
+                  <div className="text-[9px] text-slate-500">{tText('તારીખ:', 'दिनांक:', 'Date:')} {new Date().toLocaleDateString('en-GB')}</div>
                 </div>
               </div>
             </div>

@@ -180,7 +180,9 @@ export default function BatchNoticeModal({
         return {
           trainee_id: trainee.id,
           instructor_id: instructor.id,
+          ref_number: refNum,
           outward_number: refNum,
+          entry_type: 'outward',
           notice_type:
             percentage < 60
               ? 'Final Notice'
@@ -188,6 +190,7 @@ export default function BatchNoticeModal({
               ? '2nd Warning'
               : '1st Warning',
           issue_date: new Date().toISOString().split('T')[0],
+          issued_date: new Date().toISOString().split('T')[0],
           month_year: monthYear,
           attendance_percentage: percentage,
           status: 'Dispatched',

@@ -148,13 +148,18 @@ export interface DispatchLog {
   instructor_id: string;
   ref_number?: string;
   outward_number?: string; // alias
-  notice_type: '1st Warning' | '2nd Warning' | 'Final Notice' | 'General Notice' | 'Report';
+  notice_type: string;
   issued_date?: string;
   issue_date?: string; // alias
-  attendance_percentage: number;
+  attendance_percentage?: number;
   month_year: string;
   status: 'Dispatched' | 'Printed' | 'Drafted' | 'Acknowledged' | 'Delivered';
+  subject?: string;
+  sender_recipient?: string;
   notes?: string;
+  tracking_number?: string;
+  dispatch_mode?: string;
+  entry_type?: 'outward' | 'inward';
   created_at: string;
 }
 

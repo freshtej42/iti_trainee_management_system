@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { Trainee, Instructor, AttendanceRecord } from '../types';
 import {
   Users,
@@ -23,11 +23,15 @@ import {
 import { transliterateText } from '../utils/phoneticIme';
 import { formatFullName, formatFullAddress } from '../utils/mergeTags';
 import TraineeImportModal from './TraineeImportModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface TraineeManagerProps {
   trainees: Trainee[];
   instructor: Instructor;
-  imeLanguage: 'Gujarati' | 'Hindi' | 'English';
+  imeLanguage?: 'Gujarati' | 'Hindi' | 'English';
+  initialTradeFilter?: string;
+  initialBatchFilter?: string;
+  initialUnitFilter?: string;
   onAddTrainee: (trainee: Omit<Trainee, 'id' | 'created_at'>) => void;
   onUpdateTrainee: (trainee: Trainee) => void;
   onDeleteTrainee: (traineeId: string) => void;
@@ -38,23 +42,42 @@ interface TraineeManagerProps {
 export default function TraineeManager({
   trainees,
   instructor,
-  imeLanguage,
+  imeLanguage: propImeLanguage,
+  initialTradeFilter,
+  initialBatchFilter,
+  initialUnitFilter,
   onAddTrainee,
   onUpdateTrainee,
   onDeleteTrainee,
   onImportTrainees,
   onOpenBatchUnitModal,
 }: TraineeManagerProps) {
+  const { t, tText, imeLanguageName } = useLanguage();
+  const imeLanguage = propImeLanguage || imeLanguageName;
   const [searchQuery, setSearchQuery] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingTrainee, setEditingTrainee] = useState<Trainee | null>(null);
   const [useImeInForm, setUseImeInForm] = useState(true);
 
   // Unit and Batch Filters
-  const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>('ALL');
-  const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('ALL');
+  const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>(
+    initialUnitFilter || 'ALL'
+  );
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>(
+    initialBatchFilter || 'ALL'
+  );
   const [mobileViewMode, setMobileViewMode] = useState<'cards' | 'table'>('cards');
+
+  // Update filter if initial prop changes
+  useEffect(() => {
+    if (initialUnitFilter) setSelectedUnitFilter(initialUnitFilter);
+  }, [initialUnitFilter]);
+
+  useEffect(() => {
+    if (initialBatchFilter) setSelectedBatchFilter(initialBatchFilter);
+  }, [initialBatchFilter]);
 
   // Dynamic Hierarchy resolution from instructor.academic_hierarchy
   const academicHierarchy =
@@ -286,10 +309,10 @@ export default function TraineeManager({
         <div>
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <Users className="w-5 h-5 text-[#346739]" />
-            <span>Trainee Records & Demographic Management (તાલીમાર્થી ડેટાબેઝ)</span>
+            <span>{tText('તાલીમાર્થી ડેટાબેઝ અને સંચાલન', 'प्रशिक्षु डेटाबेस एवं प्रबंधन', 'Trainee Records & Management')}</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            {instructor.iti_name} • {instructor.trade} • {instructor.batch} ({trainees.length} Registered Trainees)
+            {instructor.iti_name} • {instructor.trade} • {instructor.batch} ({trainees.length} {tText('નોંધાયેલ તાલીમાર્થીઓ', 'पंजीकृत प्रशिक्षु', 'Registered Trainees')})
           </p>
         </div>
 
@@ -301,7 +324,7 @@ export default function TraineeManager({
               className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-bold rounded-lg bg-[#79ae6f] hover:bg-[#669a5c] text-white shadow-xs min-h-[42px] transition-colors"
             >
               <FileSpreadsheet className="w-4 h-4 shrink-0" />
-              <span>આયાત કરો (Import)</span>
+              <span>{tText('આયાત કરો', 'आयात करें', 'Import')}</span>
             </button>
           )}
 
@@ -311,7 +334,7 @@ export default function TraineeManager({
             className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg bg-[#346739] hover:bg-[#264e2b] text-[#f2edc2] shadow-xs min-h-[42px] transition-colors"
           >
             <UserPlus className="w-4 h-4 shrink-0" />
-            <span>નવો તાલીમાર્થી (Enroll)</span>
+            <span>{tText('નવો તાલીમાર્થી', 'नया प्रशिक्षु', 'Enroll Trainee')}</span>
           </button>
         </div>
       </div>
@@ -322,7 +345,7 @@ export default function TraineeManager({
         <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
           <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
             <Layers className="w-3.5 h-3.5 text-[#346739]" />
-            <span>યુનિટ (Unit):</span>
+            <span>{t('unit')}:</span>
           </span>
           <button
             type="button"
@@ -333,7 +356,7 @@ export default function TraineeManager({
                 : 'bg-[#f2edc2]/40 hover:bg-[#f2edc2] text-[#346739]'
             }`}
           >
-            બધા (All)
+            {t('all')}
           </button>
           {allFilterUnits.map((u) => (
             <button
@@ -353,13 +376,13 @@ export default function TraineeManager({
 
         {/* Batch Dropdown Filter */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-          <span className="text-xs font-semibold text-slate-500">બેચ (Batch):</span>
+          <span className="text-xs font-semibold text-slate-500">{t('batch')}:</span>
           <select
             value={selectedBatchFilter}
             onChange={(e) => setSelectedBatchFilter(e.target.value)}
             className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800"
           >
-            <option value="ALL">બધી બેચ (All Batches)</option>
+            <option value="ALL">{t('allBatches')}</option>
             {allFilterBatches.map((b) => (
               <option key={b} value={b}>
                 {b}
@@ -367,7 +390,7 @@ export default function TraineeManager({
             ))}
           </select>
           <span className="text-xs font-mono font-bold bg-slate-100 px-2 py-1 rounded-md text-slate-700">
-            {filteredTrainees.length} Records
+            {filteredTrainees.length} {t('records')}
           </span>
         </div>
       </div>
@@ -380,7 +403,7 @@ export default function TraineeManager({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search Roll No, Name, Mobile, Village..."
+            placeholder={tText('રોલ નં, નામ, મોબાઈલ, ગામ શોધો...', 'रोल नं, नाम, मोबाइल, गाँव खोजें...', 'Search Roll No, Name, Mobile, Village...')}
             className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[40px]"
           />
         </div>
@@ -390,7 +413,7 @@ export default function TraineeManager({
           <div className="hidden lg:flex items-center gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
             <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
             <span>
-              ફોનેટિક: <strong>Ramesh Patel</strong> &rarr; <strong className="text-amber-900 font-sans">રમેશ પટેલ</strong>
+              {tText('ફોનેટિક ટાઇપિંગ:', 'ध्वन्यात्मक टाइपिंग:', 'Phonetic Typing:')} <strong>Ramesh Patel</strong> &rarr; <strong className="text-amber-900 font-sans">{tText('રમેશ પટેલ', 'रमेश पटेल', 'Ramesh Patel')}</strong>
             </span>
           </div>
 
@@ -483,8 +506,13 @@ export default function TraineeManager({
                       {trainee.unit}
                     </span>
                     <span className="text-[11px] text-slate-600 font-mono font-medium">
-                      બેચ: {trainee.batch}
+                      {t('batch')}: {trainee.batch || '—'}
                     </span>
+                    {(!trainee.trade?.trim() || !trainee.batch?.trim() || !trainee.unit?.trim()) && (
+                      <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-rose-100 text-rose-800 border border-rose-200">
+                        ⚠️ {tText('અપૂર્ણ', 'अपूर्ण', 'Incomplete')}
+                      </span>
+                    )}
                   </div>
 
                   {trainee.mobile && (
@@ -498,7 +526,7 @@ export default function TraineeManager({
                 <div className="text-[11px] text-slate-600 pt-1 border-t border-slate-200/60">
                   <div className="text-slate-800 font-medium truncate">{trainee.address}</div>
                   <div className="text-slate-500 text-[10px]">
-                    મુ. {trainee.village}, તા. {trainee.taluka}, જિ. {trainee.district} - {trainee.pincode}
+                    {tText('મુ.', 'मु.', 'Vill.')} {trainee.village}, {tText('તા.', 'ता.', 'Tal.')} {trainee.taluka}, {tText('જિ.', 'जि.', 'Dist.')} {trainee.district} - {trainee.pincode}
                   </div>
                 </div>
               </div>
@@ -511,14 +539,14 @@ export default function TraineeManager({
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 min-h-[40px] transition-colors"
                 >
                   <Edit2 className="w-3.5 h-3.5 text-slate-600" />
-                  <span>વિગતો સુધારો (Edit)</span>
+                  <span>{t('edit')}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onDeleteTrainee(trainee.id)}
                   className="flex items-center justify-center p-2 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 min-w-[40px] min-h-[40px] transition-colors"
-                  title="Remove Trainee"
-                  aria-label="Remove Trainee"
+                  title={t('delete')}
+                  aria-label={t('delete')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -536,20 +564,20 @@ export default function TraineeManager({
           <table className="w-full text-left border-collapse text-xs min-w-[700px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
-                <th className="py-3 px-4 w-16 text-center">Roll</th>
-                <th className="py-3 px-4">Regional Script Name (ગુજરાતી / हिन्दी)</th>
-                <th className="py-3 px-4">English Name</th>
-                <th className="py-3 px-4">Enrollment No</th>
-                <th className="py-3 px-4">Unit & Batch</th>
-                <th className="py-3 px-4">Mobile & Address</th>
-                <th className="py-3 px-4 text-right w-24">Actions</th>
+                <th className="py-3 px-4 w-16 text-center">{t('rollNo')}</th>
+                <th className="py-3 px-4">{tText('નામ (પ્રાદેશિક લિપિ)', 'नाम (प्रादेशिक लिपि)', 'Name (Regional Script)')}</th>
+                <th className="py-3 px-4">{tText('નામ (અંગ્રેજી)', 'नाम (अंग्रेजी)', 'Name (English)')}</th>
+                <th className="py-3 px-4">{t('enrollmentNo')}</th>
+                <th className="py-3 px-4">{t('unit')} & {t('batch')}</th>
+                <th className="py-3 px-4">{t('studentMobile')} & {t('address')}</th>
+                <th className="py-3 px-4 text-right w-24">{t('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredTrainees.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
-                    No trainees found matching your filter or search query.
+                    {tText('કોઈ તાલીમાર્થી મળ્યા નથી.', 'कोई प्रशिक्षु नहीं मिला।', 'No trainees found.')}
                   </td>
                 </tr>
               ) : (
@@ -580,8 +608,13 @@ export default function TraineeManager({
                           {trainee.unit}
                         </span>
                         <span className="text-[11px] text-slate-500 font-mono">
-                          {trainee.batch}
+                          {trainee.batch || '—'}
                         </span>
+                        {(!trainee.trade?.trim() || !trainee.batch?.trim() || !trainee.unit?.trim()) && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                            ⚠️ {tText('અપૂર્ણ', 'अपूर्ण', 'Incomplete')}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
@@ -593,7 +626,7 @@ export default function TraineeManager({
                       )}
                       <div className="truncate text-slate-700">{trainee.address}</div>
                       <div className="text-[11px] text-slate-400">
-                        મુ. {trainee.village}, તા. {trainee.taluka}, જિ. {trainee.district} - {trainee.pincode}
+                        {tText('મુ.', 'मु.', 'Vill.')} {trainee.village}, {tText('તા.', 'ता.', 'Tal.')} {trainee.taluka}, {tText('જિ.', 'जि.', 'Dist.')} {trainee.district} - {trainee.pincode}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -601,14 +634,14 @@ export default function TraineeManager({
                         <button
                           onClick={() => openEditModal(trainee)}
                           className="p-1.5 rounded-md hover:bg-slate-200 text-slate-600 transition-colors"
-                          title="Edit Trainee Details"
+                          title={t('edit')}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => onDeleteTrainee(trainee.id)}
                           className="p-1.5 rounded-md hover:bg-rose-100 text-rose-600 transition-colors"
-                          title="Remove Trainee"
+                          title={t('delete')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -630,7 +663,9 @@ export default function TraineeManager({
               <div className="flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-blue-700" />
                 <h3 className="font-bold text-slate-800 text-base">
-                  {editingTrainee ? 'Edit Trainee Details (વિગતો સુધારો)' : 'Enroll New Trainee (નવા તાલીમાર્થી રજીસ્ટ્રેશન)'}
+                  {editingTrainee
+                    ? tText('વિગતો સુધારો', 'विवरण संपादित करें', 'Edit Trainee Details')
+                    : tText('નવા તાલીમાર્થી રજીસ્ટ્રેશન', 'नया प्रशिक्षु पंजीकरण', 'Enroll New Trainee')}
                 </h3>
               </div>
               <button
@@ -647,7 +682,7 @@ export default function TraineeManager({
                 <div className="flex items-center gap-2">
                   <Languages className="w-4 h-4 text-blue-700" />
                   <span className="text-xs font-semibold text-blue-900">
-                    Phonetic Transliteration Assistant ({imeLanguage}):
+                    {tText('ફોનેટિક સહાયક', 'ध्वन्यात्मक सहायक', 'Phonetic Transliteration Assistant')} ({imeLanguage}):
                   </span>
                 </div>
                 <label className="flex items-center gap-1.5 text-xs text-blue-800 cursor-pointer font-medium">
@@ -657,14 +692,14 @@ export default function TraineeManager({
                     onChange={(e) => setUseImeInForm(e.target.checked)}
                     className="rounded text-blue-600 focus:ring-blue-500"
                   />
-                  <span>Auto-transliterate English &rarr; Regional</span>
+                  <span>{tText('અંગ્રેજી માંથી આપમેળે પ્રાદેશિક લિપિ', 'अंग्रेजी से स्वचालित क्षेत्रीय लिपि', 'Auto-transliterate English → Regional')}</span>
                 </label>
               </div>
 
               {/* Identification Scope */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">રોલ નંબર (Roll No) *</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">{t('rollNo')} *</label>
                   <input
                     type="text"
                     required
@@ -674,7 +709,7 @@ export default function TraineeManager({
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-slate-700 mb-1">નોંધણી નંબર (Enrollment No) *</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">{t('enrollmentNo')} *</label>
                   <input
                     type="text"
                     required
@@ -690,7 +725,7 @@ export default function TraineeManager({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-[#346739]" />
-                    શૈક્ષણિક વર્ગીકરણ (Academic Hierarchy)
+                    {t('academicHierarchy')}
                   </span>
                   <span className="text-[10px] text-emerald-700 font-medium">Trade &rarr; Batch &rarr; Unit</span>
                 </div>
@@ -698,7 +733,7 @@ export default function TraineeManager({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      ૧. ટ્રેડ (Trade) *
+                      1. {t('trade')} *
                     </label>
                     <select
                       value={formData.trade || availableTrades[0]}
@@ -715,7 +750,7 @@ export default function TraineeManager({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      ૨. બેચ (Batch) *
+                      2. {t('batch')} *
                     </label>
                     <select
                       value={formData.batch || formBatches[0]}
@@ -732,7 +767,7 @@ export default function TraineeManager({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      ૩. યુનિટ (Unit A / B / C) *
+                      3. {t('unit')} *
                     </label>
                     <select
                       value={formData.unit || formUnits[0]}
@@ -753,7 +788,7 @@ export default function TraineeManager({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
-                    તાલીમાર્થી મોબાઈલ નંબર (Student Mobile)
+                    {t('studentMobile')}
                   </label>
                   <input
                     type="text"
@@ -765,7 +800,7 @@ export default function TraineeManager({
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
-                    વાલીનો મોબાઈલ નંબર (Parent Mobile)
+                    {t('parentMobile')}
                   </label>
                   <input
                     type="text"
@@ -780,11 +815,11 @@ export default function TraineeManager({
               {/* English Demographics (Type here to auto-convert to regional script) */}
               <div className="pt-2 border-t border-slate-200">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
-                  1. English Names (Phonetic Input)
+                  1. {tText('અંગ્રેજી નામો', 'अंग्रेजी नाम', 'English Names')} ({tText('ફોનેટિક ઇનપુટ', 'ध्वन्यात्मक इनपुट', 'Phonetic Input')})
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">Surname (English)</label>
+                    <label className="block text-xs text-slate-600 mb-1">{t('surname')} ({tText('અંગ્રેજી', 'अंग्रेजी', 'English')})</label>
                     <input
                       type="text"
                       placeholder="e.g. Patel"
@@ -794,7 +829,7 @@ export default function TraineeManager({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">Student Name (English) *</label>
+                    <label className="block text-xs text-slate-600 mb-1">{t('studentName')} ({tText('અંગ્રેજી', 'अंग्रेजी', 'English')}) *</label>
                     <input
                       type="text"
                       required
@@ -807,7 +842,7 @@ export default function TraineeManager({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">Father's Name (English)</label>
+                    <label className="block text-xs text-slate-600 mb-1">{t('fatherName')} ({tText('અંગ્રેજી', 'अंग्रेजी', 'English')})</label>
                     <input
                       type="text"
                       placeholder="e.g. Bharatbhai"
@@ -819,7 +854,7 @@ export default function TraineeManager({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">Grandfather's Name</label>
+                    <label className="block text-xs text-slate-600 mb-1">{t('grandfatherName')} ({tText('અંગ્રેજી', 'अंग्रेजी', 'English')})</label>
                     <input
                       type="text"
                       placeholder="e.g. Keshavlal"
@@ -840,11 +875,11 @@ export default function TraineeManager({
               {/* Regional Script Demographics (Gujarati / Hindi) */}
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
-                  2. Regional Script Names (અટક, વિદ્યાર્થી, પિતાનું નામ)
+                  2. {tText('પ્રાદેશિક લિપિમાં નામો', 'प्रादेशिक लिपि में नाम', 'Regional Script Names')}
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">અટક / સરનેમ</label>
+                    <label className="block text-xs text-slate-600 mb-1">{t('surname')}</label>
                     <input
                       type="text"
                       value={formData.surname || ''}
@@ -853,7 +888,7 @@ export default function TraineeManager({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">વિદ્યાર્થીનું નામ *</label>
+                    <label className="block text-xs text-slate-600 mb-1">{t('studentName')} *</label>
                     <input
                       type="text"
                       required
@@ -863,7 +898,7 @@ export default function TraineeManager({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">પિતાનું નામ</label>
+                    <label className="block text-xs text-slate-600 mb-1">{t('fatherName')}</label>
                     <input
                       type="text"
                       value={formData.father_name || ''}
@@ -872,7 +907,7 @@ export default function TraineeManager({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">દાદાનું નામ</label>
+                    <label className="block text-xs text-slate-600 mb-1">{t('grandfatherName')}</label>
                     <input
                       type="text"
                       value={formData.grandfather_name || ''}
@@ -886,14 +921,14 @@ export default function TraineeManager({
               {/* Smart Concatenation Live Preview */}
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Smart Dynamic Merge Tag Live Evaluation:
+                  {tText('મર્જ ટેગ લાઇવ પૂર્વાવલોકન:', 'मर्ज टैग लाइव पूर्वावलोकन:', 'Smart Merge Tag Live Preview:')}
                 </div>
                 <div className="text-xs text-slate-800 font-semibold">
                   &#123;&#123;Full_Name&#125;&#125; &rarr;{' '}
                   <span className="text-blue-700">
                     {formData.surname || formData.student_name
                       ? `${formData.surname} ${formData.student_name} ${formData.father_name}`.trim()
-                      : '(No name yet)'}
+                      : `(${tText('નામ દાખલ કરેલ નથી', 'नाम दर्ज नहीं', 'No name yet')})`}
                   </span>
                 </div>
               </div>
@@ -901,11 +936,11 @@ export default function TraineeManager({
               {/* Address Details */}
               <div className="pt-2 border-t border-slate-200">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
-                  3. Address & Postal Information (સરનામું અને પિનકોડ)
+                  3. {tText('સરનામું અને ટપાલ વિગત', 'पता एवं डाक विवरण', 'Address & Postal Details')}
                 </span>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">House / Street Address</label>
+                    <label className="block text-xs text-slate-600 mb-1">{t('address')}</label>
                     <input
                       type="text"
                       value={formData.address || ''}
@@ -916,7 +951,7 @@ export default function TraineeManager({
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-xs text-slate-600 mb-1">Village (ગામ)</label>
+                      <label className="block text-xs text-slate-600 mb-1">{t('villageCity')}</label>
                       <input
                         type="text"
                         value={formData.village || ''}
@@ -926,7 +961,7 @@ export default function TraineeManager({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-600 mb-1">Taluka (તાલુકો)</label>
+                      <label className="block text-xs text-slate-600 mb-1">{t('taluka')}</label>
                       <input
                         type="text"
                         value={formData.taluka || ''}
@@ -936,7 +971,7 @@ export default function TraineeManager({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-600 mb-1">District (જિલ્લો)</label>
+                      <label className="block text-xs text-slate-600 mb-1">{t('district')}</label>
                       <input
                         type="text"
                         value={formData.district || ''}
@@ -946,7 +981,7 @@ export default function TraineeManager({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-600 mb-1">Pincode (પિનકોડ)</label>
+                      <label className="block text-xs text-slate-600 mb-1">{t('pincode')}</label>
                       <input
                         type="text"
                         value={formData.pincode || ''}
@@ -966,13 +1001,13 @@ export default function TraineeManager({
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg min-h-[42px] transition-colors"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 sm:flex-initial px-5 py-2.5 text-xs font-bold bg-blue-700 text-white hover:bg-blue-800 rounded-lg shadow-xs min-h-[42px] transition-colors"
                 >
-                  {editingTrainee ? 'Save Changes' : 'Enroll Trainee'}
+                  {editingTrainee ? t('save') : tText('તાલીમાર્થી દાખલ કરો', 'प्रशिक्षु दर्ज करें', 'Enroll Trainee')}
                 </button>
               </div>
             </form>

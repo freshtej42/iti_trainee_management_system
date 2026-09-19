@@ -23,6 +23,8 @@ import {
   saveTemplateToCloud,
   saveDispatchLogToCloud,
   saveBatchDispatchLogsToCloud,
+  deleteDispatchLogFromCloud,
+  deleteBatchDispatchLogsFromCloud,
   subscribeToDispatchLogs,
   saveInstructorToCloud,
   saveTraineeToCloud,
@@ -121,7 +123,6 @@ export default function App() {
 
   // UI Navigation & View State
   const [activeTab, setActiveTab] = useState<ActiveTab>('attendance');
-  const [imeLanguage, setImeLanguage] = useState<'Gujarati' | 'Hindi' | 'English'>('Gujarati');
   const [activeTemplateId, setActiveTemplateId] = useState<string>(INITIAL_TEMPLATES[0].id);
   const [selectedTraineeId, setSelectedTraineeId] = useState<string>(INITIAL_TRAINEES[0].id);
 
@@ -153,16 +154,28 @@ export default function App() {
     }
   }, [isSuperAdmin, activeTab]);
 
-  // Current instructor's isolated trainees (or shared for inst-tejas)
+  // Current instructor's isolated trainees (or shared for institute management)
   const instructorTrainees = useMemo(() => {
-    const list = trainees.filter((t) => t.instructor_id === currentInstructorId);
-    if (list.length > 0) return list;
-    // Fallback: If this is inst-tejas or newly created instructor, provide trainees access
-    if (currentInstructorId === 'inst-tejas' || trainees.length <= 15) {
+    if (
+      isSuperAdmin ||
+      currentInstructorId === 'super-admin-tejas' ||
+      currentInstructorId === 'inst-shankheshwar' ||
+      currentInstructorId === 'inst-tejas'
+    ) {
       return trainees;
     }
-    return list;
-  }, [trainees, currentInstructorId]);
+    const list = trainees.filter((t) => t.instructor_id === currentInstructorId);
+    if (list.length > 0) return list;
+    // Fallback: If no trainees assigned specifically to this instructor_id, return all trainees
+    // so the instructor can view, manage, and assign them
+    return trainees;
+  }, [trainees, currentInstructorId, isSuperAdmin]);
+
+  const [traineeFilterPreset, setTraineeFilterPreset] = useState<{
+    trade?: string;
+    batch?: string;
+    unit?: string;
+  } | null>(null);
 
   // Low attendance count for current instructor (<80%)
   const lowAttendanceCount = useMemo(() => {
@@ -241,6 +254,31 @@ export default function App() {
     await deleteTraineeFromCloud(id);
   };
 
+  const handleAssignTraineesToUnit = async (
+    traineeIds: string[],
+    trade: string,
+    batch: string,
+    unit: string
+  ) => {
+    const updated = trainees.map((t) => {
+      if (traineeIds.includes(t.id)) {
+        return {
+          ...t,
+          trade,
+          batch,
+          unit,
+          instructor_id: currentInstructorId || t.instructor_id,
+        };
+      }
+      return t;
+    });
+    setTrainees(updated);
+    for (const tid of traineeIds) {
+      const t = updated.find((item) => item.id === tid);
+      if (t) await saveTraineeToCloud(t);
+    }
+  };
+
   const handleImportTrainees = async (
     newTrainees: Trainee[],
     newAttendance: AttendanceRecord[]
@@ -302,6 +340,27 @@ export default function App() {
     if (existing) {
       await saveDispatchLogToCloud({ ...existing, status: newStatus });
     }
+  };
+
+  const handleUpdateDispatchLog = async (updatedLog: DispatchLog) => {
+    setDispatchLogs((prev) =>
+      prev.map((l) => (l.id === updatedLog.id ? updatedLog : l))
+    );
+    await saveDispatchLogToCloud(updatedLog);
+  };
+
+  const handleDeleteDispatchLog = async (logId: string) => {
+    setDispatchLogs((prev) => prev.filter((l) => l.id !== logId));
+    await deleteDispatchLogFromCloud(logId);
+  };
+
+  const handleBatchDeleteDispatchLogs = async (logIds: string[]) => {
+    setDispatchLogs((prev) => prev.filter((l) => !logIds.includes(l.id)));
+    await deleteBatchDispatchLogsFromCloud(logIds);
+  };
+
+  const handleCreateDispatchLog = async (newLog: Omit<DispatchLog, 'id' | 'created_at'>) => {
+    await handleLogDispatch(newLog);
   };
 
   // 4. Template Handlers
@@ -447,8 +506,6 @@ export default function App() {
         onOpenProfileModal={() => setIsProfileModalOpen(true)}
         onOpenBatchUnitModal={() => setIsBatchUnitModalOpen(true)}
         onLogout={handleInstructorLogout}
-        imeLanguage={imeLanguage}
-        onImeLanguageChange={setImeLanguage}
         lowAttendanceCount={lowAttendanceCount}
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
         cloudSyncStatus={cloudSyncStatus}
@@ -475,8 +532,11 @@ export default function App() {
               <AcademicHierarchyManager
                 instructor={currentInstructor}
                 trainees={instructorTrainees}
+                allTrainees={trainees}
                 onUpdateInstructor={handleUpdateInstructor}
+                onAssignTraineesToUnit={handleAssignTraineesToUnit}
                 onNavigateToTrainees={(trade, batch, unit) => {
+                  setTraineeFilterPreset({ trade, batch, unit });
                   setActiveTab('trainees');
                 }}
               />
@@ -486,7 +546,9 @@ export default function App() {
               <TraineeManager
                 trainees={instructorTrainees}
                 instructor={currentInstructor}
-                imeLanguage={imeLanguage}
+                initialTradeFilter={traineeFilterPreset?.trade}
+                initialBatchFilter={traineeFilterPreset?.batch}
+                initialUnitFilter={traineeFilterPreset?.unit}
                 onAddTrainee={handleAddTrainee}
                 onUpdateTrainee={handleUpdateTrainee}
                 onDeleteTrainee={handleDeleteTrainee}
@@ -555,6 +617,10 @@ export default function App() {
                 trainees={trainees}
                 instructor={currentInstructor}
                 onUpdateStatus={handleUpdateDispatchStatus}
+                onUpdateDispatchLog={handleUpdateDispatchLog}
+                onDeleteDispatchLog={handleDeleteDispatchLog}
+                onBatchDeleteDispatchLogs={handleBatchDeleteDispatchLogs}
+                onCreateDispatchLog={handleCreateDispatchLog}
                 onViewNotice={(traineeId) => {
                   setSelectedTraineeId(traineeId);
                   setActiveTab('report');

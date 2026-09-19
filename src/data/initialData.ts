@@ -814,7 +814,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
   <div style="margin-bottom: 20px; font-size: 14.5px;">
     <div><strong>પ્રતિશ્રી,</strong></div>
     <div style="padding-left: 20px; margin-top: 4px;">
-      <div><strong>{{Father_Name}} {{Surname}}</strong></div>
+      <div><strong>{{Father_Name}} {{Grandfather_Name}} {{Surname}}</strong></div>
       <div>(વાલીશ્રી: <strong>{{Full_Name}}</strong>)</div>
       <div>{{Full_Address}}</div>
     </div>
@@ -968,7 +968,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
 
   <div style="margin-bottom: 16px;">
     <strong>પ્રતિ,</strong><br/>
-    વાલીશ્રી, <strong>{{Father_Name}} {{Surname}}</strong><br/>
+    વાલીશ્રી, <strong>{{Father_Name}} {{Grandfather_Name}} {{Surname}}</strong><br/>
     (તાલીમાર્થી: <strong>{{Full_Name}}</strong> ના પિતાશ્રી / વાલી)<br/>
     સરનામું: {{Full_Address}}
   </div>
@@ -1024,7 +1024,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
 
   <div style="margin-bottom: 16px;">
     <strong>પ્રતિ,</strong><br/>
-    વાલીશ્રી, <strong>{{Father_Name}} {{Surname}}</strong><br/>
+    વાલીશ્રી, <strong>{{Father_Name}} {{Grandfather_Name}} {{Surname}}</strong><br/>
     (તાલીમાર્થી: <strong>{{Full_Name}}</strong> ના વાલી)<br/>
     મુ. {{Village}}, તા. {{Taluka}}, જિ. {{District}} - {{Pincode}}
   </div>
@@ -1079,7 +1079,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
 
   <div style="margin-bottom: 16px;">
     <strong>सेवा में,</strong><br/>
-    अभिभावक महोदय, <strong>{{Father_Name}} {{Surname}}</strong><br/>
+    अभिभावक महोदय, <strong>{{Father_Name}} {{Grandfather_Name}} {{Surname}}</strong><br/>
     (प्रशिक्षु: <strong>{{Full_Name}}</strong> के पिता/अभिभावक)<br/>
     पता: {{Full_Address}}
   </div>
@@ -1135,7 +1135,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
   <div style="margin-bottom: 16px;">
     <strong>To,</strong><br/>
     The Parent / Guardian of <strong>{{Full_Name}}</strong><br/>
-    Father's Name: <strong>{{Father_Name}} {{Surname}}</strong><br/>
+    Father's Name: <strong>{{Father_Name}} {{Grandfather_Name}} {{Surname}}</strong><br/>
     Address: {{Full_Address}}
   </div>
 

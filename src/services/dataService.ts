@@ -258,6 +258,42 @@ export async function saveBatchDispatchLogsToCloud(logs: DispatchLog[]): Promise
 }
 
 /**
+ * Delete a dispatch log from Firestore and local cache
+ */
+export async function deleteDispatchLogFromCloud(logId: string): Promise<void> {
+  const current = getLocalCache<DispatchLog[]>(CACHE_KEYS.DISPATCH, INITIAL_DISPATCH_LOGS);
+  const updated = current.filter((l) => l.id !== logId);
+  setLocalCache(CACHE_KEYS.DISPATCH, updated);
+
+  try {
+    const ref = doc(db, COLLECTION_DISPATCH, logId);
+    await deleteDoc(ref);
+  } catch {
+    // Handled locally
+  }
+}
+
+/**
+ * Delete multiple dispatch logs from Firestore and local cache
+ */
+export async function deleteBatchDispatchLogsFromCloud(logIds: string[]): Promise<void> {
+  const current = getLocalCache<DispatchLog[]>(CACHE_KEYS.DISPATCH, INITIAL_DISPATCH_LOGS);
+  const updated = current.filter((l) => !logIds.includes(l.id));
+  setLocalCache(CACHE_KEYS.DISPATCH, updated);
+
+  try {
+    const batch = writeBatch(db);
+    for (const id of logIds) {
+      const ref = doc(db, COLLECTION_DISPATCH, id);
+      batch.delete(ref);
+    }
+    await batch.commit();
+  } catch {
+    // Handled locally
+  }
+}
+
+/**
  * Real-time listener for dispatch logs with resilient error handling
  */
 export function subscribeToDispatchLogs(callback: (logs: DispatchLog[]) => void) {

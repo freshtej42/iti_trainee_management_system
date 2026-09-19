@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { exportElementToPdf, printCleanDocument } from '../utils/pdfExport';
 import A4PrintPreviewModal from './A4PrintPreviewModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface PrincipalReportProps {
   instructor: Instructor;
@@ -46,6 +47,8 @@ export default function PrincipalReport({
   onOpenBatchModal,
   onSelectTraineeForNotice,
 }: PrincipalReportProps) {
+  const { t, tText } = useLanguage();
+
   // Available Months
   const availableMonths = useMemo(() => {
     const months = Array.from(new Set(attendanceRecords.map((r) => r.month_year)));
@@ -192,14 +195,22 @@ export default function PrincipalReport({
                 ITI Shankheshwar (Mahila) Official Document Format
               </span>
               <span className="text-xs bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
-                આચાર્યશ્રી રિપોર્ટ
+                {tText('આચાર્યશ્રી રિપોર્ટ', 'प्राचार्य रिपोर्ट', 'Principal Report')}
               </span>
             </div>
             <h2 className="text-lg font-bold text-slate-900 mt-1">
-              તાલીમાર્થીની ગેરહાજરી તેમજ ઓછી ટકાવારીની વાલીને જાણ કરવા બાબત રજૂઆત
+              {tText(
+                'તાલીમાર્થીની ગેરહાજરી તેમજ ઓછી ટકાવારીની વાલીને જાણ કરવા બાબત રજૂઆત',
+                'प्रशिक्षु की अनुपस्थिति एवं कम प्रतिशत की अभिभावक को सूचना देने विषयक प्रस्तुति',
+                'Report to Principal Regarding Trainee Absence and Low Attendance Notification to Parents'
+              )}
             </h2>
             <p className="text-xs text-slate-500">
-              Supervisor Instructor to Principal official forwarding report with tabular attendance list.
+              {tText(
+                'સુપરવાઇઝર ઇન્સ્ટ્રક્ટર દ્વારા આચાર્યશ્રીને મોકલાતો સત્તાવાર અહેવાલ અને પત્રક.',
+                'पर्यवेक्षक प्रशिक्षक द्वारा प्राचार्य को भेजी जाने वाली आधिकारिक रिपोर्ट एवं तालिका।',
+                'Supervisor Instructor official forwarding report to Principal with attendance sheet.'
+              )}
             </p>
           </div>
 
@@ -208,7 +219,7 @@ export default function PrincipalReport({
             {/* Month Selector */}
             <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
               <Calendar className="w-4 h-4 text-slate-500" />
-              <label className="text-xs font-semibold text-slate-700">માસ:</label>
+              <label className="text-xs font-semibold text-slate-700">{tText('માસ:', 'माह:', 'Month:')}</label>
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
@@ -234,7 +245,7 @@ export default function PrincipalReport({
                 }`}
                 title="A4 Portrait (Standard Official Letter size 210 × 297 mm)"
               >
-                ઉભું (Portrait)
+                {tText('ઉભું (Portrait)', 'खड़ा (Portrait)', 'Portrait')}
               </button>
               <button
                 type="button"
@@ -246,7 +257,7 @@ export default function PrincipalReport({
                 }`}
                 title="A4 Landscape (Wide Table size 297 × 210 mm)"
               >
-                આડું (Landscape)
+                {tText('આડું (Landscape)', 'आड़ा (Landscape)', 'Landscape')}
               </button>
             </div>
 
@@ -255,7 +266,7 @@ export default function PrincipalReport({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
-              રો ઉમેરો
+              {tText('રો ઉમેરો', 'पंक्ति जोड़ें', 'Add Row')}
             </button>
 
             <button
@@ -263,7 +274,7 @@ export default function PrincipalReport({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
             >
               <Send className="w-3.5 h-3.5" />
-              તમામ વાલીઓને નોટિસ મોકલો
+              {tText('તમામ વાલીઓને નોટિસ મોકલો', 'सभी अभिभावकों को नोटिस भेजें', 'Send Notices to All Parents')}
             </button>
 
             {/* Download A4 PDF Button */}
@@ -276,12 +287,12 @@ export default function PrincipalReport({
               {isExportingPdf ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                  <span>{exportProgress || 'PDF તૈયાર થાય છે...'}</span>
+                  <span>{exportProgress || tText('PDF તૈયાર થાય છે...', 'PDF तैयार हो रही है...', 'Preparing PDF...')}</span>
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4 text-emerald-700" />
-                  <span>ડાઉનલોડ PDF (A4 Export)</span>
+                  <span>{tText('ડાઉનલોડ PDF (A4 Export)', 'डाउनलोड PDF (A4 Export)', 'Download PDF (A4)')}</span>
                 </>
               )}
             </button>
@@ -293,7 +304,7 @@ export default function PrincipalReport({
               title="Print document in true A4 size"
             >
               <Printer className="w-4 h-4" />
-              <span>પ્રિન્ટ (A4 Print)</span>
+              <span>{tText('પ્રિન્ટ (A4 Print)', 'प्रिंट (A4 Print)', 'Print (A4)')}</span>
             </button>
           </div>
         </div>
@@ -301,11 +312,14 @@ export default function PrincipalReport({
         {/* Informational Notification */}
         <div className="mt-3 text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span>
-            💡 <strong>માર્ગદર્શન:</strong> આ રિપોર્ટ ઓગસ્ટ/સપ્ટેમ્બર માસના ૮૦% થી ઓછી હાજરી વાળા તાલીમાર્થીઓની યાદી આપોઆપ બનાવે છે. 
-            તમે <strong>&quot;ડાઉનલોડ PDF (A4 Export)&quot;</strong> પર ક્લિક કરીને સીધી A4 PDF સેવ કરી શકો છો અથવા <strong>&quot;પ્રિન્ટ (A4 Print)&quot;</strong> કરી શકો છો.
+            💡 <strong>{tText('માર્ગદર્શન:', 'मार्गदर्शन:', 'Guidance:')}</strong> {tText(
+              'આ રિપોર્ટ પસંદ કરેલ માસના ૮૦% થી ઓછી હાજરી વાળા તાલીમાર્થીઓની યાદી આપોઆપ બનાવે છે.',
+              'यह रिपोर्ट चयनित माह में ८०% से कम उपस्थिति वाले प्रशिक्षुओं की सूची स्वतः तैयार करती है।',
+              'This report automatically lists trainees with attendance below 80% for the selected month.'
+            )}
           </span>
           <span className="font-semibold text-amber-900 shrink-0">
-            કુલ અનિયમિત તાલીમાર્થી: {rows.length}
+            {tText('કુલ અનિયમિત તાલીમાર્થી:', 'कुल अनियमित प्रशिक्षु:', 'Total Irregular Trainees:')} {rows.length}
           </span>
         </div>
       </div>
@@ -323,7 +337,7 @@ export default function PrincipalReport({
           <div className="flex justify-end mb-6">
             <div className="text-left leading-snug text-sm sm:text-[15px] min-w-[260px]">
               <div className="flex items-center gap-1">
-                <span className="font-bold">સુ.ઇ નું નામ :</span>
+                <span className="font-bold">{tText('સુ.ઇ નું નામ :', 'पर्यवेक्षक अनुदेशक নাম :', 'SI Name:')}</span>
                 <input
                   type="text"
                   value={supervisorName || ''}
@@ -332,7 +346,7 @@ export default function PrincipalReport({
                 />
               </div>
               <div className="flex items-center gap-1 mt-0.5">
-                <span className="font-bold">ટ્રેડ :</span>
+                <span className="font-bold">{tText('ટ્રેડ :', 'ट्रेड :', 'Trade:')}</span>
                 <input
                   type="text"
                   value={tradeName || ''}
@@ -349,7 +363,7 @@ export default function PrincipalReport({
                 />
               </div>
               <div className="flex items-center gap-1 mt-0.5">
-                <span className="font-bold">તારીખ :</span>
+                <span className="font-bold">{tText('તારીખ :', 'दिनांक :', 'Date:')}</span>
                 <input
                   type="text"
                   value={reportDate || ''}
@@ -362,28 +376,40 @@ export default function PrincipalReport({
 
           {/* Left Recipient Header matching Image 1 */}
           <div className="mb-4 text-sm sm:text-[15px] leading-snug">
-            <div className="font-bold">પ્રતિ,</div>
-            <div className="font-bold">આચાર્યશ્રી,</div>
-            <div>ઔદ્યોગિક તાલીમ સંસ્થા</div>
-            <div>શંખેશ્વર(મહિલા).</div>
+            <div className="font-bold">{tText('પ્રતિ,', 'प्रति,', 'To,')}</div>
+            <div className="font-bold">{tText('આચાર્યશ્રી,', 'प्राचार्य महोदय,', 'The Principal,')}</div>
+            <div>{tText('ઔદ્યોગિક તાલીમ સંસ્થા', 'औद्योगिक प्रशिक्षण संस्थान', 'Industrial Training Institute')}</div>
+            <div>{tText('શંખેશ્વર(મહિલા).', 'शंखेश्वर (महिला).', 'Shankheshwar (Women).')}</div>
           </div>
 
           {/* Subject Line matching Image 1 */}
           <div className="text-left font-bold text-sm sm:text-[15px] my-3">
-            વિષય : તાલીમાર્થીની ગેરહાજરી તેમજ ઓછી ટકાવારીની વાલીને જાણ કરવા બાબત.
+            {tText(
+              'વિષય : તાલીમાર્થીની ગેરહાજરી તેમજ ઓછી ટકાવારીની વાલીને જાણ કરવા બાબત.',
+              'विषय : प्रशिक्षु की अनुपस्थिति एवं कम प्रतिशत की अभिभावक को सूचना देने बाबत।',
+              'Subject: Trainee absence and notifying parents regarding low attendance.'
+            )}
           </div>
 
           {/* Salutation & Body Paragraph matching Image 1 */}
           <div className="text-sm sm:text-[15px] mb-2 font-bold">
-            માનનીય સાહેબશ્રી,
+            {tText('માનનીય સાહેબશ્રી,', 'आदरणीय महोदय,', 'Respected Sir,')}
           </div>
 
           <p className="text-sm sm:text-[15px] text-justify leading-relaxed mb-5" style={{ textIndent: '2rem' }}>
-            ઉપરોક્ત વિષય અન્વયે જણાવવાનું કે આ સાથે અત્રેના ટ્રેડમાં તાલીમ લઈ રહેલા નીચેના તાલીમાર્થીઓની હાજરીની વિગત{' '}
+            {tText(
+              'ઉપરોક્ત વિષય અન્વયે જણાવવાનું કે આ સાથે અત્રેના ટ્રેડમાં તાલીમ લઈ રહેલા નીચેના તાલીમાર્થીઓની હાજરીની વિગત',
+              'उपरोक्त विषय के संदर्भ में सूचित करना है कि इसके साथ हमारे ट्रेड में प्रशिक्षण ले रहे निम्नलिखित प्रशिक्षुओं की उपस्थिति विवरण',
+              'With reference to the above subject, the attendance details of the following trainees currently under training in this trade for'
+            )}{' '}
             <span className="font-bold border-b border-slate-400 px-1">
               {formatMonthGujarati(selectedMonth)}
             </span>{' '}
-            માસ અંતિત નીચે મુજબ છે આ તાલીમાર્થીઓની હાજરી પરિક્ષામાં બેસવાના સમયે ૮૦ ટકાથી ઓછી હાજરી હશે તો પરિક્ષામાં બેસવા નહિ દેવા અંગેની જાણ તથા સંસ્થા ખાતે નિયમિત હાજરી આપે તે અંગે જાણ કરવા વિનંતી.
+            {tText(
+              'માસ અંતિત નીચે મુજબ છે આ તાલીમાર્થીઓની હાજરી પરિક્ષામાં બેસવાના સમયે ૮૦ ટકાથી ઓછી હાજરી હશે તો પરિક્ષામાં બેસવા નહિ દેવા અંગેની જાણ તથા સંસ્થા ખાતે નિયમિત હાજરી આપે તે અંગે જાણ કરવા વિનંતી.',
+              'माह अंत में नीचे दिए अनुसार है। इन प्रशिक्षुओं की परीक्षा समय पर ८०% से कम उपस्थिति होने पर परीक्षा में बैठने न देने संबंधी सूचना तथा नियमित उपस्थिति हेतु अवगत कराने की विनती है।',
+              'month-end are as given below. You are requested to notify guardians that trainees with attendance below 80% will not be eligible to appear for the exam and to ensure regular attendance.'
+            )}
           </p>
 
           {/* The Official 5-Column Table matching Image 1 */}
@@ -392,26 +418,22 @@ export default function PrincipalReport({
               <thead>
                 <tr className="border-b-2 border-black bg-slate-50 font-bold text-center">
                   <th className="border border-black p-2 w-[8%] text-center">
-                    ક્રમ
+                    {tText('ક્રમ', 'क्र.', 'Sr.')}
                   </th>
                   <th className="border border-black p-2 w-[44%] text-center">
-                    તાલીમાર્થીનું નામ અને સરનામું
+                    {tText('તાલીમાર્થીનું નામ અને સરનામું', 'प्रशिक्षु का नाम और पता', 'Trainee Name & Address')}
                   </th>
                   <th className="border border-black p-2 w-[22%] text-center">
-                    કઈ તારીખથી સતત
-                    <br />
-                    ગેરહાજર છે?
+                    {tText('કઈ તારીખથી સતત ગેરહાજર છે?', 'किस तारीख से लगातार अनुपस्थित है?', 'Continuous Absent Since')}
                   </th>
                   <th className="border border-black p-2 w-[14%] text-center">
-                    માસ અંતિત
-                    <br />
-                    હાજરીના ટકા
+                    {tText('માસ અંતિત હાજરીના ટકા', 'माह अंत में उपस्थिति प्रतिशत', 'Month-End Attendance %')}
                   </th>
                   <th className="border border-black p-2 w-[12%] text-center">
-                    નોંધ
+                    {tText('નોંધ', 'टिप्पणी', 'Remarks')}
                   </th>
                   <th className="border border-black p-1 w-[6%] text-center print:hidden">
-                    એક્શન
+                    {tText('એક્શન', 'कार्यवाही', 'Actions')}
                   </th>
                 </tr>
               </thead>
@@ -527,8 +549,8 @@ export default function PrincipalReport({
 
           {/* Bottom-Left Forwarding Note matching Image 1 */}
           <div className="mt-6 text-sm sm:text-[15px] leading-normal">
-            <div>ઉપરોક્ત તાલીમાર્થીઓ અંગે ઘટતી કાર્યવાહી કરવા નમ્ર વિનંતી.</div>
-            <div className="mt-1">આભાર સહ....</div>
+            <div>{tText('ઉપરોક્ત તાલીમાર્થીઓ અંગે ઘટતી કાર્યવાહી કરવા નમ્ર વિનંતી.', 'उपरोक्त प्रशिक्षुओं के संबंध में उचित कार्यवाही हेतु सादर निवेदन।', 'Kindly take appropriate action regarding the above trainees.')}</div>
+            <div className="mt-1">{tText('આભાર સહ....', 'सधन्यवाद....', 'With regards....')}</div>
           </div>
 
           {/* Bottom-Right Signature Block matching Image 1 */}
@@ -538,12 +560,12 @@ export default function PrincipalReport({
                 {/* Visual signature placeholder if needed */}
                 <div className="border-b border-slate-400 w-36"></div>
               </div>
-              <div className="font-bold text-sm sm:text-[15px] mt-1">આપનો વિશ્વાસુ</div>
+              <div className="font-bold text-sm sm:text-[15px] mt-1">{tText('આપનો વિશ્વાસુ', 'भवदीय', 'Yours faithfully')}</div>
               <div className="text-xs sm:text-sm text-slate-800 mt-0.5">
                 ({supervisorName})
               </div>
               <div className="text-xs text-slate-600">
-                સુપરવાઇઝર ઇન્સ્ટ્રક્ટર (સુ.ઇ.)
+                {tText('સુપરવાઇઝર ઇન્સ્ટ્રક્ટર (સુ.ઇ.)', 'पर्यवेक्षक अनुदेशक (प.अ.)', 'Supervisor Instructor (SI)')}
               </div>
               <div className="text-xs text-slate-600">
                 {tradeName}, {itiName}
@@ -558,7 +580,7 @@ export default function PrincipalReport({
         <A4PrintPreviewModal
           isOpen={isPrintModalOpen}
           onClose={() => setIsPrintModalOpen(false)}
-          title="આચાર્યશ્રી ગેરહાજરી રજૂઆત અહેવાલ"
+          title={tText('આચાર્યશ્રી ગેરહાજરી રજૂઆત અહેવાલ', 'प्राचार्य अनुपस्थिति प्रस्तुति रिपोर्ट', 'Principal Absence Forwarding Report')}
           subtitle={`${itiName} • ${tradeName} • ${formatMonthGujarati(selectedMonth)}`}
           filename={`ITI_Principal_Report_${selectedMonth.replace(/\s+/g, '_')}`}
           initialOrientation={orientation}
@@ -567,34 +589,46 @@ export default function PrincipalReport({
             {/* Top-Right Sender Information */}
             <div className="flex justify-end mb-6">
               <div className="text-left leading-snug min-w-[250px]">
-                <div><span className="font-bold">સુ.ઇ નું નામ :</span> {supervisorName}</div>
-                <div className="mt-0.5"><span className="font-bold">ટ્રેડ :</span> {tradeName}</div>
+                <div><span className="font-bold">{tText('સુ.ઇ નું નામ :', 'पर्यवेक्षक अनुदेशक नाम :', 'SI Name:')}</span> {supervisorName}</div>
+                <div className="mt-0.5"><span className="font-bold">{tText('ટ્રેડ :', 'ट्रेड :', 'Trade:')}</span> {tradeName}</div>
                 <div className="mt-0.5">{itiName}</div>
-                <div className="mt-0.5"><span className="font-bold">તારીખ :</span> {reportDate}</div>
+                <div className="mt-0.5"><span className="font-bold">{tText('તારીખ :', 'दिनांक :', 'Date:')}</span> {reportDate}</div>
               </div>
             </div>
 
             {/* Left Recipient Header */}
             <div className="mb-4 leading-snug">
-              <div className="font-bold">પ્રતિ,</div>
-              <div className="font-bold">આચાર્યશ્રી,</div>
-              <div>ઔદ્યોગિક તાલીમ સંસ્થા</div>
-              <div>શંખેશ્વર(મહિલા).</div>
+              <div className="font-bold">{tText('પ્રતિ,', 'प्रति,', 'To,')}</div>
+              <div className="font-bold">{tText('આચાર્યશ્રી,', 'प्राचार्य महोदय,', 'The Principal,')}</div>
+              <div>{tText('ઔદ્યોગિક તાલીમ સંસ્થા', 'औद्योगिक प्रशिक्षण संस्थान', 'Industrial Training Institute')}</div>
+              <div>{tText('શંખેશ્વર(મહિલા).', 'शंखेश्वर (महिला).', 'Shankheshwar (Women).')}</div>
             </div>
 
             {/* Subject Line */}
             <div className="text-left font-bold text-[15px] my-4">
-              વિષય : તાલીમાર્થીની ગેરહાજરી તેમજ ઓછી ટકાવારીની વાલીને જાણ કરવા બાબત.
+              {tText(
+                'વિષય : તાલીમાર્થીની ગેરહાજરી તેમજ ઓછી ટકાવારીની વાલીને જાણ કરવા બાબત.',
+                'विषय : प्रशिक्षु की अनुपस्थिति एवं कम प्रतिशत की अभिभावक को सूचना देने बाबत।',
+                'Subject: Trainee absence and notifying parents regarding low attendance.'
+              )}
             </div>
 
             {/* Salutation & Body Paragraph */}
-            <div className="mb-2 font-bold">માનનીય સાહેબશ્રી,</div>
+            <div className="mb-2 font-bold">{tText('માનનીય સાહેબશ્રી,', 'आदरणीय महोदय,', 'Respected Sir,')}</div>
             <p className="text-justify leading-relaxed mb-5" style={{ textIndent: '2.5rem' }}>
-              ઉપરોક્ત વિષય અન્વયે જણાવવાનું કે આ સાથે અત્રેના ટ્રેડમાં તાલીમ લઈ રહેલા નીચેના તાલીમાર્થીઓની હાજરીની વિગત{' '}
+              {tText(
+                'ઉપરોક્ત વિષય અન્વયે જણાવવાનું કે આ સાથે અત્રેના ટ્રેડમાં તાલીમ લઈ રહેલા નીચેના તાલીમાર્થીઓની હાજરીની વિગત',
+                'उपरोक्त विषय के संदर्भ में सूचित करना है कि इसके साथ हमारे ट्रेड में प्रशिक्षण ले रहे निम्नलिखित प्रशिक्षुओं की उपस्थिति विवरण',
+                'With reference to the above subject, the attendance details of the following trainees currently under training in this trade for'
+              )}{' '}
               <span className="font-bold border-b border-slate-700 px-1">
                 {formatMonthGujarati(selectedMonth)}
               </span>{' '}
-              માસ અંતિત નીચે મુજબ છે આ તાલીમાર્થીઓની હાજરી પરિક્ષામાં બેસવાના સમયે ૮૦ ટકાથી ઓછી હાજરી હશે તો પરિક્ષામાં બેસવા નહિ દેવા અંગેની જાણ તથા સંસ્થા ખાતે નિયમિત હાજરી આપે તે અંગે જાણ કરવા વિનંતી.
+              {tText(
+                'માસ અંતિત નીચે મુજબ છે આ તાલીમાર્થીઓની હાજરી પરિક્ષામાં બેસવાના સમયે ૮૦ ટકાથી ઓછી હાજરી હશે તો પરિક્ષામાં બેસવા નહિ દેવા અંગેની જાણ તથા સંસ્થા ખાતે નિયમિત હાજરી આપે તે અંગે જાણ કરવા વિનંતી.',
+                'माह अंत में नीचे दिए अनुसार है। इन प्रशिक्षुओं की परीक्षा समय पर ८०% से कम उपस्थिति होने पर परीक्षा में बैठने न देने संबंधी सूचना तथा नियमित उपस्थिति हेतु अवगत कराने की विनती है।',
+                'month-end are as given below. You are requested to notify guardians that trainees with attendance below 80% will not be eligible to appear for the exam and to ensure regular attendance.'
+              )}
             </p>
 
             {/* The Official 5-Column Table */}
@@ -602,15 +636,15 @@ export default function PrincipalReport({
               <table className="w-full border-collapse border-2 border-black text-[13px] leading-snug">
                 <thead>
                   <tr className="border-b-2 border-black bg-slate-100 font-bold text-center">
-                    <th className="border border-black p-2 w-[8%] text-center">ક્રમ</th>
-                    <th className="border border-black p-2 w-[44%] text-center">તાલીમાર્થીનું નામ અને સરનામું</th>
+                    <th className="border border-black p-2 w-[8%] text-center">{tText('ક્રમ', 'क्र.', 'Sr.')}</th>
+                    <th className="border border-black p-2 w-[44%] text-center">{tText('તાલીમાર્થીનું નામ અને સરનામું', 'प्रशिक्षु का नाम और पता', 'Trainee Name & Address')}</th>
                     <th className="border border-black p-2 w-[22%] text-center">
-                      કઈ તારીખથી સતત<br />ગેરહાજર છે?
+                      {tText('કઈ તારીખથી સતત ગેરહાજર છે?', 'किस तारीख से लगातार अनुपस्थित है?', 'Continuous Absent Since')}
                     </th>
                     <th className="border border-black p-2 w-[14%] text-center">
-                      માસ અંતિત<br />હાજરીના ટકા
+                      {tText('માસ અંતિત હાજરીના ટકા', 'माह अंत में उपस्थिति प्रतिशत', 'Month-End Attendance %')}
                     </th>
-                    <th className="border border-black p-2 w-[12%] text-center">નોંધ</th>
+                    <th className="border border-black p-2 w-[12%] text-center">{tText('નોંધ', 'टिप्पणी', 'Remarks')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -620,7 +654,11 @@ export default function PrincipalReport({
                         colSpan={5}
                         className="border border-black p-6 text-center text-slate-500 italic"
                       >
-                        આ માસ માટે ૮૦% થી ઓછી હાજરી વાળો કોઈ તાલીમાર્થી નથી.
+                        {tText(
+                          'આ માસ માટે ૮૦% થી ઓછી હાજરી વાળો કોઈ તાલીમાર્થી નથી.',
+                          'इस माह के लिए ८०% से कम उपस्थिति वाला कोई प्रशिक्षु नहीं है।',
+                          'No trainees with attendance below 80% for this month.'
+                        )}
                       </td>
                     </tr>
                   ) : (
@@ -650,8 +688,8 @@ export default function PrincipalReport({
 
             {/* Bottom-Left Forwarding Note */}
             <div className="mt-8 text-[14px]">
-              <div>ઉપરોક્ત તાલીમાર્થીઓ અંગે ઘટતી કાર્યવાહી કરવા નમ્ર વિનંતી.</div>
-              <div className="mt-1">આભાર સહ....</div>
+              <div>{tText('ઉપરોક્ત તાલીમાર્થીઓ અંગે ઘટતી કાર્યવાહી કરવા નમ્ર વિનંતી.', 'उपरोक्त प्रशिक्षुओं के संबंध में उचित कार्यवाही हेतु सादर निवेदन।', 'Kindly take appropriate action regarding the above trainees.')}</div>
+              <div className="mt-1">{tText('આભાર સહ....', 'सधन्यवाद....', 'With regards....')}</div>
             </div>
 
             {/* Bottom-Right Signature Block */}
@@ -660,12 +698,12 @@ export default function PrincipalReport({
                 <div className="h-12 flex items-end justify-center">
                   <div className="border-b border-slate-600 w-40"></div>
                 </div>
-                <div className="font-bold text-[15px] mt-1.5">આપનો વિશ્વાસુ</div>
+                <div className="font-bold text-[15px] mt-1.5">{tText('આપનો વિશ્વાસુ', 'भवदीय', 'Yours faithfully')}</div>
                 <div className="text-sm font-semibold text-slate-900 mt-0.5">
                   ({supervisorName})
                 </div>
                 <div className="text-xs text-slate-700">
-                  સુપરવાઇઝર ઇન્સ્ટ્રક્ટર (સુ.ઇ.)
+                  {tText('સુપરવાઇઝર ઇન્સ્ટ્રક્ટર (સુ.ઇ.)', 'पर्यवेक्षक अनुदेशक (प.अ.)', 'Supervisor Instructor (SI)')}
                 </div>
                 <div className="text-xs text-slate-600">
                   {tradeName}, {itiName}

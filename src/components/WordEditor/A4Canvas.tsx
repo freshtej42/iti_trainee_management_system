@@ -885,6 +885,33 @@ export default function A4Canvas({
                   contentEditable
                   onInput={handleInput}
                   suppressContentEditableWarning
+                  onDragOver={(e) => {
+                    if (
+                      e.dataTransfer.types.includes('application/x-merge-tag') ||
+                      e.dataTransfer.types.includes('text/plain')
+                    ) {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'copy';
+                    }
+                  }}
+                  onDrop={(e) => {
+                    const tag =
+                      e.dataTransfer.getData('application/x-merge-tag') ||
+                      e.dataTransfer.getData('text/plain');
+                    if (tag && tag.startsWith('{{') && tag.endsWith('}}')) {
+                      e.preventDefault();
+                      if (document.caretRangeFromPoint) {
+                        const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+                        if (range) {
+                          const sel = window.getSelection();
+                          sel?.removeAllRanges();
+                          sel?.addRange(range);
+                          document.execCommand('insertText', false, tag);
+                          handleInput();
+                        }
+                      }
+                    }
+                  }}
                   className="outline-none min-h-[420px] leading-relaxed text-slate-900 focus:ring-0 select-text"
                   style={{
                     fontFamily: fontFamily,

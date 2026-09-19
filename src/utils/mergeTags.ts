@@ -46,7 +46,9 @@ export const AVAILABLE_MERGE_TAGS = [
   { tag: '{{Full_Name}}', label: 'Trainee Full Name (પૂર્ણ નામ)', category: 'Trainee' },
   { tag: '{{Trainee_Roll_No}}', label: 'Roll Number (રોલ નં.)', category: 'Trainee' },
   { tag: '{{Enrollment_No}}', label: 'Enrollment No (એનરોલમેન્ટ નં.)', category: 'Trainee' },
+  { tag: '{{Parent_Full_Name}}', label: 'Parent Full Name (વાલી પૂર્ણ નામ: પિતા+દાદા+અટક)', category: 'Trainee' },
   { tag: '{{Father_Name}}', label: "Father's Name (પિતાનું નામ)", category: 'Trainee' },
+  { tag: '{{Grandfather_Name}}', label: "Grandfather's Name (દાદાનું નામ)", category: 'Trainee' },
   { tag: '{{Surname}}', label: 'Surname (અટક / સરનેમ)', category: 'Trainee' },
   { tag: '{{Trainee_Relation}}', label: 'Relation (પુત્રી/પત્ની અથવા પુત્ર/પુત્રી)', category: 'Trainee' },
   { tag: '{{Full_Address}}', label: 'Full Address (સંપૂર્ણ સરનામું)', category: 'Address' },
@@ -99,6 +101,21 @@ export function getPreviousNoticeDate(
   if (language === 'Gujarati') return 'કોઈ અગાઉની નોટિસ નથી (પ્રથમ નોટિસ)';
   if (language === 'Hindi') return 'कोई पूर्व सूचना नहीं (प्रथम सूचना)';
   return 'None on record (First Notice)';
+}
+
+/**
+ * Builds the smart formatted parent full name with Grandfather name: {{father_name}} {{grandfather_name}} {{surname}}
+ */
+export function formatParentFullName(trainee: Trainee, preferEnglish = false): string {
+  if (preferEnglish) {
+    const father = trainee.father_name_en || trainee.father_name || '';
+    const grandfather = trainee.grandfather_name_en || trainee.grandfather_name || '';
+    const surname = trainee.surname_en || trainee.surname || '';
+    const parts = [father, grandfather, surname].filter(Boolean);
+    return parts.length > 0 ? parts.join(' ') : `${trainee.father_name} ${trainee.surname}`;
+  }
+  const parts = [trainee.father_name, trainee.grandfather_name, trainee.surname].filter(Boolean);
+  return parts.join(' ').trim();
 }
 
 /**
@@ -155,6 +172,7 @@ export function mergeTemplateTags(templateHtml: string, context: MergeContext): 
 
   const preferEn = language === 'English';
   const fullName = formatFullName(trainee, preferEn);
+  const parentFullName = formatParentFullName(trainee, preferEn);
   const fullAddress = formatFullAddress(trainee, preferEn);
 
   const workingDays = context.workingDays ?? attendance?.total_working_days ?? 24;
@@ -173,17 +191,37 @@ export function mergeTemplateTags(templateHtml: string, context: MergeContext): 
   const remarksText = context.remarks || attendance?.remarks || 'વાલીને રૂબરૂ બોલાવવા માટે નોંધ કરેલ છે.';
   const instAddress = instructor.institution_address || 'બક્ષીપંચ હોસ્ટેલની બાજુમાં, સમી-શંખેશ્વર હાઈવે, તા. શંખેશ્વર, જી. પાટણ-૩૮૪૨૪૨';
 
+  const fatherVal = preferEn ? (trainee.father_name_en || trainee.father_name) : trainee.father_name;
+  const grandfatherVal = preferEn ? (trainee.grandfather_name_en || trainee.grandfather_name) : trainee.grandfather_name;
+  const surnameVal = preferEn ? (trainee.surname_en || trainee.surname) : trainee.surname;
+
   const replacements: Record<string, string> = {
     // Both full and shorthand tags supported for MS Word templates
     '{{Full_Name}}': fullName,
+    '{{full_name}}': fullName,
+    '{{Trainee_Full_Name}}': fullName,
+    '{{trainee_full_name}}': fullName,
     '{{Trainee_Name}}': fullName,
+    '{{trainee_name}}': fullName,
     '{{Trainee_Name_EN}}': formatFullName(trainee, true),
+    '{{Parent_Full_Name}}': parentFullName,
+    '{{parent_full_name}}': parentFullName,
+    '{{Parent_Name}}': parentFullName,
+    '{{parent_name}}': parentFullName,
+    '{{Father_Full_Name}}': parentFullName,
+    '{{father_full_name}}': parentFullName,
     '{{Trainee_Roll_No}}': trainee.roll_no,
+    '{{trainee_roll_no}}': trainee.roll_no,
     '{{Roll_No}}': trainee.roll_no,
+    '{{roll_no}}': trainee.roll_no,
     '{{Enrollment_No}}': trainee.enrollment_no,
-    '{{Father_Name}}': preferEn ? (trainee.father_name_en || trainee.father_name) : trainee.father_name,
-    '{{Grandfather_Name}}': preferEn ? (trainee.grandfather_name_en || trainee.grandfather_name) : trainee.grandfather_name,
-    '{{Surname}}': preferEn ? (trainee.surname_en || trainee.surname) : trainee.surname,
+    '{{enrollment_no}}': trainee.enrollment_no,
+    '{{Father_Name}}': fatherVal,
+    '{{father_name}}': fatherVal,
+    '{{Grandfather_Name}}': grandfatherVal,
+    '{{grandfather_name}}': grandfatherVal,
+    '{{Surname}}': surnameVal,
+    '{{surname}}': surnameVal,
     '{{Trainee_Relation}}': 'પુત્રી/પત્ની',
     '{{Full_Address}}': fullAddress,
     '{{Address}}': trainee.address || fullAddress,
@@ -207,6 +245,7 @@ export function mergeTemplateTags(templateHtml: string, context: MergeContext): 
     '{{Total_Working_Days}}': String(workingDays),
     '{{Present_Days}}': String(presentDays),
     '{{Absent_Days}}': String(absentDays),
+    '{{Attendance_Percentage}}%': String(percentage) + '%',
     '{{Attendance_Percentage}}': String(percentage) + '%',
     '{{Absent_From_Date}}': absentFrom,
     '{{Absent_To_Date}}': absentTo,

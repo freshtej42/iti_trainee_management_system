@@ -41,9 +41,9 @@ import TraineeManager from './components/TraineeManager';
 import DispatchHistory from './components/DispatchHistory';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import BatchNoticeModal from './components/BatchNoticeModal';
-import PrincipalReport from './components/PrincipalReport';
 import InstructorAuth from './components/InstructorAuth';
 import BatchUnitManagerModal from './components/BatchUnitManagerModal';
+import { isStudentAssignedToInstructor } from './utils/academicHelpers';
 import AcademicHierarchyManager from './components/AcademicHierarchyManager';
 import TemplateStudio from './components/TemplateStudio';
 import ReportGenerator from './components/ReportGenerator';
@@ -151,25 +151,28 @@ export default function App() {
       setActiveTab('admin');
     } else if (!isSuperAdmin && activeTab === 'admin') {
       setActiveTab('attendance');
+    } else if (activeTab === 'principal-report') {
+      const prinTmpl = templates.find(
+        (t) =>
+          t.notice_type === 'Report' ||
+          /આચાર્ય|principal|અહેવાલ/i.test(t.template_name || '')
+      );
+      if (prinTmpl) {
+        setActiveTemplateId(prinTmpl.id);
+      }
+      setActiveTab('report');
     }
-  }, [isSuperAdmin, activeTab]);
+  }, [isSuperAdmin, activeTab, templates]);
 
-  // Current instructor's isolated trainees (or shared for institute management)
+  // Current instructor's isolated trainees:
+  // - Super Admin can view all students across all trades and institutes.
+  // - Instructors can view ONLY students assigned to them matching trade, batch, and unit.
   const instructorTrainees = useMemo(() => {
-    if (
-      isSuperAdmin ||
-      currentInstructorId === 'super-admin-tejas' ||
-      currentInstructorId === 'inst-shankheshwar' ||
-      currentInstructorId === 'inst-tejas'
-    ) {
+    if (isSuperAdmin || currentInstructor.role === 'super_admin') {
       return trainees;
     }
-    const list = trainees.filter((t) => t.instructor_id === currentInstructorId);
-    if (list.length > 0) return list;
-    // Fallback: If no trainees assigned specifically to this instructor_id, return all trainees
-    // so the instructor can view, manage, and assign them
-    return trainees;
-  }, [trainees, currentInstructorId, isSuperAdmin]);
+    return trainees.filter((t) => isStudentAssignedToInstructor(t, currentInstructor));
+  }, [trainees, currentInstructor, isSuperAdmin]);
 
   const [traineeFilterPreset, setTraineeFilterPreset] = useState<{
     trade?: string;
@@ -238,6 +241,10 @@ export default function App() {
     const created: Trainee = {
       ...newTrainee,
       id: `trainee-${Date.now()}`,
+      instructor_id: currentInstructorId || newTrainee.instructor_id,
+      trade: newTrainee.trade || currentInstructor.trade,
+      batch: newTrainee.batch || currentInstructor.batch,
+      unit: newTrainee.unit || currentInstructor.unit || 'Unit A',
       created_at: new Date().toISOString(),
     };
     setTrainees((prev) => [created, ...prev]);
@@ -283,11 +290,26 @@ export default function App() {
     newTrainees: Trainee[],
     newAttendance: AttendanceRecord[]
   ) => {
-    setTrainees((prev) => [...newTrainees, ...prev]);
+    // Automatically tag imported students to current instructor profile and active trade/batch/unit if missing
+    const taggedTrainees = newTrainees.map((t) => ({
+      ...t,
+      instructor_id: currentInstructorId || t.instructor_id,
+      trade: t.trade || currentInstructor.trade,
+      batch: t.batch || currentInstructor.batch,
+      unit: t.unit || currentInstructor.unit || 'Unit A',
+    }));
+
+    setTrainees((prev) => [...taggedTrainees, ...prev]);
     if (newAttendance && newAttendance.length > 0) {
-      setAttendanceRecords((prev) => [...newAttendance, ...prev]);
+      const taggedAttendance = newAttendance.map((a) => ({
+        ...a,
+        instructor_id: currentInstructorId || a.instructor_id,
+      }));
+      setAttendanceRecords((prev) => [...taggedAttendance, ...prev]);
+      await saveBatchTraineesToCloud(taggedTrainees, taggedAttendance);
+    } else {
+      await saveBatchTraineesToCloud(taggedTrainees, []);
     }
-    await saveBatchTraineesToCloud(newTrainees, newAttendance);
   };
 
   // 2. Attendance Handlers
@@ -580,6 +602,7 @@ export default function App() {
                 trainees={instructorTrainees}
                 attendanceRecords={attendanceRecords}
                 templates={templates}
+                dispatchLogs={dispatchLogs}
                 onBatchLogDispatch={handleBatchLogDispatch}
               />
             )}
@@ -597,17 +620,6 @@ export default function App() {
                 onBulkDraft={() => {
                   setActiveTab('report');
                 }}
-              />
-            )}
-
-            {activeTab === 'principal-report' && (
-              <PrincipalReport
-                instructor={currentInstructor}
-                trainees={instructorTrainees}
-                attendanceRecords={attendanceRecords}
-                dispatchLogs={dispatchLogs}
-                onOpenBatchModal={() => setIsBatchModalOpen(true)}
-                onSelectTraineeForNotice={handleSelectTraineeForNotice}
               />
             )}
 

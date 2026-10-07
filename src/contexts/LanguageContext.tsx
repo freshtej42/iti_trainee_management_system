@@ -23,6 +23,7 @@ export interface TranslationDictionary {
   superAdminSubtitle: string;
   tabHierarchy: string;
   tabTrainees: string;
+  tabTemplates: string;
   tabWordDesigner: string;
   tabReportGenerator: string;
   tabMonthlyAttendance: string;
@@ -154,7 +155,8 @@ const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     superAdminSubtitle: 'રાજ્ય સ્તરીય ITI સંચાલન • ઇન્સ્ટ્રક્ટર વેરિફિકેશન • સિસ્ટમ ઓડિટ',
     tabHierarchy: 'શૈક્ષણિક માળખું',
     tabTrainees: 'તાલીમાર્થીઓ',
-    tabWordDesigner: 'વર્ડ ડિઝાઇનર',
+    tabTemplates: 'ટેમ્પલેટ્સ',
+    tabWordDesigner: 'ટેમ્પલેટ્સ (Word)',
     tabReportGenerator: 'રિપોર્ટ જનરેટર',
     tabMonthlyAttendance: 'માસિક હાજરી',
     tabPrincipalReport: 'આચાર્યશ્રી રિપોર્ટ',
@@ -277,7 +279,8 @@ const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     superAdminSubtitle: 'राज्य स्तरीय आईटीआई प्रबंधन • प्रशिक्षक सत्यापन • सिस्टम ऑडिट',
     tabHierarchy: 'शैक्षणिक संरचना',
     tabTrainees: 'प्रशिक्षु',
-    tabWordDesigner: 'वर्ड डिज़ाइनर',
+    tabTemplates: 'टेम्प्लेट्स',
+    tabWordDesigner: 'टेम्प्लेट्स (Word)',
     tabReportGenerator: 'रिपोर्ट जनरेटर',
     tabMonthlyAttendance: 'मासिक उपस्थिति',
     tabPrincipalReport: 'प्राचार्य रिपोर्ट',
@@ -400,7 +403,8 @@ const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     superAdminSubtitle: 'State Level ITI Administration • Instructor Verification • System Audit',
     tabHierarchy: 'Academic Hierarchy',
     tabTrainees: 'Trainees',
-    tabWordDesigner: 'Word Designer',
+    tabTemplates: 'Templates',
+    tabWordDesigner: 'Templates (Word)',
     tabReportGenerator: 'Report Generator',
     tabMonthlyAttendance: 'Monthly Attendance',
     tabPrincipalReport: 'Principal Report',

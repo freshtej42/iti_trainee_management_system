@@ -32,6 +32,12 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Shapes,
+  Square,
+  AlertTriangle,
+  Bookmark,
+  BadgeCheck,
+  Minus,
 } from 'lucide-react';
 import VariableDropdown from './VariableDropdown';
 
@@ -114,10 +120,12 @@ export default function WordRibbon({
 }: WordRibbonProps) {
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [showShapePicker, setShowShapePicker] = useState(false);
   const [imageUploadTarget, setImageUploadTarget] = useState<'left' | 'right' | 'body'>('left');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tablePickerRef = useRef<HTMLDivElement>(null);
   const imagePickerRef = useRef<HTMLDivElement>(null);
+  const shapePickerRef = useRef<HTMLDivElement>(null);
 
   // Close floating pickers on outside click
   useEffect(() => {
@@ -128,6 +136,9 @@ export default function WordRibbon({
       }
       if (imagePickerRef.current && !imagePickerRef.current.contains(target)) {
         setShowImagePicker(false);
+      }
+      if (shapePickerRef.current && !shapePickerRef.current.contains(target)) {
+        setShowShapePicker(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -506,6 +517,141 @@ export default function WordRibbon({
               className="hidden"
               onChange={handleFileChange}
             />
+
+            {/* Shapes Insertion */}
+            <div className="relative pr-3 border-r border-slate-200" ref={shapePickerRef}>
+              <button
+                type="button"
+                onClick={() => setShowShapePicker(!showShapePicker)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded hover:bg-slate-100 border border-slate-200 text-slate-800"
+                title="Insert Shapes (બોક્સ, બેનર, સ્ટેમ્પ, ડિવાઇડર)"
+              >
+                <Shapes className="w-4 h-4 text-purple-700" />
+                <span>Shapes (શેપ્સ)</span>
+              </button>
+
+              {showShapePicker && (
+                <div className="absolute left-0 top-full mt-1.5 bg-white border border-slate-300 rounded-xl shadow-2xl p-2.5 z-50 w-72 animate-in fade-in zoom-in-95 duration-100 text-xs max-h-96 overflow-y-auto">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
+                    દસ્તાવેજ શેપ્સ & કૉલઆઉટ્સ (Word Shapes):
+                  </div>
+
+                  {/* 1. Rectangle Callout Box */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onExecuteCommand(
+                        'insertHTML',
+                        `<div class="doc-shape doc-shape-box" style="border: 2px solid #334155; background-color: #f8fafc; border-radius: 4px; padding: 12px 16px; margin: 14px 0; font-size: 13.5px;"><strong style="color: #0f172a;">📌 અગત્યની સૂચના / નોંધ:</strong> અહીં તમારી વિગતવાર નોંધ દાખલ કરો...</div><p></p>`
+                      );
+                      setShowShapePicker(false);
+                    }}
+                    className="w-full text-left px-2 py-2 rounded-lg hover:bg-purple-50 text-slate-800 flex items-start gap-2.5 transition-colors"
+                  >
+                    <Square className="w-4 h-4 text-slate-700 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-slate-900">લંબચોરસ બોક્સ (Callout Box)</div>
+                      <div className="text-[10px] text-slate-500">સામાન્ય સૂચના કે વિશિષ્ટ નોંધ દર્શાવવા માટે</div>
+                    </div>
+                  </button>
+
+                  {/* 2. Rounded Alert/Warning Box */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onExecuteCommand(
+                        'insertHTML',
+                        `<div class="doc-shape doc-shape-warning" style="border: 2px solid #e11d48; background-color: #fff1f2; border-radius: 10px; padding: 12px 16px; margin: 14px 0; font-size: 13.5px; color: #9f1239;"><strong>⚠️ ગંભીર ચેતવણી:</strong> ૮૦% કરતાં ઓછી હાજરી ધરાવતા તાલીમાર્થીઓને પરીક્ષામાં બેસવા દેવામાં આવશે નહીં.</div><p></p>`
+                      );
+                      setShowShapePicker(false);
+                    }}
+                    className="w-full text-left px-2 py-2 rounded-lg hover:bg-rose-50 text-slate-800 flex items-start gap-2.5 transition-colors"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-rose-900">ચેતવણી બોક્સ (Warning Callout)</div>
+                      <div className="text-[10px] text-rose-600">ગંભીર સૂચના, દંડ અથવા નામ કમી ચેતવણી માટે</div>
+                    </div>
+                  </button>
+
+                  {/* 3. Official Seal / Stamp Box */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onExecuteCommand(
+                        'insertHTML',
+                        `<div class="doc-shape doc-shape-stamp" style="display: inline-block; border: 2px dashed #0284c7; background-color: #f0f9ff; border-radius: 8px; padding: 10px 18px; margin: 12px 0; text-align: center; color: #0369a1; font-weight: bold;"><div style="font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase;">સરકારી ઔદ્યોગિક તાલીમ સંસ્થા</div><div style="font-size: 14px; font-weight: 800; margin: 4px 0;">[ સત્તાવાર મંજૂરી સિક્કો ]</div><div style="font-size: 10px; font-weight: normal; color: #475569;">તારીખ: {{Notice_Issue_Date}} | પ્રમાણિત</div></div><p></p>`
+                      );
+                      setShowShapePicker(false);
+                    }}
+                    className="w-full text-left px-2 py-2 rounded-lg hover:bg-sky-50 text-slate-800 flex items-start gap-2.5 transition-colors"
+                  >
+                    <Stamp className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-sky-900">સત્તાવાર સિક્કો / સ્ટેમ્પ બોક્સ (Seal Box)</div>
+                      <div className="text-[10px] text-sky-600">કચેરી સિક્કો / પ્રમાણીકરણ ખાનું</div>
+                    </div>
+                  </button>
+
+                  {/* 4. Verified Status Badge */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onExecuteCommand(
+                        'insertHTML',
+                        `<span class="doc-shape doc-shape-badge" style="display: inline-flex; align-items: center; border: 1.5px solid #16a34a; background-color: #f0fdf4; color: #15803d; font-weight: bold; font-size: 11px; padding: 3px 10px; border-radius: 9999px; margin: 2px 4px;">✓ માન્ય / નિયમિત (Approved)</span>&nbsp;`
+                      );
+                      setShowShapePicker(false);
+                    }}
+                    className="w-full text-left px-2 py-2 rounded-lg hover:bg-emerald-50 text-slate-800 flex items-start gap-2.5 transition-colors"
+                  >
+                    <BadgeCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-emerald-900">પ્રમાણિત બેજ (Status Badge)</div>
+                      <div className="text-[10px] text-emerald-600">માન્ય / નિયમિત / પ્રમાણિત ગોળાકાર બેજ</div>
+                    </div>
+                  </button>
+
+                  {/* 5. Horizontal Accent Divider Line */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onExecuteCommand(
+                        'insertHTML',
+                        `<div class="doc-shape doc-shape-divider" style="height: 3px; background: linear-gradient(to right, #346739, #f59e0b, #346739); margin: 16px 0; border-radius: 2px;"></div><p></p>`
+                      );
+                      setShowShapePicker(false);
+                    }}
+                    className="w-full text-left px-2 py-2 rounded-lg hover:bg-slate-100 text-slate-800 flex items-start gap-2.5 transition-colors"
+                  >
+                    <Minus className="w-4 h-4 text-[#346739] shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-slate-900">ડિઝાઇનર વિભાજક લીટી (Accent Divider)</div>
+                      <div className="text-[10px] text-slate-500">વિભાગો અલગ કરવા માટે કલર લીટી</div>
+                    </div>
+                  </button>
+
+                  {/* 6. Double Border Summary Frame */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onExecuteCommand(
+                        'insertHTML',
+                        `<div class="doc-shape doc-shape-frame" style="border: 4px double #334155; padding: 14px 18px; background-color: #fbfbfc; margin: 14px 0;"><h4 style="margin: 0 0 6px 0; font-weight: bold; color: #0f172a; font-size: 14px;">સંસ્થાકીય આદેશ / સારાંશ:</h4><p style="margin: 0; font-size: 13.5px;">અહીં આદેશની વિગતો લખો...</p></div><p></p>`
+                      );
+                      setShowShapePicker(false);
+                    }}
+                    className="w-full text-left px-2 py-2 rounded-lg hover:bg-slate-100 text-slate-800 flex items-start gap-2.5 transition-colors"
+                  >
+                    <Bookmark className="w-4 h-4 text-indigo-700 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-slate-900">ડબલ બોર્ડર સમરી ફ્રેમ (Summary Box)</div>
+                      <div className="text-[10px] text-slate-500">સરકારી કચેરી પરિપત્ર / સમરી સ્ટાઇલ</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Horizontal Line & Seal */}
             <div className="flex items-center gap-1.5">

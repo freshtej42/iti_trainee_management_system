@@ -132,8 +132,8 @@ export interface LetterTemplate {
   template_name: string;
   name?: string; // convenient alias
   language: Language;
-  category?: 'attendance_warning' | 'irregularity_notice' | 'general_report' | 'custom';
-  notice_type: '1st Warning' | '2nd Warning' | 'Final Notice' | 'General Notice' | 'Report';
+  category?: 'attendance_warning' | 'irregularity_notice' | 'general_report' | 'principal_report' | 'general_notice' | 'custom';
+  notice_type: '1st Warning' | '2nd Warning' | 'Final Notice' | 'General Notice' | 'Parent Notice' | 'Report';
   subject: string;
   content_html: string;
   header_config?: HeaderConfig;

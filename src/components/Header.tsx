@@ -28,7 +28,6 @@ export type ActiveTab =
   | 'templates'
   | 'report'
   | 'attendance'
-  | 'principal-report'
   | 'dispatch'
   | 'admin';
 
@@ -280,7 +279,7 @@ export default function Header({
                 }`}
               >
                 <FileText className="w-4 h-4 shrink-0" />
-                <span>{t('tabWordDesigner')}</span>
+                <span>{t('tabTemplates')}</span>
               </button>
 
               <button
@@ -318,17 +317,6 @@ export default function Header({
                 )}
               </button>
 
-              <button
-                onClick={() => onTabChange('principal-report')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
-                  activeTab === 'principal-report'
-                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <ClipboardList className="w-4 h-4 shrink-0" />
-                <span>{t('tabPrincipalReport')}</span>
-              </button>
 
               <button
                 onClick={() => onTabChange('dispatch')}
@@ -537,7 +525,7 @@ export default function Header({
                   }`}
                 >
                   <FileText className="w-5 h-5" />
-                  <span>{t('tabWordDesigner')}</span>
+                  <span>{t('tabTemplates')}</span>
                 </button>
 
                 <button
@@ -573,19 +561,6 @@ export default function Header({
                   )}
                 </button>
 
-                <button
-                  onClick={() => handleMobileTabSelect('principal-report')}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${
-                    activeTab === 'principal-report'
-                      ? 'bg-[#346739] text-[#f2edc2]'
-                      : 'text-slate-700 hover:bg-[#f2edc2]/40'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <ClipboardList className="w-5 h-5" />
-                    <span>{t('tabPrincipalReport')}</span>
-                  </div>
-                </button>
 
                 <button
                   onClick={() => handleMobileTabSelect('dispatch')}
@@ -685,18 +660,6 @@ export default function Header({
             </button>
 
             <button
-              onClick={() => onTabChange('principal-report')}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors min-h-[48px] min-w-[56px] ${
-                activeTab === 'principal-report'
-                  ? 'text-[#346739] font-bold'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <ClipboardList className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">{t('tabPrincipalReport')}</span>
-            </button>
-
-            <button
               onClick={() => onTabChange('templates')}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors min-h-[48px] min-w-[56px] ${
                 activeTab === 'templates'
@@ -705,7 +668,19 @@ export default function Header({
               }`}
             >
               <FileText className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">{t('tabWordDesigner')}</span>
+              <span className="text-[10px] leading-tight">{t('tabTemplates')}</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('report')}
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors min-h-[48px] min-w-[56px] ${
+                activeTab === 'report'
+                  ? 'text-[#346739] font-bold'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Printer className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px] leading-tight">{t('tabReportGenerator')}</span>
             </button>
 
             <button

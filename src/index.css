@@ -60,7 +60,7 @@
   nav,
   button,
   .no-print,
-  .print\\:hidden,
+  .print\:hidden,
   [data-no-print="true"] {
     display: none !important;
   }
@@ -92,6 +92,13 @@
     page-break-after: always;
     break-after: page;
     background-color: #ffffff !important;
+  }
+
+  /* Ensure document shapes (boxes, callouts, stamps, badges, frames) retain styling when printed */
+  .doc-shape,
+  .doc-shape * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Remove input/textarea backgrounds and borders in print for seamless typewritten look */

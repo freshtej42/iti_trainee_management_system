@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan for strict instructor student scoping and isolation. Instructors will only view students matching their assigned trade, batch, and unit hierarchy (or direct instructor assignment), while the Super Admin retains system-wide visibility across all trades.",
+  "updatedAt":  "2026-10-06T12:33:25.882167343Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

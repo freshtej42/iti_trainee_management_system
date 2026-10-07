@@ -40,6 +40,7 @@ interface ReportGeneratorProps {
   trainees: Trainee[];
   attendanceRecords: AttendanceRecord[];
   templates: LetterTemplate[];
+  dispatchLogs?: DispatchLog[];
   onBatchLogDispatch?: (logs: DispatchLog[]) => void;
 }
 
@@ -52,6 +53,7 @@ export default function ReportGenerator({
   trainees,
   attendanceRecords,
   templates,
+  dispatchLogs = [],
   onBatchLogDispatch,
 }: ReportGeneratorProps) {
   // Step 1: Selected Template
@@ -184,10 +186,19 @@ export default function ReportGenerator({
     const att = attendanceRecords.find((a) => a.trainee_id === trainee.id);
     const refNo = `${cleanRefPrefix}/${trainee.roll_no || '૧'}`;
 
+    const lowAttendanceList = trainees
+      .map((tr) => ({
+        trainee: tr,
+        attendance: attendanceRecords.find((a) => a.trainee_id === tr.id),
+      }))
+      .filter((item) => (item.attendance?.attendance_percentage ?? 100) < 80);
+
     return mergeTemplateTags(currentTemplateContent, {
       trainee,
       attendance: att,
       instructor,
+      dispatchLogs,
+      allLowAttendanceTrainees: lowAttendanceList,
       referenceNumber: refNo,
       noticeIssueDate: new Date().toLocaleDateString('gu-IN'),
       monthYear: att?.month_year || 'ઓગસ્ટ ૨૦૨૫',
@@ -320,6 +331,77 @@ export default function ReportGenerator({
     }
   };
 
+  const isPrincipalReport = Boolean(
+    selectedTemplate && (
+      selectedTemplate.notice_type === 'Report' ||
+      selectedTemplate.category === 'general_report' ||
+      /આચાર્ય|principal|ફોરવર્ડિંગ|forwarding|અહેવાલ/i.test(selectedTemplate.template_name || '') ||
+      /આચાર્ય|principal/i.test(selectedTemplate.subject || '')
+    )
+  );
+
+  // Manual or automatic logging into Inward/Outward register
+  const logEntriesToRegister = (silent = false) => {
+    if (!onBatchLogDispatch || selectedTraineesList.length === 0) return;
+    const validTrainees = selectedTraineesList.filter(isTraineeAssigned);
+    if (validTrainees.length === 0) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    if (isPrincipalReport) {
+      // Principal report forwarding must be logged as INWARD in the official register
+      const refNum = `${cleanRefPrefix}/PRIN-IN-${Date.now().toString().slice(-4)}`;
+      const inwardLog: DispatchLog = {
+        id: `disp-inward-${Date.now()}`,
+        trainee_id: validTrainees[0].id,
+        instructor_id: instructor.id,
+        ref_number: refNum,
+        outward_number: refNum,
+        entry_type: 'inward',
+        notice_type: 'Principal Report Forwarding',
+        subject: selectedTemplate?.subject || 'આચાર્યશ્રીને ઓછી હાજરી અહેવાલ ફોરવર્ડિંગ',
+        sender_recipient: `${instructor.name} (સુ.ઇ., ${instructor.trade}) → આચાર્યશ્રી`,
+        issue_date: todayStr,
+        issued_date: todayStr,
+        attendance_percentage: 0,
+        month_year: attendanceRecords[0]?.month_year || 'ઓગસ્ટ ૨૦૨૫',
+        status: 'Dispatched',
+        dispatch_mode: 'કચેરી ફાઇલિંગ / આવક નોંધણી',
+        notes: `ટ્રેડ ${instructor.trade} ના કુલ ${validTrainees.length} ઓછી હાજરી વાળા તાલીમાર્થીઓનો અહેવાલ આચાર્યશ્રી સમક્ષ ફોરવર્ડિંગ પત્ર તરીકે આવક રજીસ્ટરમાં નોંધેલ.`,
+        created_at: new Date().toISOString(),
+      };
+      onBatchLogDispatch([inwardLog]);
+    } else {
+      // Trainee and parent notices must be logged as OUTWARD in the outward register
+      const logs: DispatchLog[] = validTrainees.map((tr, idx) => {
+        const att = attendanceRecords.find((a) => a.trainee_id === tr.id);
+        const refNum = `${cleanRefPrefix}/${tr.roll_no || idx + 1}`;
+        return {
+          id: `disp-${Date.now()}-${idx}`,
+          trainee_id: tr.id,
+          instructor_id: instructor.id,
+          ref_number: refNum,
+          outward_number: refNum,
+          entry_type: 'outward',
+          notice_type: selectedTemplate?.notice_type || '1st Warning',
+          subject: selectedTemplate?.subject || 'ગેરહાજરી બાબત નોટિસ',
+          sender_recipient: `${tr.student_name} ${tr.surname} ના વાલીશ્રી`,
+          issue_date: todayStr,
+          issued_date: todayStr,
+          attendance_percentage: att ? att.attendance_percentage : 0,
+          month_year: att?.month_year || 'ઓગસ્ટ ૨૦૨૫',
+          status: 'Printed',
+          dispatch_mode: 'સાદી ટપાલ / રૂબરૂ',
+          notes: `વાલીશ્રીને જાવક નોટિસ રવાનગી (રોલ નં: ${tr.roll_no})`,
+          created_at: new Date().toISOString(),
+        };
+      });
+      onBatchLogDispatch(logs);
+    }
+
+    setDispatchLoggedNotice(true);
+    setTimeout(() => setDispatchLoggedNotice(false), 5000);
+  };
+
   // Direct Print
   const handlePrint = () => {
     if (selectedTraineeIds.length === 0) {
@@ -338,36 +420,8 @@ export default function ReportGenerator({
       return;
     }
 
-    // Automatically log dispatches if handler provided
-    if (onBatchLogDispatch) {
-      const validTrainees = selectedTraineesList.filter(isTraineeAssigned);
-      const logs: DispatchLog[] = validTrainees.map((tr, idx) => {
-        const att = attendanceRecords.find((a) => a.trainee_id === tr.id);
-        const refNum = `${cleanRefPrefix}/${tr.roll_no || idx + 1}`;
-        const todayStr = new Date().toISOString().split('T')[0];
-        return {
-          id: `disp-${Date.now()}-${idx}`,
-          trainee_id: tr.id,
-          instructor_id: instructor.id,
-          ref_number: refNum,
-          outward_number: refNum,
-          entry_type: 'outward',
-          notice_type: selectedTemplate?.notice_type || '1st Warning',
-          subject: selectedTemplate?.subject || 'ગેરહાજરી બાબત નોટિસ',
-          issue_date: todayStr,
-          issued_date: todayStr,
-          attendance_percentage: att ? att.attendance_percentage : 0,
-          month_year: att?.month_year || 'ઓગસ્ટ ૨૦૨૫',
-          status: 'Printed',
-          dispatch_mode: 'સાદી ટપાલ / રૂબરૂ',
-          created_at: new Date().toISOString(),
-        };
-      });
-
-      onBatchLogDispatch(logs);
-      setDispatchLoggedNotice(true);
-      setTimeout(() => setDispatchLoggedNotice(false), 4000);
-    }
+    // Automatically log dispatches (Inward for Principal report, Outward for notices)
+    logEntriesToRegister();
 
     window.print();
   };
@@ -389,30 +443,68 @@ export default function ReportGenerator({
           <div className="flex items-center gap-2 mb-1">
             <Printer className="w-6 h-6 text-[#f2edc2]" />
             <h2 className="text-lg sm:text-xl font-black tracking-tight">
-              યુનિફાઇડ રિપોર્ટ અને નોટિસ જનરેટર (Unified Report Generation)
+              યુનિફાઇડ રિપોર્ટ અને નોટિસ જનરેટર (Report & Notice Generator)
             </h2>
           </div>
           <p className="text-xs text-slate-300">
-            ટેમ્પલેટ પસંદ કરો → ડાયનેમિક ફિલ્ડ્સ ડ્રેગ & ડ્રોપ કરો → લાઈવ મર્જ પ્રિવ્યુ → સિંગલ કન્સોલિડેટેડ પ્રિન્ટ
+            {isPrincipalReport
+              ? 'આચાર્યશ્રી અહેવાલ: તમામ ૮૦% થી ઓછી હાજરી વાળા તાલીમાર્થીઓનું પત્રક → આવક રજીસ્ટરમાં નોંધ (Inward)'
+              : 'વાલી નોટિસ: મેઇલ મર્જ દ્વારા અગાઉની તમામ નોટિસ તારીખો સહિત પત્ર → જાવક રજીસ્ટરમાં નોંધ (Outward)'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          {/* Explicit Register Log Button */}
+          <button
+            type="button"
+            onClick={() => logEntriesToRegister()}
+            disabled={selectedTraineeIds.length === 0}
+            className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold rounded-xl border transition-all active:scale-[0.99] disabled:opacity-40 ${
+              isPrincipalReport
+                ? 'bg-sky-950 text-sky-200 border-sky-600 hover:bg-sky-900'
+                : 'bg-emerald-950 text-emerald-200 border-emerald-600 hover:bg-emerald-900'
+            }`}
+            title={
+              isPrincipalReport
+                ? 'આચાર્યશ્રી રિપોર્ટ આવક રજીસ્ટરમાં નોંધો (Log as Inward Register)'
+                : 'વાલી નોટિસો જાવક રજીસ્ટરમાં નોંધો (Log as Outward Register)'
+            }
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>
+              {isPrincipalReport
+                ? 'આવક રજીસ્ટરમાં નોંધ કરો (Inward)'
+                : `જાવક રજીસ્ટરમાં નોંધ (${selectedTraineeIds.length})`}
+            </span>
+          </button>
+
           <button
             onClick={handlePrint}
             disabled={selectedTraineeIds.length === 0}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#346739] hover:bg-[#264e2b] disabled:opacity-40 text-[#f2edc2] text-xs font-bold rounded-xl shadow-md transition-all active:scale-[0.99]"
           >
             <Printer className="w-4 h-4" />
-            <span>પીડીએફ જનરેટ / પ્રિન્ટ કરો ({selectedTraineeIds.length} પાનાં)</span>
+            <span>
+              {isPrincipalReport
+                ? 'આચાર્ય રિપોર્ટ પ્રિન્ટ કરો (૧ પાનું)'
+                : `પીડીએફ / પ્રિન્ટ કરો (${selectedTraineeIds.length} પાનાં)`}
+            </span>
           </button>
         </div>
       </div>
 
       {dispatchLoggedNotice && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs rounded-xl flex items-center gap-2 print:hidden animate-in fade-in duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{selectedTraineeIds.length} વિદ્યાર્થીઓના જાવક પત્રો આવક-જાવક રજીસ્ટરમાં સફળતાપૂર્વક નોંધાઈ ગયા છે.</span>
+        <div className={`p-3 text-xs rounded-xl flex items-center gap-2 print:hidden animate-in fade-in duration-200 ${
+          isPrincipalReport
+            ? 'bg-sky-50 border border-sky-300 text-sky-950'
+            : 'bg-emerald-50 border border-emerald-300 text-emerald-950'
+        }`}>
+          <CheckCircle2 className={`w-4 h-4 shrink-0 ${isPrincipalReport ? 'text-sky-600' : 'text-emerald-600'}`} />
+          <span>
+            {isPrincipalReport
+              ? '✓ આચાર્યશ્રી સમક્ષ ફોરવર્ડિંગ રિપોર્ટ આવક રજીસ્ટરમાં (Inward Register) સફળતાપૂર્વક નોંધાઈ ગયો છે.'
+              : `✓ પસંદ કરેલ ${selectedTraineesList.length} તાલીમાર્થીઓના જાવક પત્રો જાવક રજીસ્ટરમાં (Outward Register) સફળતાપૂર્વક નોંધાઈ ગયા છે.`}
+          </span>
         </div>
       )}
 
@@ -917,12 +1009,17 @@ export default function ReportGenerator({
       {/* Generates high-fidelity continuous sequence of A4 pages for each trainee */}
       {/* ========================================================================= */}
       <div className="hidden print:block space-y-0">
-        {selectedTraineesList.map((trainee, idx) => (
+        {(isPrincipalReport
+          ? selectedTraineesList.length > 0
+            ? [selectedTraineesList[0]]
+            : []
+          : selectedTraineesList
+        ).map((trainee, idx, arr) => (
           <div
             key={trainee.id}
             className="bg-white p-8 space-y-4 text-slate-900 font-gujarati"
             style={{
-              pageBreakAfter: idx < selectedTraineesList.length - 1 ? 'always' : 'auto',
+              pageBreakAfter: idx < arr.length - 1 ? 'always' : 'auto',
               minHeight: '100vh',
             }}
           >

@@ -855,7 +855,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
 
     <div style="display: flex; gap: 8px;">
       <span style="font-weight: bold; min-width: 28px;">(૫)</span>
-      <div>તેઓને નિયમિત થવા અગાઉ તારીખ:- <strong>{{Last_Notice_Date}}</strong> ના રોજ આ બાબતે આપને જણાવેલ છે.</div>
+      <div>તેઓને નિયમિત થવા અગાઉ તારીખ:- <strong>{{Previous_Notice_Dates}}</strong> ના રોજ આ બાબતે આપને જણાવેલ છે.</div>
     </div>
   </div>
 
@@ -916,26 +916,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
     ઉપરોક્ત વિષય અન્વયે જણાવવાનું કે આ સાથે અત્રેના ટ્રેડમાં તાલીમ લઈ રહેલા નીચેના તાલીમાર્થીઓની હાજરીની વિગત <strong>{{Month_Year}}</strong> માસ અંતિત નીચે મુજબ છે આ તાલીમાર્થીઓની હાજરી પરિક્ષામાં બેસવાના સમયે ૮૦ ટકાથી ઓછી હાજરી હશે તો પરિક્ષામાં બેસવા નહિ દેવા અંગેની જાણ તથા સંસ્થા ખાતે નિયમિત હાજરી આપે તે અંગે જાણ કરવા વિનંતી.
   </p>
 
-  <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px;" border="1" cellpadding="6">
-    <thead>
-      <tr style="background-color: #f1f5f9; text-align: center;">
-        <th style="width: 8%; border: 1px solid #333; padding: 6px;">ક્રમ</th>
-        <th style="width: 44%; border: 1px solid #333; padding: 6px;">તાલીમાર્થીનું નામ અને સરનામું</th>
-        <th style="width: 20%; border: 1px solid #333; padding: 6px;">કઈ તારીખથી સતત ગેરહાજર છે?</th>
-        <th style="width: 14%; border: 1px solid #333; padding: 6px;">માસ અંતિત હાજરીના ટકા</th>
-        <th style="width: 14%; border: 1px solid #333; padding: 6px;">નોંધ</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td style="border: 1px solid #333; text-align: center;">{{Trainee_Roll_No}}</td>
-        <td style="border: 1px solid #333; padding: 6px;"><strong>{{Full_Name}}</strong><br/>{{Full_Address}}</td>
-        <td style="border: 1px solid #333; text-align: center; padding: 6px;">{{Continuous_Absent_Since}}</td>
-        <td style="border: 1px solid #333; text-align: center; font-weight: bold; padding: 6px;">{{Attendance_Percentage}}%</td>
-        <td style="border: 1px solid #333; padding: 6px;">{{Remarks}}</td>
-      </tr>
-    </tbody>
-  </table>
+  {{Trainee_Attendance_Table}}
 
   <div style="margin-top: 20px; font-size: 14px;">
     ઉપરોક્ત તાલીમાર્થીઓ અંગે ઘટતી કાર્યવાહી કરવા નમ્ર વિનંતી.<br/>

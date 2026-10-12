@@ -1,4 +1,5 @@
 import { Instructor, Trainee, AttendanceRecord, LetterTemplate, DispatchLog } from '../types';
+import { SAMPLE_UPI_RECEIPT_DATA_URL } from '../utils/imageCompressor';
 
 export const INITIAL_INSTRUCTORS: Instructor[] = [
   {
@@ -80,6 +81,8 @@ export const INITIAL_INSTRUCTORS: Instructor[] = [
       address: 'બક્ષીપંચ હોસ્ટેલની બાજુમાં, સમી-શંખેશ્વર હાઈવે, તા. શંખેશ્વર, જી. પાટણ-૩૮૪૨૪૨',
       ref_prefix: 'ઔતાસં/શંખેશ્વર/તલમ/૨૦૨૫',
     },
+    approved_at: '2026-08-01T10:00:00Z',
+    valid_until: '2027-08-01T10:00:00Z',
     created_at: '2025-08-01T10:00:00Z',
   },
   {
@@ -117,6 +120,8 @@ export const INITIAL_INSTRUCTORS: Instructor[] = [
     phone: '9825011111',
     institution_address: 'આજી ડેમ પાસે, રાજકોટ-૩૬૦૦૦૩',
     outward_code_prefix: 'ઔતાસં/રાજકોટ/ફિટર',
+    approved_at: '2026-08-01T10:00:00Z',
+    valid_until: '2027-08-01T10:00:00Z',
     created_at: '2025-08-01T10:00:00Z',
   },
   {
@@ -154,7 +159,51 @@ export const INITIAL_INSTRUCTORS: Instructor[] = [
     phone: '9825167890',
     institution_address: 'કુબેરનગર, અમદાવાદ-૩૮૨૩૪૦',
     outward_code_prefix: 'ઔતાસં/અમદાવાદ/ઇલેક્ટ્રિક',
+    approved_at: '2026-08-01T10:00:00Z',
+    valid_until: '2027-08-01T10:00:00Z',
     created_at: '2025-08-01T10:00:00Z',
+  },
+  {
+    id: 'inst-pending-kalpesh',
+    user_id: 'iti.kalpesh',
+    username: 'welder_kalpesh',
+    name: 'કલ્પેશભાઈ એમ. પરમાર (Kalpesh Parmar)',
+    email: 'kalpesh.welder@gujarat.iti.gov.in',
+    email_verified: true,
+    mobile_verified: true,
+    password: 'Kalpesh@ITI2026!',
+    role: 'instructor',
+    status: 'pending',
+    iti_name: 'ઔદ્યોગિક તાલીમ સંસ્થા, વડોદરા (ITI Vadodara)',
+    trade: 'વેલ્ડર (Welder)',
+    trades: ['વેલ્ડર (Welder)'],
+    batch: '૨૦૨૫–૨૦૨૬',
+    batches: ['૨૦૨૫–૨૦૨૬'],
+    unit: 'Unit A',
+    units: ['Unit A', 'Unit B'],
+    academic_hierarchy: [
+      {
+        id: 'trade-welder-vdr',
+        name: 'વેલ્ડર (Welder)',
+        batches: [
+          {
+            id: 'batch-vdr-25',
+            name: '૨૦૨૫–૨૦૨૬',
+            units: [{ id: 'u-vdr-1', name: 'Unit A' }, { id: 'u-vdr-2', name: 'Unit B' }],
+          },
+        ],
+      },
+    ],
+    designation: 'સુપરવાઇઝર ઇન્સ્ટ્રક્ટર (Supervisor Instructor)',
+    phone: '9898123456',
+    institution_address: 'તરસાલી રોડ, વડોદરા-૩૯૦૦૦૯',
+    outward_code_prefix: 'ઔતાસં/વડોદરા/વેલ્ડર',
+    payment_screenshot_url: SAMPLE_UPI_RECEIPT_DATA_URL,
+    payment_utr: '428910482910',
+    payment_mobile: '9898123456',
+    payment_amount: 9,
+    payment_submitted_at: '2026-10-10T09:30:00Z',
+    created_at: '2026-10-10T09:25:00Z',
   },
 ];
 

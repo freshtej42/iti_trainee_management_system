@@ -21,9 +21,9 @@ import {
   Table as TableIcon,
 } from 'lucide-react';
 import { transliterateText } from '../utils/phoneticIme';
-import { formatFullName, formatFullAddress } from '../utils/mergeTags';
 import TraineeImportModal from './TraineeImportModal';
 import { useLanguage } from '../contexts/LanguageContext';
+import { GUJARAT_DISTRICTS, POPULAR_TALUKAS_BY_DISTRICT } from '../data/registrationOptions';
 
 interface TraineeManagerProps {
   trainees: Trainee[];
@@ -951,43 +951,85 @@ export default function TraineeManager({
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-xs text-slate-600 mb-1">{t('villageCity')}</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">{t('district')}</label>
+                      <select
+                        value={
+                          GUJARAT_DISTRICTS.includes(formData.district || '')
+                            ? formData.district
+                            : formData.district
+                            ? 'other'
+                            : ''
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'other') {
+                            setFormData({ ...formData, district: '' });
+                          } else {
+                            // Extract clean district name e.g. "પાટણ" from "પાટણ (Patan)"
+                            const cleanDist = val.split(' ')[0] || val;
+                            setFormData({ ...formData, district: cleanDist });
+                          }
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      >
+                        <option value="">-- {tText('જિલ્લો પસંદ કરો', 'जिला चुनें', 'Select District')} --</option>
+                        {GUJARAT_DISTRICTS.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                        <option value="other">{tText('અન્ય જિલ્લો...', 'अन्य जिला...', 'Other District...')}</option>
+                      </select>
+                      {(!GUJARAT_DISTRICTS.some((d) => d.startsWith(formData.district || '___')) && formData.district) && (
+                        <input
+                          type="text"
+                          value={formData.district}
+                          onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                          placeholder="જિલ્લાનું નામ દાખલ કરો"
+                          className="mt-1 w-full px-2 py-1 text-xs border rounded"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">{t('taluka')}</label>
+                      <input
+                        type="text"
+                        list="taluka-suggestions"
+                        value={formData.taluka || ''}
+                        onChange={(e) => setFormData({ ...formData, taluka: e.target.value })}
+                        placeholder="દા.ત. શંખેશ્વર"
+                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                      <datalist id="taluka-suggestions">
+                        {Object.entries(POPULAR_TALUKAS_BY_DISTRICT)
+                          .filter(([distKey]) => !formData.district || distKey.includes(formData.district))
+                          .flatMap(([, talukas]) => talukas)
+                          .map((tal) => (
+                            <option key={tal} value={tal.split(' ')[0] || tal}>
+                              {tal}
+                            </option>
+                          ))}
+                      </datalist>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">{t('villageCity')}</label>
                       <input
                         type="text"
                         value={formData.village || ''}
                         onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                        placeholder="શંખેશ્વર"
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg"
+                        placeholder="દા.ત. શંખેશ્વર"
+                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-600 mb-1">{t('taluka')}</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">{t('pincode')}</label>
                       <input
                         type="text"
-                        value={formData.taluka || ''}
-                        onChange={(e) => setFormData({ ...formData, taluka: e.target.value })}
-                        placeholder="શંખેશ્વર"
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-600 mb-1">{t('district')}</label>
-                      <input
-                        type="text"
-                        value={formData.district || ''}
-                        onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                        placeholder="પાટણ"
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-600 mb-1">{t('pincode')}</label>
-                      <input
-                        type="text"
+                        maxLength={6}
                         value={formData.pincode || ''}
-                        onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
                         placeholder="384242"
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-mono"
+                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-mono focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>

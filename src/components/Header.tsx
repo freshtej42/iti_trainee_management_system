@@ -8,9 +8,7 @@ import {
   ShieldCheck,
   Printer,
   ClipboardList,
-  Cloud,
   CheckCircle2,
-  RefreshCw,
   Layers,
   LogOut,
   Menu,
@@ -21,6 +19,7 @@ import {
 import ImeFloatWidget from './ImeFloatWidget';
 import LanguageSelector from './LanguageSelector';
 import { useLanguage } from '../contexts/LanguageContext';
+import { formatValidityDate } from '../utils/validityHelper';
 
 export type ActiveTab =
   | 'hierarchy'
@@ -42,8 +41,6 @@ interface HeaderProps {
   onImeLanguageChange?: (lang: 'Gujarati' | 'Hindi' | 'English') => void;
   lowAttendanceCount: number;
   onOpenBatchModal: () => void;
-  cloudSyncStatus?: 'connected' | 'syncing' | 'offline';
-  onSyncCloud?: () => void;
 }
 
 export default function Header({
@@ -57,8 +54,6 @@ export default function Header({
   onImeLanguageChange,
   lowAttendanceCount,
   onOpenBatchModal,
-  cloudSyncStatus = 'connected',
-  onSyncCloud,
 }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t, tText, imeLanguageName } = useLanguage();
@@ -105,25 +100,6 @@ export default function Header({
                     {t('tabSuperAdmin')}
                   </span>
                 )}
-                {/* Firestore Cloud Sync Badge */}
-                <button
-                  type="button"
-                  onClick={onSyncCloud}
-                  className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-full cursor-pointer transition-colors shrink-0 ${
-                    isSuperAdmin
-                      ? 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200'
-                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                  }`}
-                  title="Google Cloud Firestore Live Database (Click to sync)"
-                >
-                  <Cloud className={`w-3 h-3 shrink-0 ${isSuperAdmin ? 'text-slate-600' : 'text-emerald-700'}`} />
-                  <span className="hidden md:inline">Firestore</span>
-                  {cloudSyncStatus === 'syncing' ? (
-                    <RefreshCw className={`w-2.5 h-2.5 animate-spin shrink-0 ${isSuperAdmin ? 'text-slate-700' : 'text-emerald-700'}`} />
-                  ) : (
-                    <CheckCircle2 className={`w-2.5 h-2.5 shrink-0 ${isSuperAdmin ? 'text-emerald-600' : 'text-emerald-600'}`} />
-                  )}
-                </button>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-500 font-normal truncate hidden sm:block">
                 {isSuperAdmin ? t('superAdminSubtitle') : t('portalSubtitle')}
@@ -183,18 +159,26 @@ export default function Header({
                   ? 'border-slate-800 bg-slate-900 text-white hover:bg-slate-800'
                   : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800'
               }`}
-              title={isSuperAdmin ? t('superAdminTitle') : `${t('profile')}: ${instructor.name}`}
+              title={
+                isSuperAdmin
+                  ? `${t('superAdminTitle')} (લાઈફટાઈમ એક્સેસ)`
+                  : `${t('profile')}: ${instructor.name} (૧ વર્ષ માન્યતા: ${formatValidityDate(instructor.valid_until)})`
+              }
             >
               <div className={`w-2 h-2 rounded-full shrink-0 ${isSuperAdmin ? 'bg-amber-400 ring-2 ring-amber-400/30' : 'bg-emerald-500'}`}></div>
-              <div className="text-left max-w-[90px] sm:max-w-[150px] truncate hidden sm:block">
+              <div className="text-left max-w-[90px] sm:max-w-[170px] truncate hidden sm:block">
                 <div className="font-semibold truncate flex items-center gap-1 text-[11px] sm:text-xs text-slate-800">
                   <span className="truncate">{instructor.name}</span>
                   {instructor.email_verified && (
                     <CheckCircle2 className={`w-3 h-3 shrink-0 inline ${isSuperAdmin ? 'text-amber-400' : 'text-emerald-600'}`} title="Verified" />
                   )}
                 </div>
-                <div className={`text-[10px] truncate hidden md:block ${isSuperAdmin ? 'text-slate-300' : 'text-slate-500'}`}>
-                  {isSuperAdmin ? tText('સુપર એડમિન • ગાંધીનગર', 'सुपर एडमिन • गांधीनगर', 'Super Admin • Gandhinagar') : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
+                <div className={`text-[10px] truncate hidden md:block ${isSuperAdmin ? 'text-amber-300 font-semibold' : 'text-slate-500'}`}>
+                  {isSuperAdmin
+                    ? tText('સુપર એડમિન • લાઈફટાઈમ', 'सुपर एडमिन • लाइफटाइम', 'Super Admin • Lifetime')
+                    : instructor.valid_until
+                    ? `${instructor.trade} • ${formatValidityDate(instructor.valid_until)} સુધી`
+                    : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
                 </div>
               </div>
               <User className={`w-3.5 h-3.5 shrink-0 ${isSuperAdmin ? 'text-amber-400' : 'text-slate-500'}`} />
@@ -371,7 +355,7 @@ export default function Header({
 
             {/* Quick Actions Grid in Mobile Menu */}
             {isSuperAdmin ? (
-              <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="grid grid-cols-1 gap-2 mb-4">
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
@@ -383,20 +367,6 @@ export default function Header({
                   <div>
                     <div>{t('profile')}</div>
                     <div className="text-[10px] text-slate-300 font-normal">{tText('સુપર એડમિન', 'सुपर एडमिन', 'Super Admin')}</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (onSyncCloud) onSyncCloud();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs font-semibold text-left min-h-[44px]"
-                >
-                  <Cloud className="w-4 h-4 text-slate-700 shrink-0" />
-                  <div>
-                    <div>Firestore Cloud</div>
-                    <div className="text-[10px] text-slate-500 font-normal">{t('cloudLive')}</div>
                   </div>
                 </button>
               </div>
@@ -437,26 +407,12 @@ export default function Header({
                     setIsMobileMenuOpen(false);
                     onOpenBatchModal();
                   }}
-                  className="flex items-center gap-2 p-2.5 rounded-xl border border-[#79ae6f] bg-[#79ae6f]/15 text-[#1b381e] text-xs font-semibold text-left min-h-[44px]"
+                  className="flex items-center gap-2 p-2.5 rounded-xl border border-[#79ae6f] bg-[#79ae6f]/15 text-[#1b381e] text-xs font-semibold text-left min-h-[44px] col-span-2"
                 >
                   <Printer className="w-4 h-4 text-[#346739] shrink-0" />
                   <div>
                     <div>{t('batchPrint')}</div>
                     <div className="text-[10px] text-[#264e2b] font-normal">{lowAttendanceCount} Notices</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (onSyncCloud) onSyncCloud();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2 p-2.5 rounded-xl border border-[#9fcb98] bg-[#9fcb98]/20 text-[#346739] text-xs font-semibold text-left min-h-[44px]"
-                >
-                  <Cloud className="w-4 h-4 text-[#346739] shrink-0" />
-                  <div>
-                    <div>Firestore Sync</div>
-                    <div className="text-[10px] text-[#264e2b] font-normal">{t('cloudLive')}</div>
                   </div>
                 </button>
               </div>
@@ -595,55 +551,14 @@ export default function Header({
         </div>
       )}
 
-      {/* Sticky Native-style Bottom Navigation Bar for Mobile Smartphones */}
-      <nav
-        aria-label="Mobile Navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg px-1 py-1 flex items-center justify-around print:hidden pb-[max(4px,env(safe-area-inset-bottom))]"
-      >
-        {isSuperAdmin ? (
-          <>
-            <button
-              onClick={() => onTabChange('admin')}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-colors min-h-[48px] min-w-[70px] ${
-                activeTab === 'admin'
-                  ? 'text-slate-900 font-bold'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <ShieldCheck className="w-5 h-5 mb-0.5 text-amber-600" />
-              <span className="text-[10px] leading-tight">{t('tabSuperAdmin')}</span>
-            </button>
-
-            <button
-              onClick={onOpenProfileModal}
-              className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-slate-900 transition-colors min-h-[48px] min-w-[70px]"
-            >
-              <User className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">{t('profile')}</span>
-            </button>
-
-            <button
-              onClick={onSyncCloud}
-              className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-slate-900 transition-colors min-h-[48px] min-w-[70px]"
-            >
-              <Cloud className="w-5 h-5 mb-0.5 text-[#346739]" />
-              <span className="text-[10px] leading-tight">{t('cloudLive')}</span>
-            </button>
-
-            {onLogout && (
-              <button
-                onClick={onLogout}
-                className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-rose-600 hover:text-rose-800 transition-colors min-h-[48px] min-w-[70px]"
-              >
-                <LogOut className="w-5 h-5 mb-0.5" />
-                <span className="text-[10px] leading-tight">{t('logout')}</span>
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => onTabChange('attendance')}
+      {/* Sticky Native-style Bottom Navigation Bar for Mobile Smartphones (Instructors Only) */}
+      {!isSuperAdmin && (
+        <nav
+          aria-label="Mobile Navigation"
+          className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg px-1 py-1 flex items-center justify-around print:hidden pb-[max(4px,env(safe-area-inset-bottom))]"
+        >
+          <button
+            onClick={() => onTabChange('attendance')}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors relative min-h-[48px] min-w-[56px] ${
                 activeTab === 'attendance'
                   ? 'text-[#346739] font-bold'
@@ -714,9 +629,8 @@ export default function Header({
               <Menu className="w-5 h-5 mb-0.5" />
               <span className="text-[10px] leading-tight">{tText('વધુ', 'अधिक', 'More')}</span>
             </button>
-          </>
-        )}
-      </nav>
+        </nav>
+      )}
     </>
   );
 }

@@ -10,7 +10,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Instructor, Trainee, AttendanceRecord, LetterTemplate, DispatchLog } from '../types';
+import { Instructor, Trainee, AttendanceRecord, LetterTemplate, DispatchLog, SuperAdminSettings } from '../types';
 import {
   INITIAL_INSTRUCTORS,
   INITIAL_TRAINEES,
@@ -18,6 +18,8 @@ import {
   INITIAL_TEMPLATES,
   INITIAL_DISPATCH_LOGS,
 } from '../data/initialData';
+import { ensureInstructorValidity } from '../utils/validityHelper';
+import { DEFAULT_ADMIN_QR_IMAGE_URL } from '../utils/imageCompressor';
 
 const COLLECTION_INSTRUCTORS = 'instructors';
 const COLLECTION_TRAINEES = 'trainees';
@@ -25,12 +27,15 @@ const COLLECTION_ATTENDANCE = 'attendance_records';
 const COLLECTION_TEMPLATES = 'letter_templates';
 const COLLECTION_DISPATCH = 'dispatch_logs';
 
+const COLLECTION_SETTINGS = 'system_settings';
+
 const CACHE_KEYS = {
   INSTRUCTORS: 'iti_cache_instructors',
   TRAINEES: 'iti_cache_trainees',
   ATTENDANCE: 'iti_cache_attendance',
   TEMPLATES: 'iti_cache_templates',
   DISPATCH: 'iti_cache_dispatch',
+  SETTINGS: 'iti_cache_admin_settings',
 };
 
 /**
@@ -50,6 +55,9 @@ function getLocalCache<T>(key: string, fallback: T): T {
     const raw = localStorage.getItem(key);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
+    if (key === CACHE_KEYS.INSTRUCTORS && Array.isArray(parsed)) {
+      return deduplicateInstructors(parsed as Instructor[]) as unknown as T;
+    }
     return (Array.isArray(parsed) && parsed.length > 0 ? (parsed as unknown as T) : fallback);
   } catch {
     return fallback;
@@ -117,6 +125,28 @@ export async function seedFirestoreIfEmpty(): Promise<boolean> {
 }
 
 /**
+ * Deduplicates an array of instructors by id, preserving the latest/updated record.
+ */
+export function deduplicateInstructors(instructors: Instructor[]): Instructor[] {
+  if (!Array.isArray(instructors)) return [];
+  const map = new Map<string, Instructor>();
+  for (const inst of instructors) {
+    if (!inst || !inst.id) continue;
+    if (!map.has(inst.id)) {
+      map.set(inst.id, inst);
+    } else {
+      const existing = map.get(inst.id)!;
+      const existingTime = new Date(existing.updated_at || existing.created_at || 0).getTime();
+      const newTime = new Date(inst.updated_at || inst.created_at || 0).getTime();
+      if (newTime >= existingTime) {
+        map.set(inst.id, inst);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+/**
  * Fetch all instructors from Firestore (fallback to cached/initial data if offline)
  */
 export async function fetchInstructors(): Promise<Instructor[]> {
@@ -124,12 +154,17 @@ export async function fetchInstructors(): Promise<Instructor[]> {
     const snap = await runWithTimeout(getDocs(collection(db, COLLECTION_INSTRUCTORS)), 3000);
     if (!snap.empty) {
       const docs = snap.docs.map((d) => d.data() as Instructor);
-      setLocalCache(CACHE_KEYS.INSTRUCTORS, docs);
-      return docs;
+      const uniqueDocs = deduplicateInstructors(docs).map(ensureInstructorValidity);
+      setLocalCache(CACHE_KEYS.INSTRUCTORS, uniqueDocs);
+      return uniqueDocs;
     }
-    return getLocalCache(CACHE_KEYS.INSTRUCTORS, INITIAL_INSTRUCTORS);
+    const cached = getLocalCache<Instructor[]>(CACHE_KEYS.INSTRUCTORS, INITIAL_INSTRUCTORS);
+    const uniqueCached = deduplicateInstructors(cached).map(ensureInstructorValidity);
+    setLocalCache(CACHE_KEYS.INSTRUCTORS, uniqueCached);
+    return uniqueCached;
   } catch {
-    return getLocalCache(CACHE_KEYS.INSTRUCTORS, INITIAL_INSTRUCTORS);
+    const cached = getLocalCache<Instructor[]>(CACHE_KEYS.INSTRUCTORS, INITIAL_INSTRUCTORS);
+    return deduplicateInstructors(cached).map(ensureInstructorValidity);
   }
 }
 
@@ -451,6 +486,65 @@ export async function saveBatchTraineesToCloud(
       }
     }
     await batch.commit();
+  } catch {
+    // Handled locally
+  }
+}
+
+/**
+ * Delete a batch of trainees from Firestore and local cache
+ */
+export async function deleteBatchTraineesFromCloud(traineeIds: string[]): Promise<void> {
+  const current = getLocalCache<Trainee[]>(CACHE_KEYS.TRAINEES, INITIAL_TRAINEES);
+  const updated = current.filter((t) => !traineeIds.includes(t.id));
+  setLocalCache(CACHE_KEYS.TRAINEES, updated);
+
+  try {
+    const batch = writeBatch(db);
+    for (const id of traineeIds) {
+      const ref = doc(db, COLLECTION_TRAINEES, id);
+      batch.delete(ref);
+    }
+    await batch.commit();
+  } catch {
+    // Handled locally
+  }
+}
+
+export const DEFAULT_ADMIN_SETTINGS: SuperAdminSettings = {
+  upi_id: 'tejassuthar21696@okhdfcbank',
+  payee_name: 'Tejas Suthar (Super Admin)',
+  fee_amount: 9,
+  payment_instructions: 'Pay ₹9 for ITI Trainee Portal Account Verification & Activation',
+  qr_enabled: true,
+  qr_image_url: DEFAULT_ADMIN_QR_IMAGE_URL,
+};
+
+/**
+ * Fetch Super Admin settings (UPI ID, fee amount, etc.)
+ */
+export async function fetchAdminSettings(): Promise<SuperAdminSettings> {
+  try {
+    const snap = await runWithTimeout(getDocs(collection(db, COLLECTION_SETTINGS)), 2500);
+    if (!snap.empty) {
+      const docData = snap.docs[0].data() as SuperAdminSettings;
+      setLocalCache(CACHE_KEYS.SETTINGS, docData);
+      return { ...DEFAULT_ADMIN_SETTINGS, ...docData };
+    }
+  } catch {
+    // Fall back to local cache or defaults
+  }
+  return getLocalCache<SuperAdminSettings>(CACHE_KEYS.SETTINGS, DEFAULT_ADMIN_SETTINGS);
+}
+
+/**
+ * Save Super Admin settings to Firestore and local cache
+ */
+export async function saveAdminSettingsToCloud(settings: SuperAdminSettings): Promise<void> {
+  setLocalCache(CACHE_KEYS.SETTINGS, settings);
+  try {
+    const ref = doc(db, COLLECTION_SETTINGS, 'global_config');
+    await setDoc(ref, settings, { merge: true });
   } catch {
     // Handled locally
   }

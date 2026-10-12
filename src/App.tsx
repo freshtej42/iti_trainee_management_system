@@ -5,6 +5,7 @@ import {
   AttendanceRecord,
   LetterTemplate,
   DispatchLog,
+  SuperAdminSettings,
 } from './types';
 import {
   INITIAL_INSTRUCTORS,
@@ -32,12 +33,18 @@ import {
   saveBatchTraineesToCloud,
   deleteInstructorFromCloud,
   deleteTemplateFromCloud,
+  fetchAdminSettings,
+  saveAdminSettingsToCloud,
+  deleteBatchTraineesFromCloud,
+  DEFAULT_ADMIN_SETTINGS,
+  deduplicateInstructors,
 } from './services/dataService';
 
 import Header, { ActiveTab } from './components/Header';
 import InstructorProfileModal from './components/InstructorProfileModal';
 import AttendanceTracker from './components/AttendanceTracker';
 import TraineeManager from './components/TraineeManager';
+import { PaymentVerificationModal } from './components/PaymentVerificationModal';
 import DispatchHistory from './components/DispatchHistory';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import BatchNoticeModal from './components/BatchNoticeModal';
@@ -48,10 +55,14 @@ import AcademicHierarchyManager from './components/AcademicHierarchyManager';
 import TemplateStudio from './components/TemplateStudio';
 import ReportGenerator from './components/ReportGenerator';
 import { HeaderConfig } from './types';
+import { Calendar } from 'lucide-react';
+import { isAccountExpired, formatValidityDate } from './utils/validityHelper';
 
 export default function App() {
   // Multi-Tenant Data States
-  const [instructors, setInstructors] = useState<Instructor[]>(INITIAL_INSTRUCTORS);
+  const [instructors, setInstructors] = useState<Instructor[]>(() =>
+    deduplicateInstructors(INITIAL_INSTRUCTORS)
+  );
   const [currentInstructorId, setCurrentInstructorId] = useState<string>(() => {
     const storedAuth = localStorage.getItem('iti_auth_authenticated');
     const storedId = localStorage.getItem('iti_auth_instructor_id');
@@ -62,23 +73,25 @@ export default function App() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE);
   const [templates, setTemplates] = useState<LetterTemplate[]>(INITIAL_TEMPLATES);
   const [dispatchLogs, setDispatchLogs] = useState<DispatchLog[]>(INITIAL_DISPATCH_LOGS);
-
-  // Cloud sync status indicator
-  const [cloudSyncStatus, setCloudSyncStatus] = useState<'connected' | 'syncing' | 'offline'>('connected');
+  const [adminSettings, setAdminSettings] = useState<SuperAdminSettings>(DEFAULT_ADMIN_SETTINGS);
 
   // Load from Firestore on mount
   const syncFromCloud = useCallback(async () => {
     try {
-      setCloudSyncStatus('syncing');
       await seedFirestoreIfEmpty();
 
-      const [insts, trns, atts, tmpls, logs] = await Promise.all([
+      const [insts, trns, atts, tmpls, logs, settings] = await Promise.all([
         fetchInstructors(),
         fetchTrainees(),
         fetchAttendance(),
         fetchTemplates(),
         fetchDispatchLogs(),
+        fetchAdminSettings(),
       ]);
+
+      if (settings) {
+        setAdminSettings(settings);
+      }
 
       if (insts && insts.length > 0) {
         // Ensure Super Admin Tejas Suthar (tejassuthar21696@gmail.com) is in the instructor list and marked approved
@@ -90,21 +103,18 @@ export default function App() {
             (i.phone && i.phone === '9825012345')
         );
 
+        const listToSet = !hasSuperAdmin && superAdminInst ? [superAdminInst, ...insts] : insts;
         if (!hasSuperAdmin && superAdminInst) {
-          insts.unshift(superAdminInst);
           saveInstructorToCloud(superAdminInst).catch(console.warn);
         }
-        setInstructors(insts);
+        setInstructors(deduplicateInstructors(listToSet));
       }
       if (trns && trns.length > 0) setTrainees(trns);
       if (atts && atts.length > 0) setAttendanceRecords(atts);
       if (tmpls && tmpls.length > 0) setTemplates(tmpls);
       if (logs && logs.length > 0) setDispatchLogs(logs);
-
-      setCloudSyncStatus('connected');
     } catch (err) {
       console.warn('Firestore initial sync encountered error, running with cached data:', err);
-      setCloudSyncStatus('connected');
     }
   }, []);
 
@@ -135,6 +145,7 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isBatchUnitModalOpen, setIsBatchUnitModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   // Current active instructor
   const currentInstructor = useMemo(() => {
@@ -211,15 +222,15 @@ export default function App() {
     }
   };
 
-  const handleInstructorRegister = async (newInst: Omit<Instructor, 'id' | 'created_at'>) => {
+  const handleInstructorRegister = async (newInst: Omit<Instructor, 'id' | 'created_at'> & { id?: string }) => {
     const created: Instructor = {
       ...newInst,
-      id: `inst-${Date.now()}`,
+      id: newInst.id || `inst-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       batches: newInst.batches || [newInst.batch || '૨૦૨૫–૨૦૨૬'],
       units: newInst.units || ['Unit A', 'Unit B', 'Unit C'],
       created_at: new Date().toISOString(),
     };
-    setInstructors((prev) => [created, ...prev]);
+    setInstructors((prev) => deduplicateInstructors([created, ...prev]));
     // Save to Cloud Firestore so Super Admin sees it in pending approvals
     await saveInstructorToCloud(created);
   };
@@ -232,7 +243,21 @@ export default function App() {
   };
 
   const handleUpdateInstructor = async (updated: Instructor) => {
-    setInstructors((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+    setInstructors((prev) => {
+      const exists = prev.some(
+        (i) => i.id === updated.id || (i.email && i.email === updated.email) || (i.phone && i.phone === updated.phone)
+      );
+      if (!exists) {
+        return deduplicateInstructors([updated, ...prev]);
+      }
+      return deduplicateInstructors(
+        prev.map((i) =>
+          i.id === updated.id || (i.email && i.email === updated.email) || (i.phone && i.phone === updated.phone)
+            ? { ...i, ...updated, id: i.id }
+            : i
+        )
+      );
+    });
     await saveInstructorToCloud(updated);
   };
 
@@ -259,6 +284,16 @@ export default function App() {
   const handleDeleteTrainee = async (id: string) => {
     setTrainees((prev) => prev.filter((t) => t.id !== id));
     await deleteTraineeFromCloud(id);
+  };
+
+  const handleBatchDeleteTrainees = async (ids: string[]) => {
+    setTrainees((prev) => prev.filter((t) => !ids.includes(t.id)));
+    await deleteBatchTraineesFromCloud(ids);
+  };
+
+  const handleUpdateAdminSettings = async (settings: SuperAdminSettings) => {
+    setAdminSettings(settings);
+    await saveAdminSettingsToCloud(settings);
   };
 
   const handleAssignTraineesToUnit = async (
@@ -461,9 +496,11 @@ export default function App() {
     return (
       <InstructorAuth
         instructors={instructors}
+        adminSettings={adminSettings}
         onLogin={handleInstructorLogin}
         onRegister={handleInstructorRegister}
         onVerifyEmail={handleVerifyInstructorEmail}
+        onUpdateInstructor={handleUpdateInstructor}
       />
     );
   }
@@ -494,6 +531,44 @@ export default function App() {
             <div>• રજીસ્ટર્ડ મોબાઈલ: <strong>{currentInstructor.phone}</strong></div>
             <div>• ઈમેલ આઈડી: <strong>{currentInstructor.email}</strong></div>
             <div>• સંસ્થા: <strong>{currentInstructor.iti_name}</strong></div>
+            {currentInstructor.payment_utr && (
+              <div>• સબમિટ કરેલ UTR / Ref ID: <strong className="font-mono text-slate-900">{currentInstructor.payment_utr}</strong></div>
+            )}
+            <div className="pt-2 border-t border-amber-200">
+              {currentInstructor.payment_screenshot_url ? (
+                <div className="space-y-2">
+                  <div className="text-emerald-800 font-bold flex items-center justify-between">
+                    <span>✓ ₹{currentInstructor.payment_amount || adminSettings.fee_amount || 9} ચૂકવણી સ્ક્રીનશોટ મોકલાયો છે</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsPaymentModalOpen(true)}
+                      className="text-xs underline hover:text-emerald-950 font-bold"
+                    >
+                      વિગતો / બદલો
+                    </button>
+                  </div>
+                  <div className="flex justify-center bg-white p-1 rounded-xl border border-emerald-200">
+                    <img
+                      src={currentInstructor.payment_screenshot_url}
+                      alt="ચૂકવણી રસીદ"
+                      className="max-h-36 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => setIsPaymentModalOpen(true)}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-rose-800 font-bold flex items-center justify-between">
+                  <span>⚠️ ₹{adminSettings.fee_amount || 9} ચૂકવણી અને સ્ક્રીનશોટ બાકી છે</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsPaymentModalOpen(true)}
+                    className="px-2.5 py-1 bg-[#346739] text-white rounded-lg text-[11px] font-bold shadow-2xs hover:bg-[#2b552f]"
+                  >
+                    હવે ચૂકવો (Pay ₹{adminSettings.fee_amount || 9})
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="text-[11px] text-amber-800 pt-1">
               સુપર એડમિન આપના મોબાઈલ નંબર પર સંપર્ક કરી એકાઉન્ટ મંજૂર કરશે.
             </div>
@@ -513,7 +588,90 @@ export default function App() {
               સ્ટેટસ રિફ્રેશ કરો
             </button>
           </div>
+
+          {/* Payment Modal for Pending Instructor */}
+          {isPaymentModalOpen && (
+            <PaymentVerificationModal
+              instructor={currentInstructor}
+              adminSettings={adminSettings}
+              isOpen={isPaymentModalOpen}
+              onClose={() => setIsPaymentModalOpen(false)}
+              onSubmitPayment={async (details) => {
+                const updated: Instructor = {
+                  ...currentInstructor,
+                  ...details,
+                  payment_submitted_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                };
+                await handleUpdateInstructor(updated);
+              }}
+            />
+          )}
         </div>
+      </div>
+    );
+  }
+
+  // Check if current user's account validity has expired (usable for 1 year from approval date, lifetime for admin)
+  if (!isSuperAdminUser && isAccountExpired(currentInstructor)) {
+    return (
+      <div className="min-h-screen bg-[#f7f9f6] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-rose-200 shadow-xl text-center space-y-5 animate-in fade-in">
+          <div className="w-16 h-16 bg-rose-100 text-rose-700 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <Calendar className="w-8 h-8 text-rose-600" />
+          </div>
+
+          <div>
+            <h2 className="text-lg font-black text-slate-900">
+              વાર્ષિક મુદત પૂર્ણ થયેલ છે (1-Year Validity Expired)
+            </h2>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+              નમસ્તે <strong>{currentInstructor.name}</strong>, આપના એકાઉન્ટની ૧ વર્ષની વાર્ષિક માન્યતા મુદત પૂર્ણ થઈ ગઈ છે. મંજૂરી તારીખથી ૧ વર્ષ પૂર્ણ થતાં પોર્ટલનો ઉપયોગ ચાલુ રાખવા માટે રીન્યુઅલ જરૂરી છે.
+            </p>
+          </div>
+
+          <div className="p-3.5 bg-rose-50 rounded-2xl border border-rose-200 text-left text-xs space-y-1.5 text-rose-950">
+            <div>• સંસ્થા: <strong>{currentInstructor.iti_name}</strong></div>
+            <div>• મંજૂરી તારીખ (Approval Date): <strong>{formatValidityDate(currentInstructor.approved_at)}</strong></div>
+            <div>• માન્યતા અંતિમ તારીખ (Expiry Date): <strong className="text-rose-700">{formatValidityDate(currentInstructor.valid_until)}</strong></div>
+            <div className="pt-2 border-t border-rose-200 text-rose-800">
+              વાર્ષિક રીન્યુઅલ માટે ₹{adminSettings.fee_amount || 9} ચૂકવણી કરી સ્ક્રીનશોટ મોકલો અથવા સુપર એડમિનનો સંપર્ક કરો.
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => setIsPaymentModalOpen(true)}
+              className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-[#346739] hover:bg-[#2b552f] text-white rounded-xl transition-colors shadow-xs"
+            >
+              ₹{adminSettings.fee_amount || 9} ચૂકવી રીન્યુ કરો
+            </button>
+            <button
+              onClick={handleInstructorLogout}
+              className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-colors shadow-xs"
+            >
+              લોગ આઉટ કરો (Log Out)
+            </button>
+          </div>
+        </div>
+
+        {isPaymentModalOpen && (
+          <PaymentVerificationModal
+            instructor={currentInstructor}
+            adminSettings={adminSettings}
+            isOpen={isPaymentModalOpen}
+            onClose={() => setIsPaymentModalOpen(false)}
+            onSubmitPayment={async (details) => {
+              const updated: Instructor = {
+                ...currentInstructor,
+                ...details,
+                payment_submitted_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              await handleUpdateInstructor(updated);
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -530,8 +688,6 @@ export default function App() {
         onLogout={handleInstructorLogout}
         lowAttendanceCount={lowAttendanceCount}
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
-        cloudSyncStatus={cloudSyncStatus}
-        onSyncCloud={syncFromCloud}
       />
 
       {/* Main Content Area */}
@@ -543,9 +699,13 @@ export default function App() {
             trainees={trainees}
             attendanceRecords={attendanceRecords}
             dispatchLogs={dispatchLogs}
+            adminSettings={adminSettings}
             onAddInstructor={handleAddInstructor}
             onUpdateInstructor={handleUpdateInstructor}
             onDeleteInstructor={handleDeleteInstructor}
+            onDeleteTrainee={handleDeleteTrainee}
+            onBatchDeleteTrainees={handleBatchDeleteTrainees}
+            onUpdateAdminSettings={handleUpdateAdminSettings}
           />
         ) : (
           /* Instructor Classroom Management Tools */

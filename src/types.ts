@@ -67,9 +67,26 @@ export interface Instructor {
   letterhead_header_url?: string;
   signature_footer_url?: string;
   header_config?: HeaderConfig;
+  payment_screenshot_url?: string; // Uploaded payment receipt image
+  payment_utr?: string; // UTR or UPI Transaction Reference Number
+  payment_mobile?: string; // Mobile number used for payment
+  payment_amount?: number; // Payment amount (default 9)
+  payment_submitted_at?: string; // Timestamp when payment screenshot was uploaded
+  payment_verified_at?: string; // Super Admin verification timestamp
   approved_at?: string;
   approved_by?: string;
+  valid_until?: string; // Account expiration timestamp (1 year from approval date, undefined/lifetime for super admin)
   created_at: string;
+  updated_at?: string;
+}
+
+export interface SuperAdminSettings {
+  upi_id: string; // e.g. tejassuthar21696@okhdfcbank
+  payee_name: string; // e.g. Tejas Suthar
+  fee_amount: number; // ₹9
+  payment_instructions?: string;
+  qr_enabled: boolean;
+  qr_image_url?: string; // QR code image added/uploaded by super admin for payment
   updated_at?: string;
 }
 

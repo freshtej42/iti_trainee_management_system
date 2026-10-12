@@ -217,18 +217,18 @@ export default function WordEditor({
         // Insert into editor as dynamic paragraph
         const commentaryBlock = `<div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 10px 14px; margin: 14px 0; font-size: 12px; color: #991b1b; border-radius: 0 6px 6px 0;"><strong>વાલીશ્રી માટે વિશેષ સુચના (Special Parent Advisory):</strong><br/>${data.commentary}</div><p></p>`;
         document.execCommand('insertHTML', false, commentaryBlock);
-        setAiMessage('✨ Gemini AI Parent Commentary inserted!');
+        setAiMessage('વાલી પરામર્શ નોંધ પત્રમાં સફળતાપૂર્વક ઉમેરાઈ ગઈ!');
       }
     } catch (err: any) {
-      console.error('AI Commentary error:', err);
-      setAiMessage('Could not connect to Gemini API. Using default administrative phrasing.');
+      console.error('Commentary generation error:', err);
+      setAiMessage('સત્તાવાર પરામર્શ ઉમેરવા માટે મૂળભૂત માળખું ઉપયોગમાં લીધું.');
     } finally {
       setIsAiLoading(false);
       setTimeout(() => setAiMessage(null), 4000);
     }
   };
 
-  // Call Gemini AI: Polish Vernacular / Grammar Check
+  // Vernacular Language & Grammar Check
   const handleGrammarCheck = async () => {
     setIsAiLoading(true);
     setAiMessage(null);
@@ -244,11 +244,11 @@ export default function WordEditor({
       const data = await resp.json();
       if (data.polishedText) {
         setContentHtml(data.polishedText);
-        setAiMessage('✨ Text polished with official administrative grammar!');
+        setAiMessage('પત્રની ભાષા અને વ્યાકરણ શુદ્ધિ સફળતાપૂર્વક પૂર્ણ થઈ!');
       }
     } catch (err: any) {
       console.error('Grammar check error:', err);
-      setAiMessage('Polishing failed. Reverting to original text.');
+      setAiMessage('વ્યાકરણ શુદ્ધિ પ્રક્રિયા પૂર્ણ થઈ શકી નથી.');
     } finally {
       setIsAiLoading(false);
       setTimeout(() => setAiMessage(null), 4000);

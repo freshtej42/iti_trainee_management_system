@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation plan for strict instructor student scoping and isolation. Instructors will only view students matching their assigned trade, batch, and unit hierarchy (or direct instructor assignment), while the Super Admin retains system-wide visibility across all trades.",
-  "updatedAt":  "2026-10-06T12:33:25.882167343Z",
+  "summary":  "Implementation plan to:\n1. Make Firestore cloud syncing completely silent and automatic in background with no manual cloud buttons or sync indicators.\n2. Remove all visible AI branding, tabs, and labels (e.g. 'Review (AI)', 'Gemini AI Test', 'Powered by Gemini', 'Smart AI', 'AI Generate') while keeping the underlying letter generation and commentary capabilities intact.\n3. Redesign Super Admin into a mobile-first dashboard with touch-friendly utility action tiles and a mobile bottom navigation bar for administrators.",
+  "updatedAt":  "2026-10-10T06:15:13.670399436Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

@@ -46,7 +46,7 @@ export default function VariableDropdown({ onInsertTag }: VariableDropdownProps)
     { name: 'Institute', icon: Building, color: 'text-indigo-600' },
     { name: 'Attendance', icon: Calendar, color: 'text-emerald-600' },
     { name: 'Dispatch', icon: FileText, color: 'text-violet-600' },
-    { name: 'Smart AI', icon: Sparkles, color: 'text-amber-500' },
+    { name: 'Advisory', icon: FileText, color: 'text-indigo-600' },
   ];
 
   const filteredTags = AVAILABLE_MERGE_TAGS.filter((t) => {

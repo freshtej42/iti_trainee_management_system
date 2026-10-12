@@ -27,9 +27,9 @@ function getGenAI(): GoogleGenAI | null {
   return aiClient;
 }
 
-// 1. Health check
-app.get('/api/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// 1. Health check (Cloud Run and monitoring)
+app.get(['/health', '/api/health', '/ping'], (req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // 1.1 Verification Email dispatch endpoint
@@ -168,20 +168,37 @@ ${text}`;
 
 // Vite Middleware for dev mode vs static serving in production
 async function setupViteOrStatic() {
-  const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.PORT);
-  if (!isProduction) {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.resolve(process.cwd(), 'dist');
+  const distPath = path.resolve(process.cwd(), 'dist');
+  const distIndexPath = path.join(distPath, 'index.html');
+  const hasDist = fs.existsSync(distIndexPath);
+  const isProduction = process.env.NODE_ENV === 'production' && hasDist;
+
+  if (isProduction) {
     app.use(express.static(distPath));
     app.get('*', (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      if (fs.existsSync(distIndexPath)) {
+        res.sendFile(distIndexPath);
+      } else {
+        res.status(200).send(`<!DOCTYPE html><html><head><title>ITI App</title></head><body><div id="root">Loading...</div><script>location.reload();</script></body></html>`);
+      }
     });
+  } else {
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (err) {
+      console.warn('Vite middleware could not be started, checking for dist fallback:', err);
+      if (hasDist) {
+        app.use(express.static(distPath));
+        app.get('*', (req: Request, res: Response) => {
+          res.sendFile(distIndexPath);
+        });
+      }
+    }
   }
 
   app.listen(PORT, '0.0.0.0', () => {

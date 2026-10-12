@@ -31,9 +31,12 @@ import {
   GripVertical,
   Sliders,
   Maximize2,
+  Download,
 } from 'lucide-react';
 import { mergeTemplateTags } from '../utils/mergeTags';
 import DraggableFieldsPalette from './DraggableFieldsPalette';
+import BatchNoticePrintPreviewModal, { BatchNoticeItem } from './BatchNoticePrintPreviewModal';
+import A4PrintPreviewModal from './A4PrintPreviewModal';
 
 interface ReportGeneratorProps {
   instructor: Instructor;
@@ -78,6 +81,10 @@ export default function ReportGenerator({
   const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
   const [activePreviewIndex, setActivePreviewIndex] = useState<number>(0);
   const [dispatchLoggedNotice, setDispatchLoggedNotice] = useState<boolean>(false);
+
+  // A4 Print Preview & PDF Modal States
+  const [isBatchNoticeModalOpen, setIsBatchNoticeModalOpen] = useState<boolean>(false);
+  const [isPrincipalPrintModalOpen, setIsPrincipalPrintModalOpen] = useState<boolean>(false);
 
   // Drag & Drop / Editor Customization State
   const [templateOverrides, setTemplateOverrides] = useState<Record<string, string>>({});
@@ -402,10 +409,10 @@ export default function ReportGenerator({
     setTimeout(() => setDispatchLoggedNotice(false), 5000);
   };
 
-  // Direct Print
-  const handlePrint = () => {
+  // Open Full A4 Print Preview & Save as PDF Modal
+  const handleOpenPrintPreview = () => {
     if (selectedTraineeIds.length === 0) {
-      alert('કૃપા કરીને પ્રિન્ટ કરવા માટે ઓછામાં ઓછો એક વિદ્યાર્થી પસંદ કરો.');
+      alert('કૃપા કરીને પ્રિન્ટ અથવા પીડીએફ બનાવવા માટે ઓછામાં ઓછો એક વિદ્યાર્થી પસંદ કરો.');
       return;
     }
 
@@ -420,10 +427,16 @@ export default function ReportGenerator({
       return;
     }
 
-    // Automatically log dispatches (Inward for Principal report, Outward for notices)
-    logEntriesToRegister();
+    if (isPrincipalReport) {
+      setIsPrincipalPrintModalOpen(true);
+    } else {
+      setIsBatchNoticeModalOpen(true);
+    }
+  };
 
-    window.print();
+  // Direct Print fallback handler
+  const handlePrint = () => {
+    handleOpenPrintPreview();
   };
 
   const selectedTraineesList = trainees
@@ -478,17 +491,31 @@ export default function ReportGenerator({
             </span>
           </button>
 
+          {/* Main Action: Print Preview & Save as PDF */}
           <button
-            onClick={handlePrint}
+            type="button"
+            onClick={handleOpenPrintPreview}
             disabled={selectedTraineeIds.length === 0}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#346739] hover:bg-[#264e2b] disabled:opacity-40 text-[#f2edc2] text-xs font-bold rounded-xl shadow-md transition-all active:scale-[0.99]"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-[#346739] hover:from-emerald-700 hover:to-[#264e2b] disabled:opacity-40 text-white text-xs font-black rounded-xl shadow-md transition-all active:scale-[0.99]"
+            title="A4 પ્રિન્ટ પૂર્વાવલોકન જુઓ અને PDF તરીકે સાચવો"
           >
-            <Printer className="w-4 h-4" />
+            <Download className="w-4 h-4 text-emerald-200" />
             <span>
               {isPrincipalReport
-                ? 'આચાર્ય રિપોર્ટ પ્રિન્ટ કરો (૧ પાનું)'
-                : `પીડીએફ / પ્રિન્ટ કરો (${selectedTraineeIds.length} પાનાં)`}
+                ? 'પ્રિન્ટ પૂર્વાવલોકન અને PDF સેવ કરો (૧ પાનું)'
+                : `પ્રિન્ટ પૂર્વાવલોકન અને PDF સેવ કરો (${selectedTraineeIds.length} પાનાં)`}
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenPrintPreview}
+            disabled={selectedTraineeIds.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-all active:scale-[0.99]"
+            title="પ્રિન્ટ મોડલ ખોલો"
+          >
+            <Printer className="w-3.5 h-3.5 text-slate-300" />
+            <span>પ્રિન્ટ</span>
           </button>
         </div>
       </div>
@@ -1089,6 +1116,107 @@ export default function ReportGenerator({
           </div>
         ))}
       </div>
+
+      {/* 1. Batch Parent Notices Print Preview & PDF Modal */}
+      {isBatchNoticeModalOpen && (
+        <BatchNoticePrintPreviewModal
+          isOpen={isBatchNoticeModalOpen}
+          onClose={() => setIsBatchNoticeModalOpen(false)}
+          notices={selectedTraineesList.map((tr, idx) => {
+            const att = attendanceRecords.find((a) => a.trainee_id === tr.id);
+            const pct = att ? att.attendance_percentage : 0;
+            const refNum = `${cleanRefPrefix}/${tr.roll_no || idx + 1}`;
+            return {
+              trainee: tr,
+              html: getRenderedMergedHtml(tr),
+              percentage: pct,
+              outwardNumber: refNum,
+              monthYear: att?.month_year || 'ઓગસ્ટ ૨૦૨૫',
+              isFlagged: pct < 80,
+            };
+          })}
+          instructor={instructor}
+          templateName={selectedTemplate?.template_name || selectedTemplate?.name || 'નોટિસ'}
+          language="Gujarati"
+          onRecordDispatches={() => logEntriesToRegister()}
+        />
+      )}
+
+      {/* 2. Principal Report Forwarding Print Preview & PDF Modal */}
+      {isPrincipalPrintModalOpen && (
+        <A4PrintPreviewModal
+          isOpen={isPrincipalPrintModalOpen}
+          onClose={() => setIsPrincipalPrintModalOpen(false)}
+          title="આચાર્યશ્રી અહેવાલ - ઓછી હાજરી પત્રક"
+          subtitle={`${headerConfig.institute_name_gu} • ${instructor.name} (${instructor.trade})`}
+          filename={`Principal_Report_${(instructor.trade || 'ITI').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`}
+          initialOrientation="portrait"
+          onBeforePrint={() => logEntriesToRegister()}
+        >
+          <div className="bg-white p-6 sm:p-10 font-gujarati text-slate-900 space-y-4">
+            {showInstituteHeader && (
+              <div className="text-center pb-4 border-b-2 border-slate-900 space-y-1 mb-4 select-none">
+                {headerConfig.show_logo && headerConfig.logo_url && (
+                  <div className="w-14 h-14 mx-auto mb-1">
+                    <img
+                      src={headerConfig.logo_url}
+                      alt="Logo"
+                      className="w-full h-full object-contain mx-auto"
+                    />
+                  </div>
+                )}
+                <h1 className="text-lg font-black text-slate-900">
+                  {headerConfig.institute_name_gu}
+                </h1>
+                <div className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  {headerConfig.institute_name_en}
+                </div>
+                <div className="text-[11px] text-slate-600">
+                  {headerConfig.department_subtitle}
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  {headerConfig.address}
+                </div>
+
+                <div className="flex justify-between items-center text-xs font-bold text-slate-900 pt-2 border-t border-slate-300 mt-2">
+                  <div>
+                    જા.નં.: {cleanRefPrefix}/PR-01
+                  </div>
+                  <div>તારીખ: {new Date().toLocaleDateString('gu-IN')}</div>
+                </div>
+
+                {selectedTemplate?.subject && (
+                  <div className="p-1.5 border-y border-slate-800 text-xs font-black text-center mt-2">
+                    વિષય: {selectedTemplate.subject}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div
+              className="report-rendered-document text-sm leading-relaxed text-slate-900 py-2"
+              dangerouslySetInnerHTML={{
+                __html: getRenderedMergedHtml(selectedTraineesList[0] || trainees[0]),
+              }}
+            />
+
+            {showInstituteHeader && (
+              <div className="pt-8 flex justify-between items-end text-xs border-t border-slate-300 mt-6 select-none">
+                <div className="text-[10px] text-slate-600">
+                  ઓછી હાજરી રિપોર્ટ ફાઇલિંગ
+                </div>
+
+                <div className="text-right space-y-0.5">
+                  <div className="w-32 border-b border-slate-400 mx-auto mb-1"></div>
+                  <div className="font-bold text-sm text-slate-900">({instructor.name})</div>
+                  <div className="text-xs text-slate-700">{instructor.designation}</div>
+                  <div className="text-xs text-slate-600">{headerConfig.institute_name_gu}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </A4PrintPreviewModal>
+      )}
     </div>
   );
 }

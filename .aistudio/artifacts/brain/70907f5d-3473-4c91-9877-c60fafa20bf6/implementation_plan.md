@@ -1,114 +1,81 @@
-# Strict Instructor Student Scoping & Isolation
+# Seamless Background Cloud, Clean Non-AI UI, and Mobile-First Super Admin Utilities
 
-Enforce strict multi-tenant student scoping so that Trade Instructors can only view and manage students assigned to their own Trade, Batch, and Unit hierarchy (or directly enrolled under their instructor ID), while Super Admins retain global visibility across all trades and institutions.
-
----
-
-### User Review & Critical Decisions
-
-> [!IMPORTANT]
-> The following decisions were confirmed through user clarification:
-
-- **Confirmed Decision 1 (Ownership Matching Criterion)**: A student is strictly identified as belonging to an instructor by matching the Trade, Batch, and Unit assigned to that instructor in their profile and academic hierarchy (or matching the `instructor_id` foreign key).
-- **Confirmed Decision 2 (Super Admin Access)**: The Super Admin role maintains global administrative oversight to view all students across all trades, batches, and ITI institutions.
-- **Confirmed Decision 3 (Enrollment & Import Scoping)**: When an instructor enrolls a single trainee or batch imports trainees from Excel/CSV, the system automatically tags those trainees with the instructor's `id`, `iti_name`, and active `trade`, `batch`, and `unit`.
-- **Elimination of Leaky Fallbacks**: Remove previous legacy bypasses (e.g., hardcoded instructor ID bypasses and fallback clauses that exposed all trainees when zero trainees were matched). If an instructor has no students yet, they see a clean empty state with an enrollment action.
+This implementation plan covers the removal of manual cloud sync controls, removal of AI tags/buttons/labels across the entire website while retaining underlying intelligent letter generation, and transforming the Super Admin interface into a touch-friendly mobile dashboard with action tiles and bottom navigation.
 
 ---
 
-## 1. Overview & Core Concept
+### User Clarifications Incorporated
 
-- **What It Does**: Establishes strict data boundaries for ITI trade instructors. An instructor teaching COPA in Shankheshwar ITI only sees COPA trainees in that unit. A Fitter or Electrician instructor only sees their respective trainees. Attendance records, low-attendance warnings (<80%), letter generation, and outward dispatch registers are strictly filtered to the instructor's active students.
-- **Target Audience / Persona**: ITI Trade Supervisors and Craft Instructors who require isolated class rosters, preventing cross-trade data contamination while enabling full administrative oversight for the Director/Super Admin.
-- **Key Value**: Privacy, departmental accountability, and elimination of data clutter. Instructors will never accidentally issue notices or modify attendance for students belonging to another trade or teacher.
-
----
-
-## 2. User Experience & Visual Design
-
-### Key User Flows
-
-1. **Instructor Dashboard Experience**:
-   - An instructor logs in (e.g., Pravinbhai Suthar - COPA Trade).
-   - The navigation badge, trainee roster, monthly attendance table, and report generator automatically restrict their view to COPA Unit A/B trainees.
-   - The header displays their active trade and count of *their* students only (e.g., "12 Registered Trainees in COPA").
-   - If an instructor is newly registered and has zero students, an elegant empty state appears: *"તમારા ટ્રેડમાં હજુ સુધી કોઈ તાલીમાર્થી નોંધાયેલ નથી"* with a direct CTA button to *"નવો તાલીમાર્થી ઉમેરો (Enroll Trainee)"* or *"એક્સેલ આયાત (Import Excel)"*.
-
-2. **Trainee Enrollment & Excel Import**:
-   - In **Trainee Manager**, the "+ નવો તાલીમાર્થી" modal pre-selects and locks the trainee's trade, batch, and unit to the instructor's configured hierarchy.
-   - In **Excel Import**, newly parsed rows are automatically assigned the instructor's `id`, `trade`, and selected batch/unit, preventing orphaned or misassigned records.
-
-3. **Super Admin Experience**:
-   - Super Admin (Tejas Suthar / Directorate Admin) logs into the Super Admin console.
-   - Has full visibility across all ITI institutes, instructors, trades, and trainees with filtering by institute, trade, and instructor.
+- **Cloud Storage**: Automatic background persistence directly to Firestore cloud without manual sync buttons, badges, or connection indicators.
+- **AI Facility & Labels**: Underlying intelligent letter generation and parent commentary logic is preserved, but all AI branding, tabs, buttons, and labels (such as "Review (AI)", "Gemini AI ટેસ્ટ", "Powered by Gemini", "AI Generate", "Smart AI") are removed from the interface.
+- **Super Admin Experience**: Touch-friendly utility action tiles and a persistent mobile bottom navigation bar designed specifically for mobile smartphone usage by administrators.
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
+## 1. Work Breakdown
 
-- **Decision 1: Dual-Criterion Matching (Trade/Batch/Unit Hierarchy + Instructor ID)**:
-  - *Chosen Approach*: Match trainee `t` if `t.instructor_id === instructor.id` OR if `t.trade` belongs to the instructor's allowed trades (`trades` list or `trade`), and matches the instructor's batch and unit hierarchy.
-  - *Why*: Accommodates both legacy trainees (who may have been created with trade matching) and newly imported trainees who have explicit `instructor_id` links.
-  - *Trade-off*: Prevents cross-trade visibility even if an instructor switches views, while preserving academic hierarchy integrity.
+### Phase 1: Silent Automatic Cloud Syncing & Remove Manual Cloud UI
+- In `src/components/Header.tsx`:
+  - Remove the top header "Firestore Cloud Sync" button and status badge.
+  - Remove manual cloud sync buttons from the mobile drawer.
+  - Remove the cloud sync button from the mobile bottom navigation bar.
+- In `src/App.tsx`:
+  - Remove manual `onSyncCloud` triggers and visible sync status badges.
+  - Ensure all cloud save operations (`saveInstructorToCloud`, `saveTraineeToCloud`, `saveAttendanceToCloud`, `saveAdminSettingsToCloud`, etc.) execute automatically and transparently with resilient background handling.
 
-- **Decision 2: Strict Exclusion of Leaky Fallbacks**:
-  - *Chosen Approach*: If `instructorTrainees` returns an empty array, it stays empty. The previous `if (list.length === 0) return trainees;` fallback is removed entirely.
-  - *Why*: The fallback was the direct cause of instructors seeing all students in the database.
+### Phase 2: Remove All Visible AI Tabs, Buttons, Badges & Labels
+- In `src/components/SuperAdminDashboard.tsx`:
+  - Remove the "Gemini AI ટેસ્ટ" button and AI test notification cards.
+- In `src/components/WordEditor/WordRibbon.tsx`:
+  - Rename/clean the ribbon tabs: change `{ id: 'review', label: 'Review (AI)' }` to `{ id: 'review', label: 'Review' }`.
+  - Rebrand the action buttons in the Review tab:
+    - Change "AI Generate Parent Advisory" to official administrative wording: "વાલી પરામર્શ ઉમેરો (Add Parent Advisory)".
+    - Change "AI Regional Grammar Check" to "ભાષા અને વ્યાકરણ શુદ્ધિ (Grammar & Language Polish)".
+    - Remove the "Powered by Gemini 3.8 Flash..." subtext banner.
+- In `src/components/WordEditor/VariableDropdown.tsx`:
+  - Change category `{ name: 'Smart AI', icon: Sparkles, color: 'text-amber-500' }` to `{ name: 'Advisory', icon: FileText, color: 'text-indigo-600' }`.
+- In `src/utils/mergeTags.ts`:
+  - Change merge tag label from `AI Smart Parent Advisory (વિશેષ નિર્દેશ)` to `Smart Parent Advisory (વાલી પરામર્શ / વિશેષ નિર્દેશ)` and category from `Smart AI` to `Advisory`.
+- In `src/components/WordEditor/WordEditor.tsx`:
+  - Update user-facing feedback messages to avoid AI mentions (e.g., "વાલી પરામર્શ ઉમેરાઈ ગયો" instead of "✨ Gemini AI Parent Commentary inserted!").
+- In `src/components/PaymentVerificationModal.tsx`:
+  - Replace any decorative Sparkles or AI-like icons with standard government / administrative icons (ShieldCheck, CheckCircle2).
 
-- **Decision 3: Downstream Scoping Propagation**:
-  - *Chosen Approach*: Feed `instructorTrainees` into all downstream components (`AttendanceTracker`, `ReportGenerator`, `TemplateStudio`, `DispatchHistory`, and `lowAttendanceCount`).
-  - *Why*: Guarantees that attendance calculations, <80% warning badges, mail-merge previews, and dispatch history records reflect only the instructor's own students.
+### Phase 3: Mobile User-Friendly Super Admin UI Dash
+- **Mobile Quick Utility Tiles**:
+  - Add an executive mobile grid at the top of Super Admin with touch-optimized, card-style utility tiles:
+    1. **પેન્ડિંગ મંજૂરીઓ (Pending Approvals)**: Quick badge with count of pending instructor registrations, tap to open pending queue.
+    2. **ઇન્સ્ટ્રક્ટર સંચાલન (Instructors)**: Total approved instructors, tap to open instructor directory or add new.
+    3. **તાલીમાર્થી ડાયરેક્ટરી (All Trainees)**: Statewide student database overview with search & filters.
+    4. **ક્લીનઅપ ટૂલ (Data Cleanup)**: Orphan/unassociated trainee review and deletion tool with alert badge.
+    5. **UPI / QR સેટિંગ્સ (QR & Fee Settings)**: Admin UPI ID & ₹9 fee setup tile.
+    6. **નવા ઇન્સ્ટ્રક્ટર ઉમેરો (Add Instructor)**: One-tap action tile to launch registration modal.
+- **Touch-Friendly Mobile Bottom Navigation**:
+  - When logged in as Super Admin on mobile devices, provide an intuitive bottom bar with icons:
+    - 📋 **મંજૂરીઓ (Pending)**
+    - 👥 **ઇન્સ્ટ્રક્ટર્સ (Staff)**
+    - 🎓 **વિદ્યાર્થીઓ (Trainees)**
+    - 🧹 **ક્લીનઅપ (Cleanup)**
+    - ⚙️ **સેટિંગ્સ (UPI & Fee)**
+- **Responsive Layout Enhancements**:
+  - Optimize action buttons for touch targets (minimum 44px touch targets).
+  - Add sticky quick-filter controls on mobile for seamless single-hand use.
+  - Streamline pending approval cards and orphan list items for comfortable scrolling on mobile screens.
 
 ---
 
-## 4. Technical Architecture & Data Strategy
+## 2. Verification Plan
 
-### Scoping Architecture & Data Flow Diagram
+### Automated Verification
+- Run `compile_applet` to ensure zero TypeScript errors or missing imports.
+- Run `lint_applet` to confirm compliance with style and syntax rules.
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                          Database (All Trainees)                       │
-│    COPA Trainees │ Fitter Trainees │ Electrician Trainees │ Welder     │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        App.tsx Scoping Gate                            │
-│                                                                        │
-│  isSuperAdmin ? ──> ALL Trainees                                       │
-│                                                                        │
-│  Regular Instructor ? ──> Filter by:                                   │
-│    (t.instructor_id === instructor.id) OR                              │
-│    (allowedTrades.has(t.trade) && allowedUnits.has(t.unit))            │
-│    NO FALLBACK TO ALL TRAINEES!                                        │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                         Scoped instructorTrainees                      │
-└───────────────┬───────────────────┬───────────────────┬────────────────┘
-                │                   │                   │
-                ▼                   ▼                   ▼
-    ┌───────────────────────┐ ┌───────────┐ ┌───────────────────────┐
-    │    TraineeManager     │ │Attendance │ │    ReportGenerator    │
-    │  • Roster & Units     │ │ • Monthly │ │  • Mail-Merge Notices │
-    │  • Scoped Add/Import  │ │ • Low %   │ │  • Scoped Registers   │
-    └───────────────────────┘ └───────────┘ └───────────────────────┘
-```
-
-### Key Implementation Steps
-
-1. **`App.tsx` Filter Logic Refactoring**:
-   - Refactor `instructorTrainees` `useMemo` to remove hardcoded ID bypasses (`'inst-shankheshwar'`, `'inst-tejas'`) and the `return trainees;` fallback.
-   - Compute `allowedTrades`, `allowedBatches`, and `allowedUnits` from `currentInstructor.academic_hierarchy`, `currentInstructor.trades`, and `currentInstructor.units`.
-   - Filter `trainees` strictly to matching records.
-2. **Dispatch History Scoping**:
-   - Pass `instructorTrainees` into `DispatchHistory.tsx` and ensure `scopedLogs` defaults to the instructor's trade/trainees (`scopeFilter: 'my_trade'`) for non-super-admins.
-3. **Attendance Calculation Scoping**:
-   - Ensure `lowAttendanceCount` only checks attendance records whose `trainee_id` exists in `instructorTrainees`.
-4. **Excel Import & Enrollment Enforcement**:
-   - Verify that adding a new trainee or importing via Excel in `TraineeManager` / `TraineeImportModal` tags each record with `instructor.id`, `instructor.trade`, and active unit.
-5. **Testing & Verification**:
-   - Test login with different instructors (COPA, Fitter, Electrician) and verify that each only sees their respective students.
-   - Test Super Admin login and verify global system access.
-   - Run `lint_applet` and `compile_applet`.
+### Manual & Responsive Verification
+- Verify that no cloud sync button appears in desktop or mobile headers, drawers, or navigation bars.
+- Confirm that data continues to be automatically persisted to Firestore in the background.
+- Verify that no "AI", "Gemini", or AI-labeled buttons appear in the UI, ribbon, or Super Admin header.
+- Confirm parent advisory generation and text polishing work transparently with official administrative labels.
+- Test Super Admin dashboard in mobile viewport:
+  - Verify touch utility tiles are responsive and provide clear visual feedback.
+  - Verify bottom navigation switches tabs smoothly.
+  - Test the cleanup tool and UPI settings on mobile.

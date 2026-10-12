@@ -13,7 +13,7 @@ import {
   Indent,
   Outdent,
   Table,
-  Sparkles,
+  FileText,
   CheckCheck,
   Eye,
   FileCode,
@@ -186,7 +186,7 @@ export default function WordRibbon({
               { id: 'home', label: 'Home' },
               { id: 'insert', label: 'Insert' },
               { id: 'layout', label: 'Layout' },
-              { id: 'review', label: 'Review (AI)' },
+              { id: 'review', label: 'Review' },
               { id: 'view', label: 'View' },
             ] as const
           ).map((tab) => (
@@ -714,35 +714,31 @@ export default function WordRibbon({
           </>
         )}
 
-        {/* REVIEW TAB (GEMINI AI INTEGRATION) */}
+        {/* REVIEW TAB (OFFICIAL VERNACULAR & ADVISORY TOOLS) */}
         {activeTab === 'review' && (
           <>
             <div className="flex items-center gap-3">
-              {/* Gemini AI Parent Commentary Generator */}
+              {/* Official Parent Advisory Generator */}
               <button
                 onClick={onTriggerAiCommentary}
                 disabled={isAiLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-xs disabled:opacity-50 transition-all"
-                title="Generate polite & strict parent advisory note in Gujarati/Hindi"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white hover:from-amber-700 hover:to-orange-700 shadow-xs disabled:opacity-50 transition-all"
+                title="વાલી પરામર્શ નોંધ ઉમેરો (Add Parent Advisory Note)"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{isAiLoading ? 'Generating AI...' : 'AI Generate Parent Advisory'}</span>
+                <FileText className="w-3.5 h-3.5" />
+                <span>{isAiLoading ? 'તૈયાર થઈ રહ્યું છે...' : 'વાલી પરામર્શ ઉમેરો (Add Parent Advisory)'}</span>
               </button>
 
-              {/* Gemini AI Regional Grammar & Vernacular Check */}
+              {/* Vernacular Language & Grammar Polish */}
               <button
                 onClick={onTriggerGrammarCheck}
                 disabled={isAiLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-xs disabled:opacity-50 transition-all"
-                title="Polishes Gujarati / Hindi administrative vocabulary"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-slate-800 to-slate-900 text-white hover:bg-slate-800 shadow-xs disabled:opacity-50 transition-all"
+                title="સત્તાવાર વ્યાકરણ અને ભાષા શુદ્ધિ કરો"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
-                <span>AI Regional Grammar Check</span>
+                <span>ભાષા અને વ્યાકરણ શુદ્ધિ (Grammar Polish)</span>
               </button>
-
-              <span className="text-xs text-slate-500 italic hidden sm:inline">
-                Powered by Gemini 3.8 Flash • Generates official vernacular parent advisories
-              </span>
             </div>
           </>
         )}

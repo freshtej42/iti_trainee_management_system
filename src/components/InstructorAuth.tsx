@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Instructor, AcademicTrade } from '../types';
 import {
   Building2,
   Lock,
@@ -28,61 +27,68 @@ import {
   checkInstructorUniqueness,
 } from '../utils/passwordPolicy';
 
+import { Instructor, AcademicTrade, SuperAdminSettings } from '../types';
+import { PaymentVerificationModal } from './PaymentVerificationModal';
+import { DEFAULT_ADMIN_SETTINGS } from '../services/dataService';
+
 interface InstructorAuthProps {
   instructors: Instructor[];
+  adminSettings?: SuperAdminSettings;
   onLogin: (instructor: Instructor) => void;
-  onRegister: (newInstructor: Omit<Instructor, 'id' | 'created_at'>) => void;
+  onRegister: (newInstructor: Omit<Instructor, 'id' | 'created_at'> & { id?: string }) => void;
   onVerifyEmail?: (instructorId: string) => void;
+  onUpdateInstructor?: (instructor: Instructor) => void;
 }
 
-const COMMON_TRADES = [
-  'કોપા (COPA)',
-  'ફિટર (Fitter)',
-  'ઇલેક્ટ્રિશિયન (Electrician)',
-  'વાયરમેન (Wireman)',
-  'વેલ્ડર (Welder)',
-  'ટર્નર (Turner)',
-  'મશીનિસ્ટ (Machinist)',
-  'મિકેનિક ડીઝલ (Mechanic Diesel)',
-  'મોટર મિકેનિક વ્હીકલ (MMV)',
-  'સ્ટેનોગ્રાફર (Stenographer Gujarati/English)',
-];
-
-const STANDARD_UNITS = ['Unit A', 'Unit B', 'Unit C'];
+import {
+  GUJARAT_ITIS,
+  STANDARD_DESIGNATIONS,
+  ACADEMIC_BATCHES,
+  STANDARD_UNITS,
+  COMMON_TRADES,
+} from '../data/registrationOptions';
 
 export default function InstructorAuth({
   instructors,
+  adminSettings = DEFAULT_ADMIN_SETTINGS,
   onLogin,
   onRegister,
+  onUpdateInstructor,
 }: InstructorAuthProps) {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [infoMsg, setInfoMsg] = useState<string>('');
   const [pendingNotice, setPendingNotice] = useState<{
+    instructor: Instructor;
     name: string;
     phone: string;
     email: string;
   } | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+  const [activePaymentInstructor, setActivePaymentInstructor] = useState<Instructor | null>(null);
 
   // --- Login Form State (Versatile Login: Email OR Mobile) ---
   const [loginIdentifier, setLoginIdentifier] = useState<string>('');
   const [loginPassword, setLoginPassword] = useState<string>('');
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState<boolean>(false);
 
-  // --- Registration Form State ---
   const [regNameEn, setRegNameEn] = useState<string>('');
   const [regNameGu, setRegNameGu] = useState<string>('');
   const [regEmail, setRegEmail] = useState<string>('');
   const [regPhone, setRegPhone] = useState<string>('');
   const [regPassword, setRegPassword] = useState<string>('');
   const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
-  const [regItiName, setRegItiName] = useState<string>('ઔદ્યોગિક તાલીમ સંસ્થા (Government ITI)');
-  const [regDesignation, setRegDesignation] = useState<string>('સુપરવાઇઝર ઇન્સ્ટ્રક્ટર (Supervisor Instructor)');
-  const [regTrade, setRegTrade] = useState<string>('કોપા (COPA)');
+  const [regItiName, setRegItiName] = useState<string>(GUJARAT_ITIS[0]);
+  const [customItiName, setCustomItiName] = useState<string>('');
+  const [regDesignation, setRegDesignation] = useState<string>(STANDARD_DESIGNATIONS[0]);
+  const [customDesignation, setCustomDesignation] = useState<string>('');
+  const [regTrade, setRegTrade] = useState<string>(COMMON_TRADES[0]);
   const [customTrade, setCustomTrade] = useState<string>('');
-  const [regBatch, setRegBatch] = useState<string>('૨૦૨૫–૨૦૨૬');
-  const [regUnit, setRegUnit] = useState<string>('Unit A');
+  const [regBatch, setRegBatch] = useState<string>(ACADEMIC_BATCHES[0]);
+  const [customBatch, setCustomBatch] = useState<string>('');
+  const [regUnit, setRegUnit] = useState<string>(STANDARD_UNITS[0]);
+  const [customUnit, setCustomUnit] = useState<string>('');
   const [regAddress, setRegAddress] = useState<string>('');
 
   // Live password validation
@@ -136,11 +142,17 @@ export default function InstructorAuth({
 
     // Check account verification status
     if (found.status === 'pending') {
+      setActivePaymentInstructor(found);
       setPendingNotice({
+        instructor: found,
         name: found.name,
         phone: found.phone || 'તમારા મોબાઈલ',
         email: found.email,
       });
+      // If user has not submitted payment screenshot yet, open payment verification modal
+      if (!found.payment_screenshot_url) {
+        setShowPaymentModal(true);
+      }
       return;
     }
 
@@ -213,6 +225,11 @@ export default function InstructorAuth({
       return;
     }
 
+    const effectiveItiName = regItiName === 'other' ? (customItiName.trim() || 'ઔદ્યોગિક તાલીમ સંસ્થા') : regItiName;
+    const effectiveDesignation = regDesignation === 'other' ? (customDesignation.trim() || 'સુપરવાઇઝર ઇન્સ્ટ્રક્ટર') : regDesignation;
+    const effectiveBatch = regBatch === 'other' ? (customBatch.trim() || '૨૦૨૫–૨૦૨૬') : regBatch;
+    const effectiveUnit = regUnit === 'other' ? (customUnit.trim() || 'Unit A') : regUnit;
+
     const initialAcademicHierarchy: AcademicTrade[] = [
       {
         id: `trade-${Date.now()}`,
@@ -220,9 +237,9 @@ export default function InstructorAuth({
         batches: [
           {
             id: `batch-${Date.now()}`,
-            name: regBatch || '૨૦૨૫–૨૦૨૬',
+            name: effectiveBatch,
             units: [
-              { id: `unit-${Date.now()}-1`, name: regUnit || 'Unit A' },
+              { id: `unit-${Date.now()}-1`, name: effectiveUnit },
             ],
           },
         ],
@@ -239,20 +256,20 @@ export default function InstructorAuth({
       status: 'pending', // Requires Super Admin approval!
       email_verified: false,
       mobile_verified: false,
-      iti_name: regItiName,
-      designation: regDesignation,
+      iti_name: effectiveItiName,
+      designation: effectiveDesignation,
       trade: effectiveTrade,
       trades: [effectiveTrade],
-      batch: regBatch || '૨૦૨૫–૨૦૨૬',
-      batches: [regBatch || '૨૦૨૫–૨૦૨૬'],
-      unit: regUnit || 'Unit A',
-      units: [regUnit || 'Unit A'],
+      batch: effectiveBatch,
+      batches: [effectiveBatch],
+      unit: effectiveUnit,
+      units: [effectiveUnit],
       academic_hierarchy: initialAcademicHierarchy,
       institution_address: regAddress,
       outward_code_prefix: 'ઔતાસં/તલમ/૨૦૨૫',
       header_config: {
         show_logo: true,
-        institute_name_gu: regItiName,
+        institute_name_gu: effectiveItiName,
         institute_name_en: 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE',
         department_subtitle: 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત રાજ્ય',
         address: regAddress,
@@ -260,14 +277,28 @@ export default function InstructorAuth({
       },
     };
 
-    onRegister(newInstructorData);
+    const registrationId = `inst-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const createdInstructorTemp: Instructor = {
+      ...newInstructorData,
+      id: registrationId,
+      created_at: new Date().toISOString(),
+    };
 
-    // Show pending approval notice
+    onRegister({
+      ...newInstructorData,
+      id: registrationId,
+    });
+
+    // Show pending approval notice and link to payment modal
+    setActivePaymentInstructor(createdInstructorTemp);
     setPendingNotice({
+      instructor: createdInstructorTemp,
       name: finalName,
       phone: cleanPhone,
       email: cleanEmail,
     });
+    // Immediately open payment verification modal upon registration completion
+    setShowPaymentModal(true);
     setAuthMode('login');
   };
 
@@ -330,9 +361,17 @@ export default function InstructorAuth({
           {/* Pending Approval Notice Dialog */}
           {pendingNotice && (
             <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs shadow-xs">
-              <div className="flex items-center gap-2 mb-2 font-bold text-sm text-amber-900">
-                <Clock className="w-5 h-5 text-amber-600 shrink-0" />
-                <span>ખાતું મંજૂરી માટે પેન્ડિંગ છે (Pending Approval)</span>
+              <div className="flex items-center justify-between gap-2 mb-2 font-bold text-sm text-amber-900">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-600 shrink-0" />
+                  <span>ખાતું મંજૂરી માટે પેન્ડિંગ છે (Pending Approval)</span>
+                </div>
+                {pendingNotice.instructor.payment_screenshot_url && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    પેમેન્ટ સબમિટ થયેલ
+                  </span>
+                )}
               </div>
               <p className="mb-2 leading-relaxed">
                 નમસ્તે <strong className="text-slate-900">{pendingNotice.name}</strong>, આપનું રજીસ્ટ્રેશન સફળતાપૂર્વક નોંધાયેલ છે.
@@ -341,9 +380,54 @@ export default function InstructorAuth({
               <div className="bg-white/80 p-2.5 rounded-lg border border-amber-200 space-y-1 text-[11px] text-slate-700">
                 <div>• નોંધાયેલ મોબાઈલ નંબર: <strong className="text-slate-900">{pendingNotice.phone}</strong></div>
                 <div>• નોંધાયેલ ઈમેલ આઈડી: <strong className="text-slate-900">{pendingNotice.email}</strong></div>
+                {pendingNotice.instructor.payment_utr && (
+                  <div>• સબમિટ કરેલ UTR / Ref ID: <strong className="text-slate-900 font-mono">{pendingNotice.instructor.payment_utr}</strong></div>
+                )}
+                {pendingNotice.instructor.payment_screenshot_url && (
+                  <div className="pt-2 border-t border-amber-200">
+                    <span className="text-[10px] font-bold text-slate-600 block mb-1">અપલોડ કરેલ ચુકવણી સ્ક્રીનશોટ:</span>
+                    <img
+                      src={pendingNotice.instructor.payment_screenshot_url}
+                      alt="Payment Receipt"
+                      className="max-h-28 rounded-lg border border-emerald-300 bg-white object-contain p-1 shadow-2xs cursor-pointer"
+                      onClick={() => {
+                        setActivePaymentInstructor(pendingNotice.instructor);
+                        setShowPaymentModal(true);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-              <p className="mt-2 text-[11px] text-amber-800 font-medium">
-                ખાતું મંજૂર થતાં જ સુપર એડમિન આપના મોબાઈલ નંબર પર સંપર્ક/સંદેશ મોકલશે. ત્યારબાદ આપ અહીં સીધા લોગિન કરી શકશો.
+
+              {/* UPI Payment Status / Action */}
+              <div className="mt-3 pt-3 border-t border-amber-200 flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[11px] text-amber-900">
+                  {pendingNotice.instructor.payment_screenshot_url ? (
+                    <span className="text-emerald-800 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      ₹{pendingNotice.instructor.payment_amount || adminSettings.fee_amount || 9} ની ચુકવણી રસીદ સુપર એડમિન પાસે ચકાસણી માટે મોકલેલ છે.
+                    </span>
+                  ) : (
+                    <span className="text-amber-800 font-medium">
+                      ⚠️ રજીસ્ટ્રેશન વેરિફિકેશન માટે ₹{adminSettings.fee_amount || 9} ચૂકવણી અને સ્ક્રીનશોટ જરૂરી છે.
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActivePaymentInstructor(pendingNotice.instructor);
+                    setShowPaymentModal(true);
+                  }}
+                  className="px-3 py-1.5 bg-[#346739] hover:bg-[#2b552f] text-white rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5"
+                >
+                  <span>{pendingNotice.instructor.payment_screenshot_url ? 'પેમેન્ટ વિગતો જુઓ / ફરી અપલોડ કરો' : 'QR કોડ સ્કેન કરી ₹9 ચૂકવો'}</span>
+                </button>
+              </div>
+
+              <p className="mt-2 text-[10px] text-amber-800 font-medium">
+                સુપર એડમિન આપના મોબાઈલ નંબર પર સંપર્ક/સંદેશ મોકલશે. ત્યારબાદ આપ અહીં સીધા લોગિન કરી શકશો.
               </p>
             </div>
           )}
@@ -496,36 +580,66 @@ export default function InstructorAuth({
                 </div>
               </div>
 
-              {/* ITI & Designation */}
+              {/* ITI & Designation Dropdowns */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    સંસ્થાનું નામ (ITI Name)
+                    સંસ્થાનું નામ (ITI Name) *
                   </label>
-                  <input
-                    type="text"
-                    required
+                  <select
                     value={regItiName}
                     onChange={(e) => setRegItiName(e.target.value)}
-                    placeholder="ઔદ્યોગિક તાલીમ સંસ્થા, પાટણ"
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium"
-                  />
+                  >
+                    {GUJARAT_ITIS.map((iti) => (
+                      <option key={iti} value={iti}>
+                        {iti}
+                      </option>
+                    ))}
+                    <option value="other">અન્ય સંસ્થા (Custom ITI)...</option>
+                  </select>
+                  {regItiName === 'other' && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="સંસ્થાનું પૂરું નામ દાખલ કરો"
+                      value={customItiName}
+                      onChange={(e) => setCustomItiName(e.target.value)}
+                      className="mt-1.5 w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] text-slate-900 font-medium"
+                    />
+                  )}
                 </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    હોદ્દો (Designation)
+                    હોદ્દો (Designation) *
                   </label>
-                  <input
-                    type="text"
-                    required
+                  <select
                     value={regDesignation}
                     onChange={(e) => setRegDesignation(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium"
-                  />
+                  >
+                    {STANDARD_DESIGNATIONS.map((desig) => (
+                      <option key={desig} value={desig}>
+                        {desig}
+                      </option>
+                    ))}
+                    <option value="other">અન્ય હોદ્દો (Custom Designation)...</option>
+                  </select>
+                  {regDesignation === 'other' && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="આપનો હોદ્દો દાખલ કરો"
+                      value={customDesignation}
+                      onChange={(e) => setCustomDesignation(e.target.value)}
+                      className="mt-1.5 w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] text-slate-900 font-medium"
+                    />
+                  )}
                 </div>
               </div>
 
-              {/* Trade, Batch, Unit Hierarchy Initialization */}
+              {/* Trade, Batch, Unit Hierarchy Initialization with Dropdowns */}
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[#346739]">
                   <Layers className="w-4 h-4 text-[#346739]" />
@@ -534,7 +648,7 @@ export default function InstructorAuth({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      ૧. ટ્રેડ (Trade)
+                      ૧. ટ્રેડ (Trade) *
                     </label>
                     <select
                       value={regTrade}
@@ -551,40 +665,69 @@ export default function InstructorAuth({
                     {regTrade === 'other' && (
                       <input
                         type="text"
+                        required
                         placeholder="ટ્રેડનું નામ દાખલ કરો"
                         value={customTrade}
                         onChange={(e) => setCustomTrade(e.target.value)}
-                        className="mt-1 w-full px-2 py-1 text-xs border rounded"
+                        className="mt-1.5 w-full px-2 py-1 text-xs border rounded"
                       />
                     )}
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      ૨. બેચ (Batch)
+                      ૨. બેચ (Batch) *
                     </label>
-                    <input
-                      type="text"
-                      required
+                    <select
                       value={regBatch}
                       onChange={(e) => setRegBatch(e.target.value)}
-                      placeholder="૨૦૨૫–૨૦૨૬"
                       className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-medium"
-                    />
+                    >
+                      {ACADEMIC_BATCHES.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                      <option value="other">અન્ય બેચ (Custom)...</option>
+                    </select>
+                    {regBatch === 'other' && (
+                      <input
+                        type="text"
+                        required
+                        placeholder="બેચ વર્ષ દા.ત. ૨૦૨૫–૨૦૨૬"
+                        value={customBatch}
+                        onChange={(e) => setCustomBatch(e.target.value)}
+                        className="mt-1.5 w-full px-2 py-1 text-xs border rounded"
+                      />
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      ૩. યુનિટ (Unit)
+                      ૩. યુનિટ (Unit) *
                     </label>
-                    <input
-                      type="text"
-                      required
+                    <select
                       value={regUnit}
                       onChange={(e) => setRegUnit(e.target.value)}
-                      placeholder="Unit A / યુનિટ ૧"
                       className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-medium"
-                    />
+                    >
+                      {STANDARD_UNITS.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                      <option value="other">અન્ય યુનિટ (Custom)...</option>
+                    </select>
+                    {regUnit === 'other' && (
+                      <input
+                        type="text"
+                        required
+                        placeholder="યુનિટ દા.ત. Unit A"
+                        value={customUnit}
+                        onChange={(e) => setCustomUnit(e.target.value)}
+                        className="mt-1.5 w-full px-2 py-1 text-xs border rounded"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -769,6 +912,34 @@ export default function InstructorAuth({
             </div>
           </div>
         </div>
+      )}
+
+      {/* UPI Payment Verification Modal */}
+      {showPaymentModal && activePaymentInstructor && (
+        <PaymentVerificationModal
+          instructor={activePaymentInstructor}
+          adminSettings={adminSettings}
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onSubmitPayment={async (details) => {
+            const updated: Instructor = {
+              ...activePaymentInstructor,
+              ...details,
+              payment_submitted_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            setActivePaymentInstructor(updated);
+            if (pendingNotice && pendingNotice.instructor.id === activePaymentInstructor.id) {
+              setPendingNotice({
+                ...pendingNotice,
+                instructor: updated,
+              });
+            }
+            if (onUpdateInstructor) {
+              await onUpdateInstructor(updated);
+            }
+          }}
+        />
       )}
     </div>
   );

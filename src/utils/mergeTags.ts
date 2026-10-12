@@ -83,9 +83,7 @@ export const AVAILABLE_MERGE_TAGS = [
   { tag: '{{Previous_Notice_Dates}}', label: 'Previous Notice Dates (અગાઉ આપેલ નોટિસ તારીખો / પ્રથમ હોય તો "-")', category: 'Dispatch' },
   { tag: '{{First_Notice_Date}}', label: '1st Notice Date (પ્રથમ નોટિસ તારીખ / "-")', category: 'Dispatch' },
   { tag: '{{Second_Notice_Date}}', label: '2nd Notice Date (દ્વિતીય નોટિસ તારીખ / "-")', category: 'Dispatch' },
-  { tag: '{{Prior_Notice_Count}}', label: 'Prior Notice Count (અગાઉ મોકલેલ નોટિસ સંખ્યા)', category: 'Dispatch' },
-  { tag: '{{Trainee_Attendance_Table}}', label: 'Low Attendance Trainees Table (ઓછી હાજરી વાળા તાલીમાર્થીઓનું પત્રક - આચાર્ય રિપોર્ટ માટે)', category: 'Attendance' },
-  { tag: '{{AI_Commentary}}', label: 'AI Smart Parent Advisory (વિશેષ નિર્દેશ)', category: 'Smart AI' },
+  { tag: '{{AI_Commentary}}', label: 'વાલી પરામર્શ / વિશેષ નિર્દેશ (Parent Advisory)', category: 'Advisory' },
 ];
 
 export interface NoticeHistory {

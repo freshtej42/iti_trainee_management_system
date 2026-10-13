@@ -49,13 +49,49 @@ export default function PrincipalReport({
 }: PrincipalReportProps) {
   const { t, tText } = useLanguage();
 
-  // Available Months
-  const availableMonths = useMemo(() => {
-    const months = Array.from(new Set(attendanceRecords.map((r) => r.month_year)));
-    return months.length > 0 ? months : ['August 2025', 'September 2025'];
+  // 12 Standard Calendar Months (Academic Order)
+  const MONTHS_LIST = useMemo(
+    () => [
+      { name: 'August', gu: 'ઓગસ્ટ', hi: 'अगस्त' },
+      { name: 'September', gu: 'સપ્ટેમ્બર', hi: 'सितंबर' },
+      { name: 'October', gu: 'ઓક્ટોબર', hi: 'अक्टूबर' },
+      { name: 'November', gu: 'નવેમ્બર', hi: 'नवंबर' },
+      { name: 'December', gu: 'ડિસેમ્બર', hi: 'दिसंबर' },
+      { name: 'January', gu: 'જાન્યુઆરી', hi: 'जनवरी' },
+      { name: 'February', gu: 'ફેબ્રુઆરી', hi: 'फ़रवरी' },
+      { name: 'March', gu: 'માર્ચ', hi: 'मार्च' },
+      { name: 'April', gu: 'એપ્રિલ', hi: 'अप्रैल' },
+      { name: 'May', gu: 'મે', hi: 'मई' },
+      { name: 'June', gu: 'જૂન', hi: 'जून' },
+      { name: 'July', gu: 'જુલાઈ', hi: 'जुलाई' },
+    ],
+    []
+  );
+
+  // Dynamic Years List: starting from 2026, 14 years at least, plus records
+  const availableYears = useMemo(() => {
+    const baseYears: number[] = [];
+    const startYear = 2026;
+    const count = 14; // 14 years: 2026 through 2039
+    for (let i = 0; i < count; i++) {
+      baseYears.push(startYear + i);
+    }
+    attendanceRecords.forEach((r) => {
+      if (r.month_year) {
+        const parts = r.month_year.trim().split(' ');
+        const yr = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(yr) && !baseYears.includes(yr)) {
+          baseYears.push(yr);
+        }
+      }
+    });
+    return baseYears.sort((a, b) => a - b);
   }, [attendanceRecords]);
 
-  const [selectedMonth, setSelectedMonth] = useState<string>(availableMonths[0] || 'August 2025');
+  // Year & Month state (Defaults to 2026 and August)
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [selectedMonthName, setSelectedMonthName] = useState<string>('August');
+  const selectedMonth = `${selectedMonthName} ${selectedYear}`;
   const [reportDate, setReportDate] = useState<string>(
     new Date().toLocaleDateString('gu-IN')
   );
@@ -72,12 +108,46 @@ export default function PrincipalReport({
   // Convert English month to Gujarati display
   const formatMonthGujarati = (monthYear: string): string => {
     const map: Record<string, string> = {
+      'August 2026': 'ઓગસ્ટ ૨૦૨૬',
+      'September 2026': 'સપ્ટેમ્બર ૨૦૨૬',
+      'October 2026': 'ઓક્ટોબર ૨૦૨૬',
+      'November 2026': 'નવેમ્બર ૨૦૨૬',
+      'December 2026': 'ડિસેમ્બર ૨૦૨૬',
+      'January 2026': 'જાન્યુઆરી ૨૦૨૬',
+      'February 2026': 'ફેબ્રુઆરી ૨૦૨૬',
+      'March 2026': 'માર્ચ ૨૦૨૬',
+      'April 2026': 'એપ્રિલ ૨૦૨૬',
+      'May 2026': 'મે ૨૦૨૬',
+      'June 2026': 'જૂન ૨૦૨૬',
+      'July 2026': 'જુલાઈ ૨૦૨૬',
       'August 2025': 'ઓગસ્ટ ૨૦૨૫',
       'September 2025': 'સપ્ટેમ્બર ૨૦૨૫',
-      'October 2025': 'ઓક્ટોબર ૨૦૨૫',
-      'July 2025': 'જુલાઈ ૨૦૨૫',
     };
-    return map[monthYear] || monthYear;
+    if (map[monthYear]) return map[monthYear];
+    const parts = monthYear.split(' ');
+    if (parts.length === 2) {
+      const monthEng = parts[0];
+      const year = parts[1];
+      const monthMap: Record<string, string> = {
+        January: 'જાન્યુઆરી', February: 'ફેબ્રુઆરી', March: 'માર્ચ', April: 'એપ્રિલ',
+        May: 'મે', June: 'જૂન', July: 'જુલાઈ', August: 'ઓગસ્ટ',
+        September: 'સપ્ટેમ્બર', October: 'ઓક્ટોબર', November: 'નવેમ્બર', December: 'ડિસેમ્બર',
+      };
+      if (monthMap[monthEng]) {
+        return `${monthMap[monthEng]} ${toGujaratiDigits(year)}`;
+      }
+    }
+    return monthYear;
+  };
+
+  const formatYearLabel = (y: number) => {
+    return tText(`${toGujaratiDigits(y)} (${y})`, `${y}`, `${y}`);
+  };
+
+  const formatMonthOnlyLabel = (mName: string) => {
+    const item = MONTHS_LIST.find((x) => x.name === mName);
+    if (!item) return mName;
+    return tText(`${item.gu} (${item.name})`, `${item.hi} (${item.name})`, item.name);
   };
 
   // Build rows from attendance records (<80% or flagged)
@@ -216,18 +286,43 @@ export default function PrincipalReport({
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Month Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+            {/* 1. Year Selector */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-2xs">
               <Calendar className="w-4 h-4 text-slate-500" />
-              <label className="text-xs font-semibold text-slate-700">{tText('માસ:', 'माह:', 'Month:')}</label>
+              <label htmlFor="principal-year-select" className="text-xs font-semibold text-slate-700 whitespace-nowrap">
+                {tText('વર્ષ:', 'वर्ष:', 'Year:')}
+              </label>
               <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="bg-transparent text-xs font-medium text-slate-800 focus:outline-hidden"
+                id="principal-year-select"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-hidden cursor-pointer"
+                aria-label={tText('વર્ષ પસંદ કરો', 'वर्ष चुनें', 'Select Year')}
               >
-                {availableMonths.map((m) => (
-                  <option key={m} value={m}>
-                    {formatMonthGujarati(m)} ({m})
+                {availableYears.map((yr) => (
+                  <option key={yr} value={yr}>
+                    {formatYearLabel(yr)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. Month Selector */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-2xs">
+              <Calendar className="w-4 h-4 text-slate-500" />
+              <label htmlFor="principal-month-select" className="text-xs font-semibold text-slate-700 whitespace-nowrap">
+                {tText('માસ:', 'माह:', 'Month:')}
+              </label>
+              <select
+                id="principal-month-select"
+                value={selectedMonthName}
+                onChange={(e) => setSelectedMonthName(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-hidden cursor-pointer"
+                aria-label={tText('માસ પસંદ કરો', 'माह चुनें', 'Select Month')}
+              >
+                {MONTHS_LIST.map((m) => (
+                  <option key={m.name} value={m.name}>
+                    {formatMonthOnlyLabel(m.name)}
                   </option>
                 ))}
               </select>

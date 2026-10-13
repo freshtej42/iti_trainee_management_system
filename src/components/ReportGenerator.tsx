@@ -142,6 +142,8 @@ export default function ReportGenerator({
   const showInstituteHeader =
     selectedTemplate && selectedTemplate.id in customHeaderToggle
       ? customHeaderToggle[selectedTemplate.id]
+      : selectedTemplate?.show_letterhead !== undefined
+      ? selectedTemplate.show_letterhead
       : !templateHasBuiltInHeader;
 
   const headerConfig: HeaderConfig =
@@ -1008,23 +1010,6 @@ export default function ReportGenerator({
                   </div>
                 )}
 
-                {/* 3. Optional Signatory Footer if separate letterhead enabled */}
-                {showInstituteHeader && (
-                  <div className="pt-8 flex justify-between items-end text-xs select-none border-t border-slate-200">
-                    <div className="text-slate-500 text-[10px]">
-                      * આ પત્ર ઈન્સ્ટ્રક્ટર પોર્ટલ દ્વારા કમ્પ્યુટરાઈઝ્ડ જનરેટ થયેલ છે.
-                    </div>
-
-                    <div className="text-right space-y-0.5">
-                      <div className="w-32 border-b border-slate-400 mx-auto mb-1"></div>
-                      <div className="font-bold text-slate-900">({instructor.name})</div>
-                      <div className="text-[11px] text-slate-600">{instructor.designation}</div>
-                      <div className="text-[10px] text-slate-500">
-                        {headerConfig.institute_name_gu}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -1098,21 +1083,6 @@ export default function ReportGenerator({
               }}
             />
 
-            {/* Optional Signatory */}
-            {showInstituteHeader && (
-              <div className="pt-12 flex justify-between items-end text-xs border-t border-slate-300 mt-6">
-                <div className="text-[10px] text-slate-600">
-                  સંદર્ભ ફાઈલ: {trainee.enrollment_no} | બેચ: {trainee.batch}
-                </div>
-
-                <div className="text-right space-y-0.5">
-                  <div className="w-32 border-b border-slate-400 mx-auto mb-1"></div>
-                  <div className="font-bold text-sm text-slate-900">({instructor.name})</div>
-                  <div className="text-xs text-slate-700">{instructor.designation}</div>
-                  <div className="text-xs text-slate-600">{headerConfig.institute_name_gu}</div>
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </div>

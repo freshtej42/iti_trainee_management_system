@@ -88,7 +88,7 @@ export default function DispatchHistory({
     notice_type: '1st Warning',
     subject: tText('સંસ્થામાં વગર પરવાનગીએ ગેરહાજરી બાબત નોટિસ', 'संस्थान में बिना अनुमति अनुपस्थिति संबंधी नोटिस', 'Notice regarding unauthorized absence from institute'),
     issue_date: new Date().toISOString().split('T')[0],
-    month_year: tText('ઓગસ્ટ ૨૦૨૫', 'अगस्त २०२५', 'August 2025'),
+    month_year: tText('ઓગસ્ટ ૨૦૨૬', 'अगस्त २०२५', 'August 2026'),
     attendance_percentage: 65,
     status: 'Dispatched',
     dispatch_mode: tText('રજીસ્ટર્ડ પોસ્ટ (RPAD)', 'पंजीकृत डाक (RPAD)', 'Registered Post (RPAD)'),
@@ -299,7 +299,7 @@ export default function DispatchHistory({
       notice_type: '1st Warning',
       subject: 'સંસ્થામાં વગર પરવાનગીએ ગેરહાજરી બાબત નોટિસ',
       issue_date: new Date().toISOString().split('T')[0],
-      month_year: 'ઓગસ્ટ ૨૦૨૫',
+      month_year: 'ઓગસ્ટ ૨૦૨૬',
       attendance_percentage: 65,
       status: 'Dispatched',
       dispatch_mode: 'રજીસ્ટર્ડ પોસ્ટ (RPAD)',
@@ -1088,7 +1088,7 @@ export default function DispatchHistory({
                     type="text"
                     value={editingLog.month_year || ''}
                     onChange={(e) => setEditingLog({ ...editingLog, month_year: e.target.value })}
-                    placeholder={tText('દા.ત. ઓગસ્ટ ૨૦૨૫', 'उदा. अगस्त 2025', 'e.g. August 2025')}
+                    placeholder={tText('દા.ત. ઓગસ્ટ ૨૦૨૬', 'उदा. अगस्त 2026', 'e.g. August 2026')}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
@@ -1393,7 +1393,7 @@ export default function DispatchHistory({
                     type="text"
                     value={newEntry.month_year}
                     onChange={(e) => setNewEntry({ ...newEntry, month_year: e.target.value })}
-                    placeholder={tText('દા.ત. ઓગસ્ટ ૨૦૨૫', 'उदा. अगस्त 2025', 'e.g. August 2025')}
+                    placeholder={tText('દા.ત. ઓગસ્ટ ૨૦૨૬', 'उदा. अगस्त 2026', 'e.g. August 2026')}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>

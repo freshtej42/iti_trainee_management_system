@@ -85,6 +85,7 @@
         "notice_type": { "type": "string" },
         "subject": { "type": "string" },
         "content_html": { "type": "string" },
+        "show_letterhead": { "type": "boolean" },
         "created_at": { "type": "string" },
         "updated_at": { "type": "string" }
       },

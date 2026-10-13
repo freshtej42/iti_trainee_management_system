@@ -23,6 +23,7 @@ import {
   Clock,
   Layers,
   CheckCircle,
+  Building2,
 } from 'lucide-react';
 
 interface WordEditorProps {
@@ -67,8 +68,7 @@ export default function WordEditor({
   // Styling state
   const [fontFamily, setFontFamily] = useState<string>("'Noto Sans Gujarati', sans-serif");
   const [fontSize, setFontSize] = useState<string>('12');
-  const [showLetterhead, setShowLetterhead] = useState<boolean>(true);
-  const [showSignature, setShowSignature] = useState<boolean>(true);
+  const [showLetterhead, setShowLetterhead] = useState<boolean>(() => currentTemplate?.show_letterhead !== false);
   const [pageMargin, setPageMargin] = useState<'normal' | 'narrow' | 'wide'>('normal');
 
   // View state
@@ -89,6 +89,7 @@ export default function WordEditor({
     if (tmpl) {
       setContentHtml(tmpl.content_html);
       setTemplateName(tmpl.name);
+      setShowLetterhead(tmpl.show_letterhead !== false);
       if (tmpl.language === 'Hindi') {
         setFontFamily("'Noto Sans Devanagari', sans-serif");
       } else if (tmpl.language === 'Gujarati') {
@@ -128,7 +129,7 @@ export default function WordEditor({
     const presentDays = currentAttendance?.present_days || 14;
     const absentDays = currentAttendance?.absent_days || (workingDays - presentDays);
     const percentage = currentAttendance?.attendance_percentage || Number(((presentDays / workingDays) * 100).toFixed(2));
-    const monthYear = currentAttendance?.month_year || 'August 2025';
+    const monthYear = currentAttendance?.month_year || 'August 2026';
     const refNumber = generateOutwardReference(instructor.trade, currentTrainee.roll_no, monthYear);
 
     return mergeTemplateTags(contentHtml, {
@@ -184,6 +185,7 @@ export default function WordEditor({
       ...currentTemplate,
       name: templateName,
       content_html: contentHtml,
+      show_letterhead: showLetterhead,
       updated_at: new Date().toISOString(),
     });
     setAiMessage('Template saved successfully!');
@@ -258,7 +260,7 @@ export default function WordEditor({
   // Manual Dispatch Log action from within editor
   const handleLogAsDispatched = () => {
     if (!currentTrainee) return;
-    const monthYear = currentAttendance?.month_year || 'August 2025';
+    const monthYear = currentAttendance?.month_year || 'August 2026';
     const refNum = generateOutwardReference(instructor.trade, currentTrainee.roll_no, monthYear);
     const percentage = currentAttendance?.attendance_percentage || 60.0;
 
@@ -344,6 +346,21 @@ export default function WordEditor({
             className="px-3 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Template Name..."
           />
+
+          {/* Per-Template Letterhead Toggle Switch */}
+          <button
+            type="button"
+            onClick={() => setShowLetterhead(!showLetterhead)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+              showLetterhead
+                ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-2xs'
+                : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
+            }`}
+            title="લેટરહેડ સુવિધા: સંસ્થાનું હેડર બેનર રાખવું કે પ્રી-પ્રિન્ટેડ કાગળ માટે છુપાવવું"
+          >
+            <Building2 className={`w-3.5 h-3.5 ${showLetterhead ? 'text-blue-700' : 'text-slate-500'}`} />
+            <span>લેટરહેડ: {showLetterhead ? 'હા (On)' : 'ના (Off)'}</span>
+          </button>
         </div>
 
         {/* Right: Trainee Live Preview Selector & Quick Dispatch Log */}
@@ -407,8 +424,6 @@ export default function WordEditor({
           onInsertTable={handleInsertTable}
           showLetterhead={showLetterhead}
           setShowLetterhead={setShowLetterhead}
-          showSignature={showSignature}
-          setShowSignature={setShowSignature}
           pageMargin={pageMargin}
           setPageMargin={setPageMargin}
           showRuler={showRuler}
@@ -462,7 +477,6 @@ export default function WordEditor({
             fontFamily={fontFamily}
             fontSize={fontSize}
             showLetterhead={showLetterhead}
-            showSignature={showSignature}
             pageMargin={pageMargin}
             showRuler={showRuler}
             showMarginGuides={showMarginGuides}
@@ -538,43 +552,6 @@ export default function WordEditor({
               className="prose max-w-none text-slate-900 leading-relaxed min-h-[350px]"
               dangerouslySetInnerHTML={{ __html: mergedHtml }}
             />
-
-            {/* Signature Block */}
-            {showSignature && (
-              <div className="mt-12 pt-4 border-t border-slate-300 flex items-end justify-between select-none">
-                {/* Left: ITI Seal */}
-                <div className="border border-dashed border-slate-400 p-2 rounded text-[10px] text-slate-500 max-w-[170px] bg-slate-50/60">
-                  <div className="font-bold text-slate-700">સંસ્થાનું ગોળ સીલ (ITI Seal)</div>
-                  <div className="text-[9px] text-slate-400 mt-4 text-center">
-                    [ સત્તાવાર સિક્કો અહીં લગાવો ]
-                  </div>
-                </div>
-
-                {/* Center: Badge */}
-                <div className="text-center text-[10px] text-slate-400">
-                  <div className="inline-flex items-center gap-1 font-mono text-[9px] text-slate-500">
-                    <CheckCircle className="w-3 h-3 text-emerald-600" />
-                    <span>Authorized Administrative Notice</span>
-                  </div>
-                </div>
-
-                {/* Right: Signature */}
-                <div className="text-center min-w-[210px]">
-                  <div className="h-10 flex items-end justify-center pb-1">
-                    <span className="font-serif italic font-bold text-blue-900 text-sm opacity-85">
-                      {instructor.name}
-                    </span>
-                  </div>
-                  <div className="border-t border-slate-700 pt-1">
-                    <div className="font-bold text-xs text-slate-900">{instructor.name}</div>
-                    <div className="text-[11px] text-slate-700">{instructor.designation}</div>
-                    <div className="text-[10px] text-slate-500">
-                      {instructor.trade} • {instructor.iti_name.split('(')[0]}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </A4PrintPreviewModal>
       )}

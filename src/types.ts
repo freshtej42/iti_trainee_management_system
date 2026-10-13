@@ -136,7 +136,7 @@ export interface AttendanceRecord {
   absent_days: number;
   attendance_percentage: number;
   flagged_low: boolean; // percentage < 80%
-  continuous_absent_since?: string; // e.g. "12/08/2025" or "૧૨/૦૮/૨૦૨૫"
+  continuous_absent_since?: string; // e.g. "12/08/2026" or "૧૨/૦૮/૨૦૨૬"
   absent_from_date?: string;
   absent_to_date?: string;
   remarks?: string;
@@ -154,6 +154,7 @@ export interface LetterTemplate {
   subject: string;
   content_html: string;
   header_config?: HeaderConfig;
+  show_letterhead?: boolean; // Facility to toggle letterhead per template
   required_fields?: string[]; // dynamic field tags needed, e.g. ['Trainee_Name', 'Attendance_Percentage']
   created_at: string;
   updated_at?: string;

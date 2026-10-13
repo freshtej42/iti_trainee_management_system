@@ -305,7 +305,7 @@ export default function TraineeImportModal({
     const sampleRows = [
       [
         '101',
-        `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2025/101`,
+        `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2026/101`,
         'રમેશભાઈ',
         'પટેલ',
         'કાંતિલાલ',
@@ -323,7 +323,7 @@ export default function TraineeImportModal({
       ],
       [
         '102',
-        `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2025/102`,
+        `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2026/102`,
         'કિરણબેન',
         'ઠાકોર',
         'ભવાનજી',
@@ -341,7 +341,7 @@ export default function TraineeImportModal({
       ],
       [
         '103',
-        `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2025/103`,
+        `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2026/103`,
         'વિજયભાઈ',
         'ચૌધરી',
         'દિનેશભાઈ',
@@ -406,7 +406,7 @@ export default function TraineeImportModal({
       }));
 
       // Initial attendance records for each imported trainee
-      const currentMonth = 'August 2025';
+      const currentMonth = 'August 2026';
       const initialAttendance: AttendanceRecord[] = newTrainees.map((t, idx) => ({
         id: `att-imp-${Date.now()}-${idx}`,
         trainee_id: t.id,

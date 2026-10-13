@@ -222,7 +222,7 @@ export default function BatchUnitManagerModal({
               {/* Quick Presets */}
               <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[11px] text-slate-500">
                 <span className="font-semibold">ઝડપી બેચ પસંદગી:</span>
-                {['૨૦૨૫–૨૦૨૬', '2025–2027', '૨૦૨૪–૨૦૨૬', '2024–2025'].map((preset) => (
+                {['૨૦૨૬–૨૦૨૭', '2026–2028', '૨૦૨૫–૨૦૨૬', '2025–2027'].map((preset) => (
                   <button
                     type="button"
                     key={preset}

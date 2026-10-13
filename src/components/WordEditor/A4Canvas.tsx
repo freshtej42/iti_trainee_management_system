@@ -23,7 +23,7 @@ interface A4CanvasProps {
   fontFamily: string;
   fontSize: string;
   showLetterhead: boolean;
-  showSignature: boolean;
+  showSignature?: boolean;
   pageMargin: 'normal' | 'narrow' | 'wide';
   orientation?: 'portrait' | 'landscape';
   showRuler: boolean;
@@ -358,7 +358,7 @@ export default function A4Canvas({
           {/* A4 Page Container */}
           <div
             id="notice-a4-sheet"
-            className={`bg-white text-slate-900 shadow-xl border border-slate-300 relative flex flex-col justify-between a4-printable-document ${marginPaddingClass} ${
+            className={`bg-white text-slate-900 shadow-xl border border-slate-300 relative flex flex-col justify-start a4-printable-document ${marginPaddingClass} ${
               showMarginGuides ? 'ring-1 ring-dashed ring-blue-300 ring-offset-4' : ''
             }`}
             style={{
@@ -920,36 +920,6 @@ export default function A4Canvas({
                 />
               )}
             </div>
-
-            {/* ========================================================= */}
-            {/* 3. BOTTOM OFFICIAL SIGNATURE & STAMP OVERLAY */}
-            {/* ========================================================= */}
-            {showSignature && (
-              <div className="mt-10 pt-4 border-t border-slate-300 flex items-end justify-between select-none">
-                {/* Left: ITI Seal Stamp Placeholder */}
-                <div className="border border-dashed border-slate-400 p-2 rounded text-[10px] text-slate-500 max-w-[170px] bg-slate-50/60">
-                  <div className="font-bold text-slate-700">સંસ્થાનું ગોળ સીલ (ITI Seal)</div>
-                  <div className="text-[9px] text-slate-400 mt-4 text-center">
-                    (સંસ્થાનો સત્તાવાર સિક્કો)
-                  </div>
-                </div>
-
-                {/* Right: Instructor Designation & Signature Line */}
-                <div className="text-right space-y-1">
-                  <div className="h-10"></div>
-                  <div className="border-t border-slate-700 pt-1 font-bold text-xs text-slate-900">
-                    ({instructor.name})
-                  </div>
-                  <div className="text-[11px] font-semibold text-slate-600">
-                    ક્રાફ્ટ ઇન્સ્ટ્રક્ટર (Craft Instructor)
-                  </div>
-                  <div className="text-[10px] text-slate-500">
-                    વ્યવસાય: {instructor.trade} ({instructor.unit || 'Unit A'})
-                  </div>
-                  <div className="text-[10px] text-slate-500">{activeHeader.institute_name_gu}</div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

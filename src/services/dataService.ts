@@ -50,6 +50,124 @@ async function runWithTimeout<T>(promise: Promise<T>, timeoutMs = 3000): Promise
   ]);
 }
 
+function migrateAttendanceRecordsTo2026(records: AttendanceRecord[]): AttendanceRecord[] {
+  if (!Array.isArray(records)) return [];
+  let changed = false;
+  const migrated = records.map((rec) => {
+    let recChanged = false;
+    let newMonthYear = rec.month_year;
+    let newContinuousAbsent = rec.continuous_absent_since;
+    let newAbsentFrom = rec.absent_from_date;
+    let newAbsentTo = rec.absent_to_date;
+    let newUpdated = rec.updated_at;
+
+    if (newMonthYear && newMonthYear.includes('2025')) {
+      newMonthYear = newMonthYear.replace('2025', '2026');
+      recChanged = true;
+    }
+    if (newContinuousAbsent && (newContinuousAbsent.includes('2025') || newContinuousAbsent.includes('૨૦૨૫'))) {
+      newContinuousAbsent = newContinuousAbsent.replace(/2025/g, '2026').replace(/૨૦૨૫/g, '૨૦૨૬');
+      recChanged = true;
+    }
+    if (newAbsentFrom && (newAbsentFrom.includes('2025') || newAbsentFrom.includes('૨૦૨૫'))) {
+      newAbsentFrom = newAbsentFrom.replace(/2025/g, '2026').replace(/૨૦૨૫/g, '૨૦૨૬');
+      recChanged = true;
+    }
+    if (newAbsentTo && (newAbsentTo.includes('2025') || newAbsentTo.includes('૨૦૨૫'))) {
+      newAbsentTo = newAbsentTo.replace(/2025/g, '2026').replace(/૨૦૨૫/g, '૨૦૨૬');
+      recChanged = true;
+    }
+    if (newUpdated && newUpdated.includes('2025')) {
+      newUpdated = newUpdated.replace('2025', '2026');
+      recChanged = true;
+    }
+
+    if (recChanged) {
+      changed = true;
+      return {
+        ...rec,
+        month_year: newMonthYear,
+        continuous_absent_since: newContinuousAbsent,
+        absent_from_date: newAbsentFrom,
+        absent_to_date: newAbsentTo,
+        updated_at: newUpdated,
+      };
+    }
+    return rec;
+  });
+
+  if (changed) {
+    try {
+      localStorage.setItem(CACHE_KEYS.ATTENDANCE, JSON.stringify(migrated));
+    } catch {
+      // Ignore
+    }
+  }
+  return migrated;
+}
+
+function migrateDispatchLogsTo2026(logs: DispatchLog[]): DispatchLog[] {
+  if (!Array.isArray(logs)) return [];
+  let changed = false;
+  const migrated = logs.map((log) => {
+    let logChanged = false;
+    let monthYear = log.month_year;
+    let issueDate = log.issue_date;
+    let issuedDate = log.issued_date;
+    let refNum = log.ref_number;
+    let outwardNum = log.outward_number;
+    let createdAt = log.created_at;
+
+    if (monthYear && monthYear.includes('2025')) {
+      monthYear = monthYear.replace('2025', '2026');
+      logChanged = true;
+    }
+    if (issueDate && issueDate.includes('2025')) {
+      issueDate = issueDate.replace('2025', '2026');
+      logChanged = true;
+    }
+    if (issuedDate && issuedDate.includes('2025')) {
+      issuedDate = issuedDate.replace('2025', '2026');
+      logChanged = true;
+    }
+    if (refNum && refNum.includes('2025')) {
+      refNum = refNum.replace('2025', '2026');
+      logChanged = true;
+    }
+    if (outwardNum && outwardNum.includes('2025')) {
+      outwardNum = outwardNum.replace('2025', '2026');
+      logChanged = true;
+    }
+    if (createdAt && createdAt.includes('2025')) {
+      createdAt = createdAt.replace('2025', '2026');
+      logChanged = true;
+    }
+
+    if (logChanged) {
+      changed = true;
+      return {
+        ...log,
+        month_year: monthYear,
+        issue_date: issueDate,
+        issued_date: issuedDate,
+        ref_number: refNum,
+        outward_number: outwardNum,
+        created_at: createdAt,
+      };
+    }
+    return log;
+  });
+
+  if (changed) {
+    try {
+      localStorage.setItem(CACHE_KEYS.DISPATCH, JSON.stringify(migrated));
+    } catch {
+      // Ignore
+    }
+  }
+  return migrated;
+}
+
 function getLocalCache<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -57,6 +175,12 @@ function getLocalCache<T>(key: string, fallback: T): T {
     const parsed = JSON.parse(raw);
     if (key === CACHE_KEYS.INSTRUCTORS && Array.isArray(parsed)) {
       return deduplicateInstructors(parsed as Instructor[]) as unknown as T;
+    }
+    if (key === CACHE_KEYS.ATTENDANCE && Array.isArray(parsed)) {
+      return migrateAttendanceRecordsTo2026(parsed as AttendanceRecord[]) as unknown as T;
+    }
+    if (key === CACHE_KEYS.DISPATCH && Array.isArray(parsed)) {
+      return migrateDispatchLogsTo2026(parsed as DispatchLog[]) as unknown as T;
     }
     return (Array.isArray(parsed) && parsed.length > 0 ? (parsed as unknown as T) : fallback);
   } catch {
@@ -193,8 +317,9 @@ export async function fetchAttendance(): Promise<AttendanceRecord[]> {
     const snap = await runWithTimeout(getDocs(collection(db, COLLECTION_ATTENDANCE)), 3000);
     if (!snap.empty) {
       const docs = snap.docs.map((d) => d.data() as AttendanceRecord);
-      setLocalCache(CACHE_KEYS.ATTENDANCE, docs);
-      return docs;
+      const migratedDocs = migrateAttendanceRecordsTo2026(docs);
+      setLocalCache(CACHE_KEYS.ATTENDANCE, migratedDocs);
+      return migratedDocs;
     }
     return getLocalCache(CACHE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
   } catch {
@@ -227,8 +352,9 @@ export async function fetchDispatchLogs(): Promise<DispatchLog[]> {
     const snap = await runWithTimeout(getDocs(collection(db, COLLECTION_DISPATCH)), 3000);
     if (!snap.empty) {
       const docs = snap.docs.map((d) => d.data() as DispatchLog);
-      setLocalCache(CACHE_KEYS.DISPATCH, docs);
-      return docs;
+      const migratedDocs = migrateDispatchLogsTo2026(docs);
+      setLocalCache(CACHE_KEYS.DISPATCH, migratedDocs);
+      return migratedDocs;
     }
     return getLocalCache(CACHE_KEYS.DISPATCH, INITIAL_DISPATCH_LOGS);
   } catch {

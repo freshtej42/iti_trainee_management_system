@@ -1,0 +1,6 @@
+{
+  "summary": "Implementation plan to introduce a per-template letterhead toggle facility in the template editor and print flows, remove artificial default footer and signature blocks across all templates and print engines, and ensure clean top-margin alignment for printing on pre-printed official stationery.",
+  "updatedAt": "2026-10-13T02:12:46.364449575Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

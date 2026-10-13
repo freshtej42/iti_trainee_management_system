@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Layers,
   Users,
+  Building2,
 } from 'lucide-react';
 import { Trainee, Instructor } from '../types';
 import { exportBatchElementsToPdf, exportElementToPdf, printCleanDocument } from '../utils/pdfExport';
@@ -33,6 +34,7 @@ export interface BatchNoticePrintPreviewModalProps {
   instructor: Instructor;
   templateName: string;
   language?: string;
+  showLetterhead?: boolean;
   onRecordDispatches?: () => void;
 }
 
@@ -43,10 +45,12 @@ export default function BatchNoticePrintPreviewModal({
   instructor,
   templateName,
   language = 'Gujarati',
+  showLetterhead = true,
   onRecordDispatches,
 }: BatchNoticePrintPreviewModalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'single' | 'all'>('single');
+  const [isLetterheadActive, setIsLetterheadActive] = useState<boolean>(showLetterhead);
   const [zoomLevel, setZoomLevel] = useState<number>(0.85);
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
   const [pdfProgress, setPdfProgress] = useState<string>('');
@@ -56,9 +60,10 @@ export default function BatchNoticePrintPreviewModal({
   const singleSheetRef = useRef<HTMLDivElement>(null);
   const allSheetsRef = useRef<HTMLDivElement>(null);
 
-  // Initialize and adjust zoom
+  // Initialize and adjust zoom, and sync letterhead setting
   useEffect(() => {
     if (isOpen) {
+      setIsLetterheadActive(showLetterhead);
       setCurrentPageIndex(0);
       setFeedback(null);
       if (window.innerWidth < 640) {
@@ -69,7 +74,7 @@ export default function BatchNoticePrintPreviewModal({
         setZoomLevel(0.85);
       }
     }
-  }, [isOpen]);
+  }, [isOpen, showLetterhead]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -211,7 +216,7 @@ export default function BatchNoticePrintPreviewModal({
   const renderNoticeSheet = (item: BatchNoticeItem, index: number, isMultiPageStack = false) => (
     <div
       key={item.trainee.id}
-      className={`bg-white text-slate-900 shadow-2xl rounded-xs a4-printable-document flex flex-col justify-between p-8 sm:p-12 w-[210mm] max-w-[210mm] min-h-[297mm] mx-auto ${
+      className={`bg-white text-slate-900 shadow-2xl rounded-xs a4-printable-document flex flex-col justify-start p-8 sm:p-12 w-[210mm] max-w-[210mm] min-h-[297mm] mx-auto ${
         isMultiPageStack ? 'mb-8 print:mb-0' : ''
       }`}
       style={{
@@ -222,101 +227,68 @@ export default function BatchNoticePrintPreviewModal({
         breakAfter: isMultiPageStack && index < notices.length - 1 ? 'page' : 'auto',
       }}
     >
-      {/* Official ITI Letterhead */}
-      <div className="mb-6 border-b-2 border-slate-800 pb-3 select-none">
-        <div className="flex items-center justify-between gap-4">
-          {/* Government of Gujarat ITI Emblem */}
-          <div className="w-16 h-16 rounded-full border-2 border-slate-700 p-1 flex flex-col items-center justify-center text-center shrink-0 bg-slate-50">
-            <div className="text-[9px] font-bold tracking-tight text-slate-800 uppercase leading-none">
-              GOVT OF
+      {/* Official ITI Letterhead (Conditional per template or on-the-fly toggle) */}
+      {isLetterheadActive && (
+        <div className="mb-6 border-b-2 border-slate-800 pb-3 select-none">
+          <div className="flex items-center justify-between gap-4">
+            {/* Government of Gujarat ITI Emblem */}
+            <div className="w-16 h-16 rounded-full border-2 border-slate-700 p-1 flex flex-col items-center justify-center text-center shrink-0 bg-slate-50">
+              <div className="text-[9px] font-bold tracking-tight text-slate-800 uppercase leading-none">
+                GOVT OF
+              </div>
+              <div className="text-base font-black text-blue-900 leading-tight">ITI</div>
+              <div className="text-[8px] font-bold text-slate-700 uppercase leading-none">
+                GUJARAT
+              </div>
             </div>
-            <div className="text-base font-black text-blue-900 leading-tight">ITI</div>
-            <div className="text-[8px] font-bold text-slate-700 uppercase leading-none">
-              GUJARAT
+
+            {/* Center Title */}
+            <div className="text-center grow">
+              <div className="text-xs font-semibold text-slate-600 tracking-wider">
+                શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર
+              </div>
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-serif mt-0.5">
+                {instructor.iti_name}
+              </h1>
+              <div className="text-xs font-semibold text-slate-700 mt-0.5">
+                Industrial Training Institute • વ્યવસાય: {instructor.trade} ({instructor.unit})
+              </div>
+              <div className="text-[11px] text-slate-500 font-sans mt-0.5">
+                ઈમેલ: {instructor.email} {instructor.phone && `• ફોન: ${instructor.phone}`}
+              </div>
+            </div>
+
+            {/* Skill India emblem */}
+            <div className="w-16 h-16 rounded-full border border-slate-300 p-1 flex flex-col items-center justify-center text-center shrink-0 bg-blue-50/50">
+              <div className="text-[8px] font-bold text-blue-800 uppercase">Skill</div>
+              <div className="text-xs font-black text-orange-600">India</div>
+              <div className="text-[7px] text-slate-600">કૌશલ ભારત</div>
             </div>
           </div>
 
-          {/* Center Title */}
-          <div className="text-center grow">
-            <div className="text-xs font-semibold text-slate-600 tracking-wider">
-              શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર
+          {/* Outward & Trainee Quick Reference Meta Bar */}
+          <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] font-mono text-slate-600">
+            <div>
+              <strong>જાવક ક્રમાંક:</strong> <span className="text-blue-950 font-bold">{item.outwardNumber}</span>
             </div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-serif mt-0.5">
-              {instructor.iti_name}
-            </h1>
-            <div className="text-xs font-semibold text-slate-700 mt-0.5">
-              Industrial Training Institute • વ્યવસાય: {instructor.trade} ({instructor.unit})
+            <div>
+              <strong>રોલ નં:</strong> {item.trainee.roll_no} | <strong>હાજરી:</strong>{' '}
+              <span className={item.isFlagged ? 'text-rose-700 font-bold' : 'text-slate-800'}>
+                {item.percentage}%
+              </span>
             </div>
-            <div className="text-[11px] text-slate-500 font-sans mt-0.5">
-              ઈમેલ: {instructor.email} {instructor.phone && `• ફોન: ${instructor.phone}`}
+            <div>
+              <strong>તારીખ:</strong> {new Date().toLocaleDateString('en-GB')}
             </div>
-          </div>
-
-          {/* Skill India emblem */}
-          <div className="w-16 h-16 rounded-full border border-slate-300 p-1 flex flex-col items-center justify-center text-center shrink-0 bg-blue-50/50">
-            <div className="text-[8px] font-bold text-blue-800 uppercase">Skill</div>
-            <div className="text-xs font-black text-orange-600">India</div>
-            <div className="text-[7px] text-slate-600">કૌશલ ભારત</div>
           </div>
         </div>
-
-        {/* Outward & Trainee Quick Reference Meta Bar */}
-        <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] font-mono text-slate-600">
-          <div>
-            <strong>જાવક ક્રમાંક:</strong> <span className="text-blue-950 font-bold">{item.outwardNumber}</span>
-          </div>
-          <div>
-            <strong>રોલ નં:</strong> {item.trainee.roll_no} | <strong>હાજરી:</strong>{' '}
-            <span className={item.isFlagged ? 'text-rose-700 font-bold' : 'text-slate-800'}>
-              {item.percentage}%
-            </span>
-          </div>
-          <div>
-            <strong>તારીખ:</strong> {new Date().toLocaleDateString('en-GB')}
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Merged Notice Body */}
       <div
         className="grow prose max-w-none text-slate-900 leading-relaxed min-h-[360px] text-sm"
         dangerouslySetInnerHTML={{ __html: item.html }}
       />
-
-      {/* Official Signature & ITI Seal Block */}
-      <div className="mt-10 pt-4 border-t border-slate-300 flex items-end justify-between select-none">
-        {/* Left: ITI Seal */}
-        <div className="border border-dashed border-slate-400 p-2 rounded text-[10px] text-slate-500 max-w-[170px] bg-slate-50/60">
-          <div className="font-bold text-slate-700">સંસ્થાનું ગોળ સીલ (ITI Seal)</div>
-          <div className="text-[9px] text-slate-400 mt-4 text-center">
-            [ સત્તાવાર સિક્કો અહીં લગાવો ]
-          </div>
-        </div>
-
-        {/* Center: Badge */}
-        <div className="text-center text-[10px] text-slate-400">
-          <div className="inline-flex items-center gap-1 font-mono text-[9px] text-slate-500">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Authorized Administrative Notice • Page {index + 1} of {notices.length}</span>
-          </div>
-        </div>
-
-        {/* Right: Instructor Signature */}
-        <div className="text-center min-w-[210px]">
-          <div className="h-10 flex items-end justify-center pb-1">
-            <span className="font-serif italic font-bold text-blue-900 text-sm opacity-85">
-              {instructor.name}
-            </span>
-          </div>
-          <div className="border-t border-slate-700 pt-1">
-            <div className="font-bold text-xs text-slate-900">{instructor.name}</div>
-            <div className="text-[11px] text-slate-700">{instructor.designation}</div>
-            <div className="text-[10px] text-slate-500">
-              {instructor.trade} • {instructor.iti_name.split('(')[0]}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 
@@ -528,6 +500,21 @@ export default function BatchNoticePrintPreviewModal({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* On-the-fly Letterhead toggle for pre-printed letterhead paper */}
+          <button
+            type="button"
+            onClick={() => setIsLetterheadActive(!isLetterheadActive)}
+            className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors border cursor-pointer ${
+              isLetterheadActive
+                ? 'bg-blue-900/70 border-blue-400 text-blue-200 hover:bg-blue-800'
+                : 'bg-slate-700/80 border-slate-500 text-slate-300 hover:bg-slate-600'
+            }`}
+            title="લેટરહેડ હેડર ચાલુ/બંધ કરો (પ્રી-પ્રિન્ટેડ કાગળ પર પ્રિન્ટ કરવા માટે બંધ કરો)"
+          >
+            <Building2 className="w-3.5 h-3.5 text-amber-300" />
+            <span>લેટરહેડ: {isLetterheadActive ? 'હા (On)' : 'ના (Off)'}</span>
+          </button>
+
           <button
             type="button"
             onClick={handlePrintAll}

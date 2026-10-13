@@ -118,7 +118,7 @@ export default function BatchNoticeModal({
     const workingDays = record?.total_working_days || 24;
     const presentDays = record?.present_days || 14;
     const absentDays = record?.absent_days || 10;
-    const monthYear = record?.month_year || 'August 2025';
+    const monthYear = record?.month_year || 'August 2026';
     const refNum = generateOutwardReference(instructor.trade, trainee.roll_no, monthYear);
 
     // Look up previous dispatch for this trainee
@@ -154,7 +154,7 @@ export default function BatchNoticeModal({
   const batchNoticeItems: BatchNoticeItem[] = useMemo(() => {
     return selectedTraineeObjects.map((item) => {
       const { trainee, record, percentage, isFlagged } = item;
-      const monthYear = record?.month_year || 'August 2025';
+      const monthYear = record?.month_year || 'August 2026';
       const outwardNumber = generateOutwardReference(instructor.trade, trainee.roll_no, monthYear);
       const html = generateLetterHtml(item);
       return {
@@ -173,7 +173,7 @@ export default function BatchNoticeModal({
     if (!autoLogDispatch || selectedTraineeObjects.length === 0) return;
     const logsToRecord: Omit<DispatchLog, 'id' | 'created_at'>[] = selectedTraineeObjects.map(
       ({ trainee, record, percentage }) => {
-        const monthYear = record?.month_year || 'August 2025';
+        const monthYear = record?.month_year || 'August 2026';
         const refNum = generateOutwardReference(instructor.trade, trainee.roll_no, monthYear);
         const traineeDispatches = dispatchLogs.filter((l) => l.trainee_id === trainee.id);
 
@@ -283,9 +283,21 @@ export default function BatchNoticeModal({
           <div className="lg:col-span-5 space-y-4">
             {/* Template Selection */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                1. Select Notice Template
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                  1. Select Notice Template
+                </label>
+                {activeTemplate.show_letterhead !== false ? (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    <Building2 className="w-3 h-3 text-blue-600" />
+                    <span>લેટરહેડ સહિત</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                    <span>📄 પ્રી-પ્રિન્ટેડ કાગળ (હેડર વગર)</span>
+                  </span>
+                )}
+              </div>
               <select
                 value={selectedTemplateId}
                 onChange={(e) => setSelectedTemplateId(e.target.value)}
@@ -293,7 +305,7 @@ export default function BatchNoticeModal({
               >
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.language})
+                    {t.name} ({t.language}) {t.show_letterhead === false ? '• [પ્રી-પ્રિન્ટેડ કાગળ]' : ''}
                   </option>
                 ))}
               </select>
@@ -460,12 +472,14 @@ export default function BatchNoticeModal({
                 ) : (
                   <div className="w-[170mm] max-w-full bg-white border border-slate-300 shadow-md p-6 text-[11px] rounded leading-relaxed select-none max-h-[440px] overflow-y-auto">
                     {/* Header */}
-                    <div className="text-center border-b pb-2 mb-3">
-                      <div className="font-bold text-slate-800">{instructor.iti_name}</div>
-                      <div className="text-[10px] text-slate-500">
-                        {instructor.trade} • {instructor.unit} • {instructor.batch}
+                    {activeTemplate.show_letterhead !== false && (
+                      <div className="text-center border-b pb-2 mb-3">
+                        <div className="font-bold text-slate-800">{instructor.iti_name}</div>
+                        <div className="text-[10px] text-slate-500">
+                          {instructor.trade} • {instructor.unit} • {instructor.batch}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     {/* Body */}
                     <div
                       dangerouslySetInnerHTML={{
@@ -476,13 +490,6 @@ export default function BatchNoticeModal({
                         ),
                       }}
                     />
-                    {/* Signature */}
-                    <div className="mt-6 pt-2 border-t flex justify-end text-right text-[10px]">
-                      <div>
-                        <div className="font-bold text-slate-800">{instructor.name}</div>
-                        <div className="text-slate-500">{instructor.designation}</div>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
@@ -568,7 +575,7 @@ export default function BatchNoticeModal({
         {selectedTraineeObjects.map((item, idx) => (
           <div
             key={item.trainee.id}
-            className="w-[210mm] max-w-[210mm] min-h-[297mm] p-12 bg-white text-slate-900 mx-auto flex flex-col justify-between a4-printable-document"
+            className="w-[210mm] max-w-[210mm] min-h-[297mm] p-12 bg-white text-slate-900 mx-auto flex flex-col justify-start a4-printable-document"
             style={{
               pageBreakAfter: idx < selectedTraineeObjects.length - 1 ? 'always' : 'auto',
               breakAfter: idx < selectedTraineeObjects.length - 1 ? 'page' : 'auto',
@@ -579,57 +586,43 @@ export default function BatchNoticeModal({
             }}
           >
             {/* Header */}
-            <div className="mb-6 border-b-2 border-slate-800 pb-3">
-              <div className="flex items-center justify-between gap-4">
-                <div className="w-14 h-14 rounded-full border-2 border-slate-700 p-1 flex flex-col items-center justify-center text-center">
-                  <div className="text-[8px] font-bold">GOVT OF</div>
-                  <div className="text-sm font-black text-blue-900">ITI</div>
-                  <div className="text-[7px] font-bold">GUJARAT</div>
-                </div>
+            {activeTemplate.show_letterhead !== false && (
+              <div className="mb-6 border-b-2 border-slate-800 pb-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="w-14 h-14 rounded-full border-2 border-slate-700 p-1 flex flex-col items-center justify-center text-center">
+                    <div className="text-[8px] font-bold">GOVT OF</div>
+                    <div className="text-sm font-black text-blue-900">ITI</div>
+                    <div className="text-[7px] font-bold">GUJARAT</div>
+                  </div>
 
-                <div className="text-center grow">
-                  <div className="text-xs font-semibold text-slate-600">
-                    શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર
+                  <div className="text-center grow">
+                    <div className="text-xs font-semibold text-slate-600">
+                      શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર
+                    </div>
+                    <h1 className="text-lg font-black text-slate-900 font-serif">
+                      {instructor.iti_name}
+                    </h1>
+                    <div className="text-xs font-semibold text-slate-700">
+                      Industrial Training Institute • વ્યવસાય: {instructor.trade} ({instructor.unit})
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      ઈમેલ: {instructor.email}
+                    </div>
                   </div>
-                  <h1 className="text-lg font-black text-slate-900 font-serif">
-                    {instructor.iti_name}
-                  </h1>
-                  <div className="text-xs font-semibold text-slate-700">
-                    Industrial Training Institute • વ્યવસાય: {instructor.trade} ({instructor.unit})
-                  </div>
-                  <div className="text-[10px] text-slate-500">
-                    ઈમેલ: {instructor.email}
-                  </div>
-                </div>
 
-                <div className="w-14 h-14 rounded-full border border-slate-300 p-1 flex flex-col items-center justify-center text-center">
-                  <div className="text-[7px] font-bold text-blue-800">Skill</div>
-                  <div className="text-xs font-black text-orange-600">India</div>
+                  <div className="w-14 h-14 rounded-full border border-slate-300 p-1 flex flex-col items-center justify-center text-center">
+                    <div className="text-[7px] font-bold text-blue-800">Skill</div>
+                    <div className="text-xs font-black text-orange-600">India</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Letter Body */}
             <div
               className="grow leading-relaxed text-sm"
               dangerouslySetInnerHTML={{ __html: generateLetterHtml(item) }}
             />
-
-            {/* Signature Area */}
-            <div className="mt-8 pt-4 border-t border-slate-300 flex items-end justify-between">
-              <div className="border border-dashed border-slate-400 p-2 rounded text-[10px] text-slate-400 max-w-[150px]">
-                <div>સંસ્થાનું ગોળ સીલ</div>
-                <div className="mt-4 text-center">[ સિક્કો ]</div>
-              </div>
-
-              <div className="text-right min-w-[200px]">
-                <div className="font-bold text-xs text-slate-900">{instructor.name}</div>
-                <div className="text-[11px] text-slate-700">{instructor.designation}</div>
-                <div className="text-[10px] text-slate-500">
-                  {instructor.trade} • {instructor.iti_name.split('(')[0]}
-                </div>
-              </div>
-            </div>
           </div>
         ))}
       </div>
@@ -643,6 +636,7 @@ export default function BatchNoticeModal({
           instructor={instructor}
           templateName={activeTemplate.name}
           language={activeTemplate.language}
+          showLetterhead={activeTemplate.show_letterhead !== false}
           onRecordDispatches={recordDispatches}
         />
       )}

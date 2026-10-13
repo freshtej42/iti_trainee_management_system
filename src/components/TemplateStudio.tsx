@@ -57,6 +57,7 @@ export const STARTER_PRESETS = [
     name: 'પ્રથમ ગેરહાજરી ચેતવણી નોટિસ (1st Attendance Warning Notice)',
     category: 'attendance_warning',
     notice_type: '1st Warning' as const,
+    show_letterhead: true,
     subject: 'સંસ્થામાં વગર પરવાનગીએ ગેરહાજર રહેવા બાબત પ્રથમ ચેતવણી પત્ર.',
     content: `<div style="line-height: 1.7; font-family: 'Noto Sans Gujarati', sans-serif; font-size: 14px; color: #111;">
   <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
@@ -122,6 +123,7 @@ export const STARTER_PRESETS = [
     name: 'દ્વિતીય કડક ચેતવણી નોટિસ - વાલી રૂબરૂ મુલાકાત (2nd Warning & Parent Summons)',
     category: 'attendance_warning',
     notice_type: '2nd Warning' as const,
+    show_letterhead: true,
     subject: 'સતત અનિયમિતતા બાબતે સંસ્થા ખાતે રૂબરૂ હાજર રહેવા આખરી નોટિસ.',
     content: `<div style="line-height: 1.7; font-family: 'Noto Sans Gujarati', sans-serif; font-size: 14px; color: #111;">
   <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
@@ -168,6 +170,7 @@ export const STARTER_PRESETS = [
     name: 'આચાર્યશ્રી અહેવાલ રિપોર્ટ ટેબલ (Principal Forwarding Report Table)',
     category: 'principal_report',
     notice_type: 'Report' as const,
+    show_letterhead: false,
     subject: 'અનિયમિત તાલીમાર્થીઓની યાદી અને શિક્ષાત્મક કાર્યવાહી દરખાસ્ત.',
     content: `<div style="line-height: 1.7; font-family: 'Noto Sans Gujarati', sans-serif; font-size: 14px; color: #111;">
   <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
@@ -375,8 +378,9 @@ export default function TemplateStudio({
   const [subject, setSubject] = useState<string>(currentTemplate.subject || '');
 
   // Letterhead visual controls
-  const [showLetterhead, setShowLetterhead] = useState<boolean>(true);
-  const [showSignature, setShowSignature] = useState<boolean>(true);
+  const [showLetterhead, setShowLetterhead] = useState<boolean>(
+    () => currentTemplate.show_letterhead !== false
+  );
 
   // Live Trainee Data Mode (test rendering real student records)
   const [previewMerged, setPreviewMerged] = useState<boolean>(false);
@@ -419,6 +423,7 @@ export default function TemplateStudio({
     setNoticeType(tmpl.notice_type || '1st Warning');
     setCategory(tmpl.category || 'attendance_warning');
     setSubject(tmpl.subject || '');
+    setShowLetterhead(tmpl.show_letterhead !== false);
     if (tmpl.header_config) {
       setHeaderConfig(tmpl.header_config);
     }
@@ -457,7 +462,7 @@ export default function TemplateStudio({
     const percentage =
       currentAttendance?.attendance_percentage ||
       Number(((presentDays / workingDays) * 100).toFixed(2));
-    const monthYear = currentAttendance?.month_year || 'August 2025';
+    const monthYear = currentAttendance?.month_year || 'August 2026';
     const refNumber = generateOutwardReference(
       instructor.trade,
       currentTrainee.roll_no,
@@ -517,6 +522,7 @@ export default function TemplateStudio({
       subject,
       content_html: contentHtml,
       header_config: headerConfig,
+      show_letterhead: showLetterhead,
       language: 'Gujarati',
       updated_at: new Date().toISOString(),
     };
@@ -540,6 +546,7 @@ export default function TemplateStudio({
       subject,
       content_html: contentHtml,
       header_config: headerConfig,
+      show_letterhead: showLetterhead,
       language: 'Gujarati',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -563,6 +570,7 @@ export default function TemplateStudio({
       instructor_id: instructor.id,
       template_name: cloneName,
       name: cloneName,
+      show_letterhead: tmpl.show_letterhead !== false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -584,6 +592,7 @@ export default function TemplateStudio({
       content_html: preset.content,
       language: 'Gujarati',
       header_config: headerConfig,
+      show_letterhead: (preset as any).show_letterhead !== false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -864,6 +873,16 @@ export default function TemplateStudio({
                       </span>
 
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                        {tmpl.show_letterhead !== false ? (
+                          <span className="flex items-center gap-1 text-blue-800 text-[10px] font-semibold bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-200" title="આ ટેમ્પલેટમાં સંસ્થાનું લેટરહેડ સક્રિય છે">
+                            <Building2 className="w-3 h-3 text-blue-600" />
+                            <span>લેટરહેડ સહિત</span>
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-slate-600 text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" title="આ ટેમ્પલેટ પ્રી-પ્રિન્ટેડ અથવા સાદા કાગળ માટે છે (લેટરહેડ વગર)">
+                            <span>📄 પ્રી-પ્રિન્ટેડ કાગળ</span>
+                          </span>
+                        )}
                         {isSystem ? (
                           <span className="flex items-center gap-1 text-slate-500 text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded">
                             <ShieldCheck className="w-3 h-3 text-blue-600" />
@@ -1015,6 +1034,21 @@ export default function TemplateStudio({
                 <option value="General Notice" className="text-slate-900 bg-white">સામાન્ય નોટિસ (General)</option>
                 <option value="Report" className="text-slate-900 bg-white">આચાર્યશ્રી અહેવાલ (Report)</option>
               </select>
+
+              {/* Per-Template Letterhead Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setShowLetterhead(!showLetterhead)}
+                className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                  showLetterhead
+                    ? 'bg-blue-950/70 border-blue-300 text-white shadow-2xs'
+                    : 'bg-[#104899] border-blue-400/40 text-blue-200 hover:text-white'
+                }`}
+                title="લેટરહેડ સુવિધા: સંસ્થાનું હેડર બેનર રાખવું કે પ્રી-પ્રિન્ટેડ કાગળ માટે છુપાવવું"
+              >
+                <Building2 className={`w-3.5 h-3.5 ${showLetterhead ? 'text-amber-300' : 'text-blue-300'}`} />
+                <span>લેટરહેડ: {showLetterhead ? 'હા (On)' : 'ના (Off)'}</span>
+              </button>
             </div>
 
             {/* Right: Actions (Save, Save As, Generator, Print, PDF) */}
@@ -1131,7 +1165,7 @@ export default function TemplateStudio({
             {/* The A4 Document Container */}
             <div
               id="notice-a4-sheet"
-              className="bg-white text-slate-900 shadow-2xl border border-slate-300 relative flex flex-col justify-between a4-printable-document p-8 sm:p-12 transition-all"
+              className="bg-white text-slate-900 shadow-2xl border border-slate-300 relative flex flex-col justify-start a4-printable-document p-8 sm:p-12 transition-all"
               style={{
                 width: '100%',
                 maxWidth: '820px',
@@ -1212,25 +1246,6 @@ export default function TemplateStudio({
                   />
                 )}
               </div>
-
-              {/* Bottom Official Signature Block */}
-              {showSignature && (
-                <div className="mt-8 pt-4 border-t border-slate-200 flex items-end justify-between text-xs text-slate-700">
-                  <div>
-                    <div><strong>સંદર્ભ ક્રમાંક:</strong> {headerConfig.ref_prefix || 'ઔતાસં/૨૦૨૫'}</div>
-                    <div><strong>તારીખ:</strong> {new Date().toLocaleDateString('en-GB')}</div>
-                  </div>
-
-                  <div className="text-center min-w-[180px]">
-                    <div className="h-10"></div>
-                    <div className="font-bold text-sm text-slate-900">{instructor.name}</div>
-                    <div className="text-slate-600">
-                      {instructor.designation}, {instructor.trade}
-                    </div>
-                    <div className="text-slate-500 text-[11px]">{instructor.iti_name}</div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -1251,17 +1266,9 @@ export default function TemplateStudio({
               <button
                 type="button"
                 onClick={() => setShowLetterhead(!showLetterhead)}
-                className="hover:text-blue-700 underline cursor-pointer"
+                className="hover:text-blue-700 underline cursor-pointer font-semibold"
               >
-                {showLetterhead ? 'લેટરહેડ છુપાવો' : 'લેટરહેડ બતાવો'}
-              </button>
-              <span>•</span>
-              <button
-                type="button"
-                onClick={() => setShowSignature(!showSignature)}
-                className="hover:text-blue-700 underline cursor-pointer"
-              >
-                {showSignature ? 'સહી છુપાવો' : 'સહી બતાવો'}
+                {showLetterhead ? 'લેટરહેડ છુપાવો (Hide Header)' : 'લેટરહેડ ઉમેરો (Show Header)'}
               </button>
             </div>
           </div>

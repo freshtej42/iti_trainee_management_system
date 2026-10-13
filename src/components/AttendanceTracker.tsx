@@ -41,14 +41,55 @@ export default function AttendanceTracker({
   onBulkDraft,
 }: AttendanceTrackerProps) {
   const { t, tText } = useLanguage();
-  const [selectedMonth, setSelectedMonth] = useState<string>('August 2025');
+  // 12 Standard Calendar Months (Academic Order Starting August)
+  const MONTHS_LIST = useMemo(
+    () => [
+      { name: 'August', gu: 'ઓગસ્ટ', hi: 'अगस्त' },
+      { name: 'September', gu: 'સપ્ટેમ્બર', hi: 'सितंबर' },
+      { name: 'October', gu: 'ઓક્ટોબર', hi: 'अक्टूबर' },
+      { name: 'November', gu: 'નવેમ્બર', hi: 'नवंबर' },
+      { name: 'December', gu: 'ડિસેમ્બર', hi: 'दिसंबर' },
+      { name: 'January', gu: 'જાન્યુઆરી', hi: 'जनवरी' },
+      { name: 'February', gu: 'ફેબ્રુઆરી', hi: 'फ़रवरी' },
+      { name: 'March', gu: 'માર્ચ', hi: 'मार्च' },
+      { name: 'April', gu: 'એપ્રિલ', hi: 'अप्रैल' },
+      { name: 'May', gu: 'મે', hi: 'मई' },
+      { name: 'June', gu: 'જૂન', hi: 'जून' },
+      { name: 'July', gu: 'જુલાઈ', hi: 'जुलाई' },
+    ],
+    []
+  );
+
+  // Dynamic Years List: starting from 2026, going for at least 12 years (up to 2039), plus any record years
+  const availableYears = useMemo(() => {
+    const baseYears: number[] = [];
+    const startYear = 2026;
+    const count = 14; // 14 years: 2026 through 2039
+    for (let i = 0; i < count; i++) {
+      baseYears.push(startYear + i);
+    }
+    // Also incorporate any custom/existing record years
+    attendanceRecords.forEach((r) => {
+      if (r.month_year) {
+        const parts = r.month_year.trim().split(' ');
+        const yr = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(yr) && !baseYears.includes(yr)) {
+          baseYears.push(yr);
+        }
+      }
+    });
+    return baseYears.sort((a, b) => a - b);
+  }, [attendanceRecords]);
+
+  // Year and Month selection state (Defaults to 2026 and August)
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [selectedMonthName, setSelectedMonthName] = useState<string>('August');
+  const selectedMonth = `${selectedMonthName} ${selectedYear}`;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'flagged' | 'regular'>('all');
   const [isSavedNotice, setIsSavedNotice] = useState(false);
   const [isPrintRegisterOpen, setIsPrintRegisterOpen] = useState(false);
-
-  // Available months
-  const availableMonths = ['August 2025', 'September 2025', 'October 2025'];
 
   // Current month's records for this instructor's trainees
   const instructorTraineeIds = useMemo(() => new Set(trainees.map((t) => t.id)), [trainees]);
@@ -65,14 +106,35 @@ export default function AttendanceTracker({
   const [workingDaysInput, setWorkingDaysInput] = useState<number>(defaultWorkingDays);
   const [mobileViewMode, setMobileViewMode] = useState<'cards' | 'table'>('cards');
 
-  // Sync working days input when month changes
-  const handleMonthChange = (month: string) => {
-    setSelectedMonth(month);
+  // Sync working days input when month or year changes
+  const syncWorkingDaysForMonth = (monthYearStr: string) => {
     const recs = attendanceRecords.filter(
-      (r) => r.month_year === month && instructorTraineeIds.has(r.trainee_id)
+      (r) => r.month_year === monthYearStr && instructorTraineeIds.has(r.trainee_id)
     );
     const days = recs[0]?.total_working_days || 24;
     setWorkingDaysInput(days);
+  };
+
+  const handleYearChange = (newYear: number) => {
+    setSelectedYear(newYear);
+    syncWorkingDaysForMonth(`${selectedMonthName} ${newYear}`);
+  };
+
+  const handleMonthNameChange = (newMonthName: string) => {
+    setSelectedMonthName(newMonthName);
+    syncWorkingDaysForMonth(`${newMonthName} ${selectedYear}`);
+  };
+
+  // Sync working days input when month changes
+  const handleMonthChange = (month: string) => {
+    const parts = month.trim().split(' ');
+    if (parts.length >= 2) {
+      const yr = parseInt(parts[parts.length - 1], 10);
+      const mName = parts.slice(0, parts.length - 1).join(' ');
+      if (!isNaN(yr)) setSelectedYear(yr);
+      if (mName) setSelectedMonthName(mName);
+    }
+    syncWorkingDaysForMonth(month);
   };
 
   // Trainee row data merged with attendance
@@ -206,28 +268,87 @@ export default function AttendanceTracker({
     onBulkDraft(flaggedList);
   };
 
+  // Localized year label helper
+  const formatYearLabel = (y: number) => {
+    const gujaratiDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
+    const toGu = (num: number) => String(num).replace(/[0-9]/g, (d) => gujaratiDigits[+d]);
+    return tText(`${toGu(y)} (${y})`, `${y}`, `${y}`);
+  };
+
+  // Localized month label helper
+  const formatMonthOnlyLabel = (mName: string) => {
+    const item = MONTHS_LIST.find((x) => x.name === mName);
+    if (!item) return mName;
+    return tText(`${item.gu} (${item.name})`, `${item.hi} (${item.name})`, item.name);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full">
-      {/* Top Controls Bar: Month Selector & Working Days Form */}
+      {/* Top Controls Bar: Dual Year & Month Selectors & Working Days Form */}
       <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-5 shadow-xs w-full overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
-          {/* Left: Operational Scope & Month */}
+          {/* Left: Operational Scope & Dual Dropdowns (Year & Month) */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 bg-slate-100 px-2.5 sm:px-3 py-2 rounded-lg text-slate-700 min-h-[38px] sm:min-h-[40px]">
+            {/* 1. Year Drop-down (From 2026, 12+ years dynamic) */}
+            <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/60 transition-colors border border-slate-200/90 px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-700 min-h-[38px] sm:min-h-[40px] shadow-xs">
               <Calendar className="w-4 h-4 text-[#346739] shrink-0" />
-              <span className="text-xs font-semibold">{tText('માસ:', 'माह:', 'Month:')}</span>
+              <label htmlFor="attendance-year-select" className="text-xs font-semibold text-slate-700 whitespace-nowrap">
+                {tText('વર્ષ:', 'वर्ष:', 'Year:')}
+              </label>
               <select
-                value={selectedMonth}
-                onChange={(e) => handleMonthChange(e.target.value)}
-                className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
+                id="attendance-year-select"
+                value={selectedYear}
+                onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
+                className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer pr-1"
+                aria-label={tText('વર્ષ પસંદ કરો', 'वर्ष चुनें', 'Select Year')}
               >
-                {availableMonths.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
+                {availableYears.map((yr) => (
+                  <option key={yr} value={yr}>
+                    {formatYearLabel(yr)}
                   </option>
                 ))}
               </select>
             </div>
+
+            {/* 2. Month Drop-down (12 Months dynamic) */}
+            <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/60 transition-colors border border-slate-200/90 px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-700 min-h-[38px] sm:min-h-[40px] shadow-xs">
+              <Calendar className="w-4 h-4 text-[#346739] shrink-0" />
+              <label htmlFor="attendance-month-select" className="text-xs font-semibold text-slate-700 whitespace-nowrap">
+                {tText('માસ:', 'माह:', 'Month:')}
+              </label>
+              <select
+                id="attendance-month-select"
+                value={selectedMonthName}
+                onChange={(e) => handleMonthNameChange(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer pr-1"
+                aria-label={tText('માસ પસંદ કરો', 'माह चुनें', 'Select Month')}
+              >
+                {MONTHS_LIST.map((m) => (
+                  <option key={m.name} value={m.name}>
+                    {formatMonthOnlyLabel(m.name)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Dynamic Status Pill */}
+            {currentMonthRecords.length > 0 ? (
+              <span
+                className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold"
+                title={tText('આ માસની હાજરી નોંધાયેલી છે', 'इस माह की उपस्थिति दर्ज है', 'Attendance recorded for this month')}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                <span>{tText('નોંધાયેલ', 'दर्ज', 'Recorded')}</span>
+              </span>
+            ) : (
+              <span
+                className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 text-blue-800 border border-blue-200 text-[11px] font-semibold"
+                title={tText('નવો માસ - હાજરી ભરવા તૈયાર', 'नया माह - उपस्थिति भरने के लिए तैयार', 'New month - ready for attendance entry')}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                <span>{tText('નવો માસ', 'नया माह', 'New Month')}</span>
+              </span>
+            )}
 
             {/* Total Working Days input */}
             <div className="flex items-center gap-1.5 sm:gap-2 bg-[#f2edc2]/40 border border-[#9fcb98] px-2.5 sm:px-3 py-1.5 rounded-lg min-h-[38px] sm:min-h-[40px]">

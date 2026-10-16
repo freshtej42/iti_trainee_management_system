@@ -11,12 +11,11 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
-  Layers,
-  Users,
   Building2,
 } from 'lucide-react';
 import { Trainee, Instructor } from '../types';
 import { exportBatchElementsToPdf, exportElementToPdf, printCleanDocument } from '../utils/pdfExport';
+import { getEffectiveLetterheadHtml, renderLetterheadHtml } from '../utils/letterheadPresets';
 
 export interface BatchNoticeItem {
   trainee: Trainee;
@@ -35,6 +34,7 @@ export interface BatchNoticePrintPreviewModalProps {
   templateName: string;
   language?: string;
   showLetterhead?: boolean;
+  letterheadHtml?: string;
   onRecordDispatches?: () => void;
 }
 
@@ -46,6 +46,7 @@ export default function BatchNoticePrintPreviewModal({
   templateName,
   language = 'Gujarati',
   showLetterhead = true,
+  letterheadHtml,
   onRecordDispatches,
 }: BatchNoticePrintPreviewModalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
@@ -60,21 +61,45 @@ export default function BatchNoticePrintPreviewModal({
   const singleSheetRef = useRef<HTMLDivElement>(null);
   const allSheetsRef = useRef<HTMLDivElement>(null);
 
+  // Standard A4 dimensions at 96 DPI: 794px width x 1123px height
+  const baseWidthPx = 794;
+  const baseHeightPx = 1123;
+
+  // Responsive fit-to-screen zoom calculator for mobile/Android
+  const computeFitZoom = () => {
+    if (typeof window === 'undefined') return 0.85;
+    const availW = Math.max(300, window.innerWidth - (window.innerWidth < 640 ? 20 : 48));
+    const ratio = Number((availW / baseWidthPx).toFixed(2));
+    if (window.innerWidth < 640) {
+      return Math.min(0.65, Math.max(0.35, ratio));
+    }
+    if (window.innerWidth < 1024) {
+      return 0.65;
+    }
+    return 0.85;
+  };
+
   // Initialize and adjust zoom, and sync letterhead setting
   useEffect(() => {
     if (isOpen) {
       setIsLetterheadActive(showLetterhead);
       setCurrentPageIndex(0);
       setFeedback(null);
-      if (window.innerWidth < 640) {
-        setZoomLevel(0.45);
-      } else if (window.innerWidth < 1024) {
-        setZoomLevel(0.65);
-      } else {
-        setZoomLevel(0.85);
-      }
+      setZoomLevel(computeFitZoom());
     }
   }, [isOpen, showLetterhead]);
+
+  // Handle window resize to keep preview centered on mobile rotation
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleResize = () => {
+      if (window.innerWidth < 640) {
+        setZoomLevel(computeFitZoom());
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isOpen]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -95,13 +120,38 @@ export default function BatchNoticePrintPreviewModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, notices.length]);
 
-  if (!isOpen || notices.length === 0) return null;
+  if (!isOpen) return null;
+
+  if (notices.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto">
+            <FileText className="w-7 h-7" />
+          </div>
+          <h3 className="text-base font-black text-slate-900">
+            કોઈ તાલીમાર્થી પસંદ થયેલ નથી
+          </h3>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            પ્રિન્ટ પૂર્વાવલોકન અને PDF માટે કૃપા કરીને રિપોર્ટ પેજ પરથી ઓછામાં ઓછો એક તાલીમાર્થી પસંદ કરો અથવા હાજરી ફિલ્ટર તપાસો.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
+          >
+            પાછા જાઓ (Close)
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const currentNotice = notices[Math.min(currentPageIndex, notices.length - 1)];
   const fontFamily =
     language === 'Hindi'
       ? "'Noto Sans Devanagari', sans-serif"
-      : "'Noto Sans Gujarati', sans-serif";
+      : "'Noto Sans Gujarati', 'Anek Gujarati', sans-serif";
 
   // 1. Export all notices as combined multi-page PDF
   const handleExportAllPdf = async () => {
@@ -116,13 +166,12 @@ export default function BatchNoticePrintPreviewModal({
 
       onRecordDispatches?.();
 
-      const cleanTrade = instructor.trade.replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanTrade = (instructor.trade || 'ITI').replace(/[^a-zA-Z0-9]/g, '_');
       const filename = `ITI_Batch_Notices_${cleanTrade}_${pages.length}_Letters.pdf`;
 
       await exportBatchElementsToPdf(pages, {
         filename,
         orientation: 'portrait',
-        scale: 2.0,
         onProgress: (msg) => setPdfProgress(msg),
         onPageProgress: (curr, total) => {
           setPdfProgress(`પત્ર ${curr} / ${total} નું રેન્ડરિંગ...`);
@@ -160,7 +209,6 @@ export default function BatchNoticePrintPreviewModal({
       await exportElementToPdf(singleSheetRef.current, {
         filename,
         orientation: 'portrait',
-        scale: 2.2,
         onProgress: (msg) => setPdfProgress(msg),
       });
 
@@ -181,13 +229,26 @@ export default function BatchNoticePrintPreviewModal({
     }
   };
 
-  // 3. Print all notices directly
+  // 3. Print all notices directly (Android & Desktop friendly)
   const handlePrintAll = async () => {
     onRecordDispatches?.();
     setFeedback({
       type: 'info',
-      msg: 'તમામ પત્રો માટે પ્રિન્ટ ડાયલોગ ખુલી રહ્યો છે...',
+      msg: 'પ્રિન્ટ ડાયલોગ ખુલી રહ્યો છે...',
     });
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+
+    if (isMobile) {
+      document.body.classList.add('is-printing-modal');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('is-printing-modal');
+      }, 1000);
+      return;
+    }
 
     if (allSheetsRef.current) {
       await printCleanDocument(allSheetsRef.current, {
@@ -199,9 +260,22 @@ export default function BatchNoticePrintPreviewModal({
     }
   };
 
-  // 4. Print single notice directly
+  // 4. Print single current notice directly
   const handlePrintCurrent = async () => {
     onRecordDispatches?.();
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+
+    if (isMobile) {
+      document.body.classList.add('is-printing-modal');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('is-printing-modal');
+      }, 1000);
+      return;
+    }
+
     if (singleSheetRef.current) {
       await printCleanDocument(singleSheetRef.current, {
         title: `ITI Notice - Roll ${currentNotice.trainee.roll_no} - ${currentNotice.trainee.student_name}`,
@@ -213,195 +287,247 @@ export default function BatchNoticePrintPreviewModal({
   };
 
   // Helper to render one A4 Notice Sheet
-  const renderNoticeSheet = (item: BatchNoticeItem, index: number, isMultiPageStack = false) => (
-    <div
-      key={item.trainee.id}
-      className={`bg-white text-slate-900 shadow-2xl rounded-xs a4-printable-document flex flex-col justify-start p-8 sm:p-12 w-[210mm] max-w-[210mm] min-h-[297mm] mx-auto ${
-        isMultiPageStack ? 'mb-8 print:mb-0' : ''
-      }`}
-      style={{
-        boxSizing: 'border-box',
-        backgroundColor: '#ffffff',
-        fontFamily,
-        pageBreakAfter: isMultiPageStack && index < notices.length - 1 ? 'always' : 'auto',
-        breakAfter: isMultiPageStack && index < notices.length - 1 ? 'page' : 'auto',
-      }}
-    >
-      {/* Official ITI Letterhead (Conditional per template or on-the-fly toggle) */}
-      {isLetterheadActive && (
-        <div className="mb-6 border-b-2 border-slate-800 pb-3 select-none">
-          <div className="flex items-center justify-between gap-4">
-            {/* Government of Gujarat ITI Emblem */}
-            <div className="w-16 h-16 rounded-full border-2 border-slate-700 p-1 flex flex-col items-center justify-center text-center shrink-0 bg-slate-50">
-              <div className="text-[9px] font-bold tracking-tight text-slate-800 uppercase leading-none">
-                GOVT OF
-              </div>
-              <div className="text-base font-black text-blue-900 leading-tight">ITI</div>
-              <div className="text-[8px] font-bold text-slate-700 uppercase leading-none">
-                GUJARAT
-              </div>
-            </div>
+  const renderNoticeSheet = (item: BatchNoticeItem, index: number, isMultiPageStack = false) => {
+    const effectiveLetterhead =
+      letterheadHtml ||
+      instructor.letterhead_html ||
+      instructor.header_config?.letterhead_html ||
+      getEffectiveLetterheadHtml(instructor);
 
-            {/* Center Title */}
-            <div className="text-center grow">
-              <div className="text-xs font-semibold text-slate-600 tracking-wider">
-                શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર
-              </div>
-              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-serif mt-0.5">
-                {instructor.iti_name}
-              </h1>
-              <div className="text-xs font-semibold text-slate-700 mt-0.5">
-                Industrial Training Institute • વ્યવસાય: {instructor.trade} ({instructor.unit})
-              </div>
-              <div className="text-[11px] text-slate-500 font-sans mt-0.5">
-                ઈમેલ: {instructor.email} {instructor.phone && `• ફોન: ${instructor.phone}`}
-              </div>
+    return (
+      <div
+        key={item.trainee.id}
+        className={`bg-white text-slate-900 shadow-2xl rounded-xs a4-printable-document flex flex-col justify-start p-8 sm:p-12 w-[794px] max-w-[794px] min-h-[1123px] mx-auto ${
+          isMultiPageStack ? 'mb-8 print:mb-0' : ''
+        }`}
+        style={{
+          boxSizing: 'border-box',
+          backgroundColor: '#ffffff',
+          fontFamily,
+          pageBreakAfter: isMultiPageStack && index < notices.length - 1 ? 'always' : 'auto',
+          breakAfter: isMultiPageStack && index < notices.length - 1 ? 'page' : 'auto',
+        }}
+      >
+        {/* Official ITI Letterhead (Conditional per template or on-the-fly toggle) */}
+        {isLetterheadActive && (
+          effectiveLetterhead ? (
+            <div
+              className="mb-4 iti-rendered-letterhead select-none"
+              dangerouslySetInnerHTML={{
+                __html: renderLetterheadHtml(effectiveLetterhead, {
+                  refNumber: item.outwardNumber,
+                  issueDate: new Date().toLocaleDateString('gu-IN'),
+                }),
+              }}
+            />
+          ) : instructor.header_config?.letterhead_mode === 'custom_banner' && instructor.header_config?.custom_banner_image_url ? (
+          <div
+            className="mb-4 select-none"
+            style={{ marginBottom: `${instructor.header_config.custom_banner_margin_bottom_mm ?? 4}mm` }}
+          >
+            <div
+              className="w-full flex items-center justify-center overflow-hidden"
+              style={{ height: `${instructor.header_config.custom_banner_height_mm || 38}mm` }}
+            >
+              <img
+                src={instructor.header_config.custom_banner_image_url}
+                alt="Institute Letterhead Banner"
+                className="w-full h-full object-contain"
+              />
             </div>
-
-            {/* Skill India emblem */}
-            <div className="w-16 h-16 rounded-full border border-slate-300 p-1 flex flex-col items-center justify-center text-center shrink-0 bg-blue-50/50">
-              <div className="text-[8px] font-bold text-blue-800 uppercase">Skill</div>
-              <div className="text-xs font-black text-orange-600">India</div>
-              <div className="text-[7px] text-slate-600">કૌશલ ભારત</div>
+            {/* Outward Details Row */}
+            <div className="mt-2 pt-1 border-t border-slate-400 flex justify-between items-center text-xs text-slate-800 font-medium">
+              <div>
+                જાવક નંબર: <strong className="text-slate-900">{item.outwardNumber}</strong>
+              </div>
+              <div>
+                તારીખ: <strong className="text-slate-900">{new Date().toLocaleDateString('gu-IN')}</strong>
+              </div>
             </div>
           </div>
+        ) : instructor.header_config?.letterhead_mode === 'blank_for_preprinted' ? (
+          <div
+            className="w-full print:border-none border border-dashed border-slate-300 rounded mb-4 flex items-center justify-center text-[10px] text-slate-400 select-none no-print"
+            style={{ height: `${instructor.header_config?.custom_banner_height_mm || 40}mm` }}
+          >
+            <span>[ઓફિસ પ્રિન્ટેડ લેટરહેડ કાગળ માટે રાખેલ જગ્યા - {instructor.header_config?.custom_banner_height_mm || 40}mm]</span>
+          </div>
+        ) : (
+          <div className="mb-6 border-b-2 border-slate-800 pb-3 select-none">
+            <div className="flex items-center justify-between gap-4">
+              {/* Government of Gujarat / ITI Emblem or Custom Left Logo */}
+              {instructor.header_config?.show_logo !== false && (
+                <div className="shrink-0 flex items-center justify-center">
+                  {instructor.header_config?.logo_url ? (
+                    <img
+                      src={instructor.header_config.logo_url}
+                      alt="Left Logo"
+                      style={{
+                        width: `${instructor.header_config.logo_width || 56}px`,
+                        height: `${instructor.header_config.logo_width || 56}px`,
+                      }}
+                      className="object-contain"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full border-2 border-slate-700 p-1 flex flex-col items-center justify-center text-center shrink-0 bg-slate-50">
+                      <div className="text-[9px] font-bold tracking-tight text-slate-800 uppercase leading-none">
+                        GOVT OF
+                      </div>
+                      <div className="text-base font-black text-blue-900 leading-tight">ITI</div>
+                      <div className="text-[8px] font-bold text-slate-700 uppercase leading-none">
+                        GUJARAT
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-          {/* Outward & Trainee Quick Reference Meta Bar */}
-          <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] font-mono text-slate-600">
-            <div>
-              <strong>જાવક ક્રમાંક:</strong> <span className="text-blue-950 font-bold">{item.outwardNumber}</span>
+              {/* Center Title */}
+              <div className="text-center grow">
+                <div className="text-xs font-semibold text-slate-600 tracking-wider">
+                  {instructor.header_config?.department_subtitle || 'શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર'}
+                </div>
+                <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-serif mt-0.5">
+                  {instructor.header_config?.institute_name_gu || instructor.iti_name || 'ઔદ્યોગિક તાલીમ સંસ્થા'}
+                </h1>
+                <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                  {instructor.header_config?.institute_name_en || 'INDUSTRIAL TRAINING INSTITUTE'}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  {instructor.header_config?.address || instructor.institution_address || 'ગુજરાત રાજ્ય'}
+                </div>
+              </div>
+
+              {/* Right Meta Info or Custom Right Logo */}
+              <div className="text-right text-[11px] text-slate-600 shrink-0 select-none space-y-0.5">
+                {instructor.header_config?.show_right_logo && instructor.header_config?.right_logo_url ? (
+                  <img
+                    src={instructor.header_config.right_logo_url}
+                    alt="Right Logo"
+                    style={{
+                      width: `${instructor.header_config.right_logo_width || 56}px`,
+                      height: `${instructor.header_config.right_logo_width || 56}px`,
+                    }}
+                    className="object-contain ml-auto"
+                  />
+                ) : (
+                  <>
+                    <div className="font-semibold text-slate-800">ISO 9001:2015</div>
+                    <div>ટ્રેડ: <strong className="text-slate-900">{instructor.trade}</strong></div>
+                    <div>બેચ: <strong className="text-slate-900">{item.trainee.batch || instructor.batch}</strong></div>
+                  </>
+                )}
+              </div>
             </div>
-            <div>
-              <strong>રોલ નં:</strong> {item.trainee.roll_no} | <strong>હાજરી:</strong>{' '}
-              <span className={item.isFlagged ? 'text-rose-700 font-bold' : 'text-slate-800'}>
-                {item.percentage}%
-              </span>
-            </div>
-            <div>
-              <strong>તારીખ:</strong> {new Date().toLocaleDateString('en-GB')}
+
+            {/* Sub Header Rule with Outward Details */}
+            <div className="mt-3 pt-1.5 border-t border-slate-300 flex justify-between items-center text-xs text-slate-700 font-medium">
+              <div>
+                જાવક નંબર: <strong className="text-slate-900">{item.outwardNumber}</strong>
+              </div>
+              <div>
+                તારીખ: <strong className="text-slate-900">{new Date().toLocaleDateString('gu-IN')}</strong>
+              </div>
             </div>
           </div>
-        </div>
+        )
       )}
 
-      {/* Merged Notice Body */}
+      {/* Merged Letter Content */}
       <div
-        className="grow prose max-w-none text-slate-900 leading-relaxed min-h-[360px] text-sm"
+        className="report-rendered-document grow text-slate-900 text-sm leading-relaxed"
         dangerouslySetInnerHTML={{ __html: item.html }}
       />
     </div>
   );
+};
+
+  const scaledWidthPx = Math.round(baseWidthPx * zoomLevel);
+  const scaledHeightPx = Math.round(baseHeightPx * zoomLevel);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex flex-col">
-      {/* Top Application Bar (Controls, Navigation & Actions) */}
-      <div className="bg-slate-900 text-white px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-lg select-none print:hidden">
-        {/* Title and Badge */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-600 rounded-lg text-white shadow-xs">
-            <Printer className="w-5 h-5" />
+    <div
+      id="batch-print-modal-root"
+      className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xs flex flex-col justify-between overflow-hidden animate-in fade-in duration-150 h-[100dvh]"
+    >
+      {/* Top Controls Bar (Clean & Responsive for Mobile / Desktop) */}
+      <div className="bg-slate-900 border-b border-slate-800 text-white px-3 sm:px-4 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-lg print:hidden">
+        {/* Left: Title & Page Navigation */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="p-1.5 bg-blue-600 rounded-lg text-white shadow-xs shrink-0">
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold tracking-tight text-slate-100">
-                A4 પ્રિન્ટ પ્રીવ્યૂ અને પુષ્ટિ (Batch Notice Print Preview & Confirm)
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-[160px] sm:max-w-xs">
+                A4 પૂર્વાવલોકન
               </h2>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                ✓ {notices.length} પત્રો ચકાસણી માટે તૈયાર
+              <span className="text-[10px] sm:text-[11px] bg-blue-900/60 text-blue-300 font-semibold px-2 py-0.5 rounded border border-blue-700/50">
+                {notices.length} પત્રો
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              {instructor.iti_name} • {templateName} • A4 Portrait (210 × 297 mm)
-            </p>
+          </div>
+
+          {/* Quick Page Navigator */}
+          <div className="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg p-0.5 text-xs ml-1 sm:ml-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPageIndex((p) => Math.max(0, p - 1))}
+              disabled={currentPageIndex === 0}
+              className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 transition-colors"
+              title="અગાઉનો પત્ર"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <span className="px-1 text-[11px] font-mono font-bold text-slate-200">
+              {currentPageIndex + 1} / {notices.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPageIndex((p) => Math.min(notices.length - 1, p + 1))}
+              disabled={currentPageIndex >= notices.length - 1}
+              className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 transition-colors"
+              title="આગળનો પત્ર"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
-        {/* Center: Pagination & View Switcher */}
-        <div className="flex items-center gap-3">
-          {/* View Mode Toggle: Single Page vs All Pages Stack */}
-          <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700 text-xs">
-            <button
-              type="button"
-              onClick={() => setViewMode('single')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-colors ${
-                viewMode === 'single'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="View one A4 notice page at a time with navigation controls"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>પેજ મુજબ (Single)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('all')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-colors ${
-                viewMode === 'all'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="View all A4 notice pages continuously stacked"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>તમામ પત્રો (All {notices.length})</span>
-            </button>
-          </div>
-
-          {/* Page Navigator (shown in Single Mode) */}
-          {viewMode === 'single' && (
-            <div className="flex items-center gap-1.5 bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700">
-              <button
-                type="button"
-                onClick={() => setCurrentPageIndex((p) => Math.max(0, p - 1))}
-                disabled={currentPageIndex === 0}
-                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 transition-colors"
-                title="Previous Notice (Left Arrow)"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              {/* Direct Trainee Jump Dropdown */}
-              <select
-                value={currentPageIndex}
-                onChange={(e) => setCurrentPageIndex(Number(e.target.value))}
-                className="bg-slate-900 text-slate-200 text-xs font-semibold px-2 py-1 rounded border border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer max-w-[190px] sm:max-w-[240px] truncate"
-              >
-                {notices.map((n, idx) => (
-                  <option key={n.trainee.id} value={idx}>
-                    {idx + 1}. [રોલ {n.trainee.roll_no}] {n.trainee.student_name} ({n.percentage}%)
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="button"
-                onClick={() => setCurrentPageIndex((p) => Math.min(notices.length - 1, p + 1))}
-                disabled={currentPageIndex >= notices.length - 1}
-                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 transition-colors"
-                title="Next Notice (Right Arrow)"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+        {/* Middle: Letterhead & Zoom Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Letterhead toggle */}
+          <button
+            type="button"
+            onClick={() => setIsLetterheadActive(!isLetterheadActive)}
+            className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 transition-colors border ${
+              isLetterheadActive
+                ? 'bg-blue-900/80 border-blue-400 text-blue-200'
+                : 'bg-slate-800 border-slate-600 text-slate-300'
+            }`}
+            title="લેટરહેડ હેડર ચાલુ/બંધ કરો"
+          >
+            <Building2 className="w-3 h-3 text-amber-300" />
+            <span className="hidden sm:inline">લેટરહેડ:</span>
+            <span>{isLetterheadActive ? 'On' : 'Off'}</span>
+          </button>
 
           {/* Zoom Controls */}
-          <div className="flex items-center gap-1 text-xs">
+          <div className="hidden sm:flex items-center gap-1 bg-slate-800/90 border border-slate-700 rounded-lg p-0.5 text-xs">
             <button
               type="button"
-              onClick={() => setZoomLevel((z) => Math.max(0.4, Number((z - 0.1).toFixed(2))))}
+              onClick={() => setZoomLevel((z) => Math.max(0.35, Number((z - 0.1).toFixed(2))))}
               className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="font-mono text-[11px] font-bold text-slate-300 w-10 text-center select-none">
+            <span className="font-mono text-[10px] text-slate-300 w-8 text-center select-none">
               {Math.round(zoomLevel * 100)}%
             </span>
             <button
               type="button"
-              onClick={() => setZoomLevel((z) => Math.min(1.4, Number((z + 0.1).toFixed(2))))}
+              onClick={() => setZoomLevel((z) => Math.min(1.3, Number((z + 0.1).toFixed(2))))}
               className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700"
               title="Zoom In"
             >
@@ -409,138 +535,65 @@ export default function BatchNoticePrintPreviewModal({
             </button>
             <button
               type="button"
-              onClick={() => setZoomLevel(0.85)}
+              onClick={() => setZoomLevel(computeFitZoom())}
               className="px-1.5 py-0.5 text-[10px] text-slate-400 hover:text-white rounded hover:bg-slate-700"
-              title="Reset Zoom"
+              title="Fit Screen"
             >
-              Reset
+              Fit
             </button>
           </div>
         </div>
 
         {/* Right Actions: Save PDF, Print, Close */}
-        <div className="flex items-center gap-2">
-          {/* If in single mode, option to download single notice */}
-          {viewMode === 'single' && (
-            <button
-              type="button"
-              onClick={handleExportSinglePdf}
-              disabled={isExportingPdf}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
-              title="Download only the currently previewed trainee notice as PDF"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>આ પત્ર PDF</span>
-            </button>
-          )}
-
-          {/* Save All as Combined Multi-Page PDF */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Save PDF Button */}
           <button
             type="button"
             onClick={handleExportAllPdf}
             disabled={isExportingPdf}
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white shadow-md transition-all disabled:opacity-50"
-            title="Download all notices combined into a single multi-page A4 PDF file"
+            className="flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white shadow-md transition-all disabled:opacity-50 min-h-[34px]"
+            title="બધા પત્રો A4 PDF તરીકે ડાઉનલોડ કરો"
           >
             {isExportingPdf ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-100" />
-                <span>{pdfProgress || 'PDF તૈયાર થાય છે...'}</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-100" />
+                <span className="text-[11px]">{pdfProgress || 'PDF...'}</span>
               </>
             ) : (
               <>
-                <Download className="w-4 h-4" />
-                <span>ડાઉનલોડ તમામ A4 PDF ({notices.length})</span>
+                <Download className="w-3.5 h-3.5 text-emerald-200" />
+                <span>સેવ PDF</span>
               </>
             )}
           </button>
 
-          {/* Direct Print All Notices */}
+          {/* Print Button */}
           <button
             type="button"
             onClick={handlePrintAll}
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-md transition-all"
-            title="Print all selected trainee notices via system printer (Ctrl+P)"
+            className="flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-md transition-all min-h-[34px]"
+            title="પ્રિન્ટર પર સીધી પ્રિન્ટ કરો"
           >
-            <Printer className="w-4 h-4" />
-            <span>પ્રિન્ટ તમામ પત્રો (A4 Print)</span>
+            <Printer className="w-3.5 h-3.5 text-blue-200" />
+            <span>પ્રિન્ટ</span>
           </button>
 
           {/* Close Modal */}
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors ml-1"
-            title="Close Preview (Esc)"
+            className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors min-h-[34px] min-w-[34px] flex items-center justify-center"
+            title="બંધ કરો (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      {/* Verification & Confirmation Sub-Bar */}
-      <div className="bg-slate-800 text-slate-300 px-4 py-2 border-b border-slate-700 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0 select-none print:hidden">
-        <div className="flex items-center gap-4 flex-wrap">
-          <span className="font-bold text-amber-300 flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            ચકાસણી અને પુષ્ટિ (Check & Confirm):
-          </span>
-          <span className="flex items-center gap-1 text-slate-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            {notices.length} તાલીમાર્થીઓના પત્રો તૈયાર
-          </span>
-          <span className="flex items-center gap-1 text-slate-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            જાવક ક્રમાંક ({instructor.trade}/...)
-          </span>
-          <span className="flex items-center gap-1 text-slate-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            A4 માપ અને ગુજરાતી ફોન્ટ્સ
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* On-the-fly Letterhead toggle for pre-printed letterhead paper */}
-          <button
-            type="button"
-            onClick={() => setIsLetterheadActive(!isLetterheadActive)}
-            className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors border cursor-pointer ${
-              isLetterheadActive
-                ? 'bg-blue-900/70 border-blue-400 text-blue-200 hover:bg-blue-800'
-                : 'bg-slate-700/80 border-slate-500 text-slate-300 hover:bg-slate-600'
-            }`}
-            title="લેટરહેડ હેડર ચાલુ/બંધ કરો (પ્રી-પ્રિન્ટેડ કાગળ પર પ્રિન્ટ કરવા માટે બંધ કરો)"
-          >
-            <Building2 className="w-3.5 h-3.5 text-amber-300" />
-            <span>લેટરહેડ: {isLetterheadActive ? 'હા (On)' : 'ના (Off)'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePrintAll}
-            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors"
-            title="Confirm and print all notices"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>પુષ્ટિ &amp; પ્રિન્ટ કરો</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleExportAllPdf}
-            disabled={isExportingPdf}
-            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
-            title="Confirm and download combined PDF"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>પુષ્ટિ &amp; PDF ડાઉનલોડ</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Optional Feedback or Help Toast */}
+      {/* Optional Feedback Toast */}
       {feedback && (
         <div
-          className={`px-4 py-2 text-xs flex items-center justify-between border-b shrink-0 print:hidden ${
+          className={`px-4 py-1.5 text-xs flex items-center justify-between border-b shrink-0 print:hidden ${
             feedback.type === 'success'
               ? 'bg-emerald-950/90 text-emerald-200 border-emerald-800'
               : feedback.type === 'warn'
@@ -549,9 +602,9 @@ export default function BatchNoticePrintPreviewModal({
           }`}
         >
           <div className="flex items-center gap-2">
-            {feedback.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-            {feedback.type === 'warn' && <AlertCircle className="w-4 h-4 text-amber-400" />}
-            {feedback.type === 'info' && <FileText className="w-4 h-4 text-blue-400" />}
+            {feedback.type === 'success' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+            {feedback.type === 'warn' && <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+            {feedback.type === 'info' && <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
             <span>{feedback.msg}</span>
           </div>
           <button
@@ -564,41 +617,37 @@ export default function BatchNoticePrintPreviewModal({
         </div>
       )}
 
-      {/* Main Preview Canvas Area */}
+      {/* Main Preview Workdesk Viewport (Responsive & Android-Optimized) */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto bg-slate-900/95 p-4 sm:p-8 flex justify-center items-start print:bg-white print:p-0 print:overflow-visible"
+        className="flex-1 overflow-auto bg-slate-900/95 p-2 sm:p-6 flex flex-col items-center select-none print:bg-white print:p-0 print:overflow-visible"
       >
-        {/* Single Page View */}
-        {viewMode === 'single' ? (
+        {/* Scaled Wrapper: Takes exact scaled width so it centers cleanly on Android screens without clipping */}
+        <div
+          className="print:w-full print:m-0"
+          style={{
+            width: `${scaledWidthPx}px`,
+            minHeight: `${scaledHeightPx}px`,
+            position: 'relative',
+            margin: '0 auto',
+          }}
+        >
           <div
-            className="transition-transform duration-150 origin-top flex flex-col items-center print:transform-none print:w-full"
-            style={{ transform: `scale(${zoomLevel})` }}
+            className="print:transform-none print:w-full"
+            style={{
+              transform: `scale(${zoomLevel})`,
+              transformOrigin: 'top left',
+              width: `${baseWidthPx}px`,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+            }}
           >
             <div ref={singleSheetRef}>
               {renderNoticeSheet(currentNotice, currentPageIndex, false)}
             </div>
           </div>
-        ) : (
-          /* Multi-Page Stack View */
-          <div
-            className="transition-transform duration-150 origin-top flex flex-col items-center print:transform-none print:w-full"
-            style={{ transform: `scale(${zoomLevel})` }}
-          >
-            {notices.map((item, idx) => (
-              <div key={item.trainee.id} className="relative group">
-                {/* Page Label Tag */}
-                <div className="mb-2 flex items-center justify-between text-xs text-slate-400 px-2 print:hidden">
-                  <span className="font-mono font-bold">
-                    પત્ર {idx + 1} / {notices.length} — રોલ નં: {item.trainee.roll_no} ({item.trainee.student_name})
-                  </span>
-                  <span className="text-[11px] text-slate-500">A4 Portrait (210 × 297 mm)</span>
-                </div>
-                {renderNoticeSheet(item, idx, true)}
-              </div>
-            ))}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Hidden DOM Stream for Generating High-DPI Multi-Page PDF & Clean Print */}
@@ -611,16 +660,15 @@ export default function BatchNoticePrintPreviewModal({
       </div>
 
       {/* Bottom Information Footer */}
-      <div className="bg-slate-900 border-t border-slate-800 text-slate-400 px-4 py-2 text-xs flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 print:hidden select-none">
+      <div className="bg-slate-900 border-t border-slate-800 text-slate-400 px-3 sm:px-4 py-1.5 text-xs flex flex-col sm:flex-row items-center justify-between gap-1.5 shrink-0 print:hidden select-none">
         <div className="flex items-center gap-2">
           <span>
-            💡 <strong>ચકાસણી અને પુષ્ટિ:</strong> બધા {notices.length} તાલીમાર્થીઓના પત્રો A4 માપમાં તૈયાર છે.
-            તમે <strong>&quot;ડાઉનલોડ તમામ A4 PDF&quot;</strong> થી એકઠી ફાઇલ મેળવી શકો છો અથવા <strong>&quot;પ્રિન્ટ તમામ પત્રો&quot;</strong> થી સીધી પ્રિન્ટ કરી શકો છો.
+            💡 <strong>Android:</strong> <strong>&quot;સેવ PDF&quot;</strong> થી ડાઉનલોડ કરો અથવા <strong>&quot;પ્રિન્ટ&quot;</strong> થી સીધી પ્રિન્ટ કાઢો.
           </span>
         </div>
         <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
-          <span>પત્ર {currentPageIndex + 1} / {notices.length}</span>
-          <span>Shortcuts: ← → / Ctrl+P / Esc</span>
+          <span>તાલીમાર્થી: [રોલ {currentNotice.trainee.roll_no}] {currentNotice.trainee.student_name}</span>
+          <span className="hidden sm:inline">પત્ર {currentPageIndex + 1} / {notices.length}</span>
         </div>
       </div>
     </div>

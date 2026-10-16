@@ -8,6 +8,13 @@ import {
   DispatchLog,
 } from '../types';
 import TinyMceEditor, { MERGE_TAG_ITEMS } from './WordEditor/TinyMceEditor';
+import TinyMceLetterheadEditor from './WordEditor/TinyMceLetterheadEditor';
+import { LetterheadEditorModal } from './LetterheadEditorModal';
+import {
+  getEffectiveLetterheadHtml,
+  renderLetterheadHtml,
+  generateDefaultLetterheadHtml,
+} from '../utils/letterheadPresets';
 import { mergeTemplateTags, generateOutwardReference } from '../utils/mergeTags';
 import { exportElementToPdf, printCleanDocument } from '../utils/pdfExport';
 import {
@@ -409,6 +416,14 @@ export default function TemplateStudio({
     }
   );
 
+  // Direct TinyMCE Rich-Text Letterhead State
+  const [letterheadHtml, setLetterheadHtml] = useState<string>(() =>
+    getEffectiveLetterheadHtml(instructor, currentTemplate)
+  );
+  const [isTemplateSpecificHeader, setIsTemplateSpecificHeader] = useState<boolean>(() =>
+    Boolean(currentTemplate.use_custom_letterhead || currentTemplate.letterhead_html)
+  );
+
   // Toast Helper
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -427,6 +442,8 @@ export default function TemplateStudio({
     if (tmpl.header_config) {
       setHeaderConfig(tmpl.header_config);
     }
+    setLetterheadHtml(getEffectiveLetterheadHtml(instructor, tmpl));
+    setIsTemplateSpecificHeader(Boolean(tmpl.use_custom_letterhead || tmpl.letterhead_html));
     setPreviewMerged(false);
     setViewMode('editor');
   };
@@ -509,8 +526,35 @@ export default function TemplateStudio({
     attendanceRecords,
   ]);
 
+  // Save letterhead HTML as Global Default across all templates
+  const handleSaveAsGlobalDefault = (html: string) => {
+    setLetterheadHtml(html);
+    setIsTemplateSpecificHeader(false);
+    const updatedHeader: HeaderConfig = {
+      ...headerConfig,
+      letterhead_html: html,
+      letterhead_mode: 'tinymce_canvas',
+    };
+    setHeaderConfig(updatedHeader);
+    onUpdateInstructorHeader(updatedHeader);
+    showToast('લેટરહેડ સફળતાપૂર્વક તમામ નોટિસો માટે ગ્લોબલ ડિફોલ્ટ તરીકે સાચવાયો!');
+  };
+
+  // Reset letterhead to official ITI preset
+  const handleResetLetterhead = () => {
+    const defaultHtml = generateDefaultLetterheadHtml(instructor);
+    setLetterheadHtml(defaultHtml);
+    showToast('લેટરહેડ મૂળભૂત સરકારી ITI ફોર્મેટમાં રીસેટ થયું.');
+  };
+
   // Save current template to Cloud Firestore and local state
   const handleSaveCurrentTemplate = () => {
+    const updatedHeaderConfig: HeaderConfig = {
+      ...headerConfig,
+      letterhead_html: letterheadHtml,
+      letterhead_mode: 'tinymce_canvas',
+    };
+
     const updated: LetterTemplate = {
       ...currentTemplate,
       id: currentTemplate.id,
@@ -521,14 +565,18 @@ export default function TemplateStudio({
       category: category as any,
       subject,
       content_html: contentHtml,
-      header_config: headerConfig,
+      header_config: updatedHeaderConfig,
+      letterhead_html: letterheadHtml,
+      use_custom_letterhead: isTemplateSpecificHeader,
       show_letterhead: showLetterhead,
       language: 'Gujarati',
       updated_at: new Date().toISOString(),
     };
 
     onSaveTemplate(updated);
-    onUpdateInstructorHeader(headerConfig);
+    if (!isTemplateSpecificHeader) {
+      onUpdateInstructorHeader(updatedHeaderConfig);
+    }
     showToast(`'${updated.template_name}' ટેમ્પલેટ ક્લાઉડમાં સુરક્ષિત સેવ થયું!`);
   };
 
@@ -536,6 +584,12 @@ export default function TemplateStudio({
   const handleSaveAsNew = () => {
     if (!saveAsName.trim()) return;
     const newId = `tmpl-custom-${Date.now()}`;
+    const updatedHeaderConfig: HeaderConfig = {
+      ...headerConfig,
+      letterhead_html: letterheadHtml,
+      letterhead_mode: 'tinymce_canvas',
+    };
+
     const newTemplate: LetterTemplate = {
       id: newId,
       instructor_id: instructor.id,
@@ -545,7 +599,9 @@ export default function TemplateStudio({
       category: category as any,
       subject,
       content_html: contentHtml,
-      header_config: headerConfig,
+      header_config: updatedHeaderConfig,
+      letterhead_html: letterheadHtml,
+      use_custom_letterhead: isTemplateSpecificHeader,
       show_letterhead: showLetterhead,
       language: 'Gujarati',
       created_at: new Date().toISOString(),
@@ -1086,16 +1142,18 @@ export default function TemplateStudio({
                 <span className="hidden sm:inline">રિપોર્ટ જનરેટર</span>
               </button>
 
-              <div className="flex items-center gap-0.5 bg-[#104899] p-1 rounded-lg border border-blue-400/40 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsHeaderModalOpen(true)}
-                  className="p-1 rounded hover:bg-blue-700 text-white"
-                  title="સંસ્થા લેટરહેડ સેટિંગ્સ"
-                >
-                  <Building2 className="w-3.5 h-3.5" />
-                </button>
+              {/* Prominent Edit Letterhead Facility Button */}
+              <button
+                type="button"
+                onClick={() => setIsHeaderModalOpen(true)}
+                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black px-3 py-1.5 rounded-lg transition-all shadow-md active:scale-95 shrink-0 cursor-pointer border border-amber-300"
+                title="સંસ્થા લેટરહેડ / કસ્ટમ બેનર ઇમેજ એડિટ કરો"
+              >
+                <Building2 className="w-3.5 h-3.5 text-slate-950" />
+                <span>લેટરહેડ એડિટ કરો</span>
+              </button>
 
+              <div className="flex items-center gap-0.5 bg-[#104899] p-1 rounded-lg border border-blue-400/40 shrink-0">
                 <button
                   type="button"
                   onClick={handlePrint}
@@ -1172,60 +1230,45 @@ export default function TemplateStudio({
                 minHeight: '1050px',
               }}
             >
-              {/* Top Official Letterhead Banner */}
-              {showLetterhead && (
-                <div className="mb-6 border-b-4 border-double border-slate-900 pb-3">
-                  <div className="flex items-center justify-between gap-4">
-                    {/* Left Institute Emblem */}
-                    {headerConfig.show_logo && (
-                      <div className="shrink-0">
-                        {headerConfig.logo_url ? (
-                          <img
-                            src={headerConfig.logo_url}
-                            alt="Logo"
-                            className="h-16 w-auto object-contain"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-xl bg-blue-900 text-white flex flex-col items-center justify-center font-bold text-xs shadow-xs text-center p-1">
-                            <span>ITI</span>
-                            <span className="text-[9px] text-blue-200">શંખેશ્વર</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Middle Title Details */}
-                    <div className="text-center flex-1">
-                      <div className="text-sm font-semibold text-slate-700">
-                        {headerConfig.department_subtitle || 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત સરકાર'}
-                      </div>
-                      <h2 className="text-base sm:text-lg font-black text-slate-950 mt-0.5 tracking-tight font-sans">
-                        {headerConfig.institute_name_gu || instructor.iti_name || 'ઔદ્યોગિક તાલીમ સંસ્થા'}
-                      </h2>
-                      <div className="text-[11px] font-bold text-slate-800 tracking-wider">
-                        {headerConfig.institute_name_en || 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE'}
-                      </div>
-                      <div className="text-[11px] text-slate-600 mt-0.5">
-                        {headerConfig.address || instructor.institution_address || 'ગુજરાત રાજ્ય'}
-                      </div>
-                    </div>
-
-                    {/* Right Emblem or Spacer */}
-                    <div className="shrink-0 w-16 flex justify-end">
-                      {headerConfig.show_right_logo && headerConfig.right_logo_url ? (
-                        <img
-                          src={headerConfig.right_logo_url}
-                          alt="Right Logo"
-                          className="h-16 w-auto object-contain"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-xl bg-emerald-900 text-white flex flex-col items-center justify-center font-bold text-xs shadow-xs text-center p-1">
-                          <span>GOG</span>
-                          <span className="text-[9px] text-emerald-200">ગુજરાત</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+              {/* Top Official Letterhead Workspace on A4 Canvas */}
+              {showLetterhead ? (
+                previewMerged ? (
+                  /* Live Rendered Letterhead with Merged Outward No & Date */
+                  <div
+                    className="mb-6 iti-rendered-letterhead select-none"
+                    dangerouslySetInnerHTML={{
+                      __html: renderLetterheadHtml(letterheadHtml, {
+                        refNumber: `${headerConfig.ref_prefix || 'ઔતાસં/૨૦૨૫-૨૬'}/${
+                          selectedTraineeId
+                            ? trainees.find((t) => t.id === selectedTraineeId)?.roll_no || '૧૦૧'
+                            : '૧૦૧'
+                        }`,
+                        issueDate: new Date().toLocaleDateString('gu-IN'),
+                      }),
+                    }}
+                  />
+                ) : (
+                  /* Dedicated Inline TinyMCE Letterhead Editor directly on the A4 Canvas */
+                  <TinyMceLetterheadEditor
+                    value={letterheadHtml}
+                    onChange={(html) => setLetterheadHtml(html)}
+                    instructor={instructor}
+                    template={currentTemplate}
+                    isTemplateSpecific={isTemplateSpecificHeader}
+                    onToggleScope={(isSpecific) => setIsTemplateSpecificHeader(isSpecific)}
+                    onSaveAsGlobalDefault={handleSaveAsGlobalDefault}
+                    onResetToDefault={handleResetLetterhead}
+                  />
+                )
+              ) : (
+                /* Sleek prompter when letterhead is toggled off */
+                <div
+                  onClick={() => setShowLetterhead(true)}
+                  className="border border-dashed border-slate-300 hover:border-amber-400 bg-slate-50/70 hover:bg-amber-50/50 text-slate-500 hover:text-amber-800 py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all mb-4 select-none group"
+                  title="ક્લિક કરીને લેટરહેડ ચાલુ કરો"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                  <span>લેટરહેડ બંધ છે • A4 કેન્વાસ પર લેટરહેડ ઉમેરવા અહીં ક્લિક કરો (Enable Letterhead)</span>
                 </div>
               )}
 
@@ -1396,118 +1439,49 @@ export default function TemplateStudio({
       {/* ========================================================================= */}
       {/* MODAL 3: LETTERHEAD BANNER SETUP                                          */}
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* MODAL 3: LETTERHEAD BANNER SETUP (ENHANCED FACILITY)                      */}
+      {/* ========================================================================= */}
       {isHeaderModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-blue-600" />
-                <h3 className="font-bold text-slate-900 text-sm">
-                  સંસ્થા લેટરહેડ હેડર સેટિંગ્સ (Institute Header)
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsHeaderModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  વિભાગીય પેટા શીર્ષક (Department Title):
-                </label>
-                <input
-                  type="text"
-                  value={headerConfig.department_subtitle}
-                  onChange={(e) =>
-                    setHeaderConfig({ ...headerConfig, department_subtitle: e.target.value })
-                  }
-                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  સંસ્થાનું નામ ગુજરાતીમાં (ITI Name Gujarati):
-                </label>
-                <input
-                  type="text"
-                  value={headerConfig.institute_name_gu}
-                  onChange={(e) =>
-                    setHeaderConfig({ ...headerConfig, institute_name_gu: e.target.value })
-                  }
-                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  સંસ્થાનું નામ અંગ્રેજીમાં (ITI Name English):
-                </label>
-                <input
-                  type="text"
-                  value={headerConfig.institute_name_en}
-                  onChange={(e) =>
-                    setHeaderConfig({ ...headerConfig, institute_name_en: e.target.value })
-                  }
-                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">સરનામું (Address):</label>
-                <input
-                  type="text"
-                  value={headerConfig.address}
-                  onChange={(e) =>
-                    setHeaderConfig({ ...headerConfig, address: e.target.value })
-                  }
-                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  જાવક કોડ પ્રીફિક્સ (Outward Reference Prefix):
-                </label>
-                <input
-                  type="text"
-                  value={headerConfig.ref_prefix}
-                  onChange={(e) =>
-                    setHeaderConfig({ ...headerConfig, ref_prefix: e.target.value })
-                  }
-                  placeholder="દા.ત. ઔતાસં/શંખેશ્વર/૨૦૨૫-૨૬"
-                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsHeaderModalOpen(false)}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-              >
-                બંધ કરો
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onUpdateInstructorHeader(headerConfig);
-                  setIsHeaderModalOpen(false);
-                  showToast('સંસ્થા હેડર સફળતાપૂર્વક અપડેટ થયું!');
-                }}
-                className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer"
-              >
-                સાચવો
-              </button>
-            </div>
-          </div>
-        </div>
+        <LetterheadEditorModal
+          isOpen={isHeaderModalOpen}
+          onClose={() => setIsHeaderModalOpen(false)}
+          instructor={{
+            ...instructor,
+            header_config: headerConfig,
+          }}
+          currentTemplate={currentTemplate}
+          initialHtml={letterheadHtml}
+          isTemplateSpecific={isTemplateSpecificHeader}
+          onSaveLetterhead={(html, isSpecific) => {
+            setLetterheadHtml(html);
+            setIsTemplateSpecificHeader(isSpecific);
+            if (isSpecific && currentTemplate) {
+              const updatedTmpl: LetterTemplate = {
+                ...currentTemplate,
+                letterhead_html: html,
+                use_custom_letterhead: true,
+                header_config: {
+                  ...(currentTemplate.header_config || headerConfig),
+                  letterhead_mode: 'tinymce_canvas',
+                  letterhead_html: html,
+                },
+              };
+              onSaveTemplate(updatedTmpl);
+            } else {
+              handleSaveAsGlobalDefault(html);
+            }
+            setIsHeaderModalOpen(false);
+            showToast('સંસ્થા લેટરહેડ TinyMCE દ્વારા સફળતાપૂર્વક સાચવવામાં આવ્યું!');
+          }}
+          onSaveHeaderConfig={(newConfig) => {
+            setHeaderConfig(newConfig);
+            onUpdateInstructorHeader(newConfig);
+            setIsHeaderModalOpen(false);
+            showToast('સંસ્થા લેટરહેડ સફળતાપૂર્વક સાચવવામાં આવ્યું!');
+          }}
+          onSaveAsGlobalDefault={handleSaveAsGlobalDefault}
+        />
       )}
 
       {/* ========================================================================= */}

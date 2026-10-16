@@ -50,6 +50,7 @@ export default function InstructorProfileModal({
 }: InstructorProfileModalProps) {
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const isSuperAdmin = instructor.role === 'super_admin';
+  const isGuest = instructor.role === 'guest' || instructor.is_guest || instructor.id === 'guest-demo-instructor';
 
   // Form State
   const [formName, setFormName] = useState(instructor.name || '');
@@ -93,6 +94,11 @@ export default function InstructorProfileModal({
     e.preventDefault();
     setFormError('');
     setSuccessMessage('');
+
+    if (isGuest) {
+      setFormError('આ ડેમો એકાઉન્ટ (Guest Mode) છે. ડેમો મોડમાં ડેટાબેઝ સુરક્ષા માટે પ્રોફાઇલ ફેરફાર સેવ કરી શકાતો નથી.');
+      return;
+    }
 
     const cleanEmail = formEmail.trim().toLowerCase();
     const cleanPhone = cleanPhoneNumber(formPhone);
@@ -236,6 +242,19 @@ export default function InstructorProfileModal({
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-start gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <span>{formError}</span>
+            </div>
+          )}
+
+          {/* Guest Demo Notice */}
+          {isGuest && (
+            <div className="p-3.5 bg-amber-50 border border-amber-300 text-amber-950 text-xs rounded-xl flex items-start gap-2.5 font-medium animate-in fade-in">
+              <Eye className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold text-amber-900">ગેસ્ટ ડેમો એકાઉન્ટ (Guest Demo Profile)</div>
+                <div className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                  આ ડેમો નિરીક્ષણ એકાઉન્ટ છે. પોર્ટલની સુવિધાઓ ચકાસવા માટે ડેમો વિગતો પ્રદર્શિત કરેલ છે. ડેમો મોડમાં ડેટાબેઝ સુરક્ષા માટે પ્રોફાઇલ ફેરફાર સેવ કરી શકાતો નથી.
+                </div>
+              </div>
             </div>
           )}
 
@@ -633,14 +652,16 @@ export default function InstructorProfileModal({
               )}
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#346739] bg-[#f2edc2]/50 hover:bg-[#f2edc2] border border-[#9fcb98] transition-colors shadow-2xs"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>પ્રોફાઇલ એડિટ કરો (Edit)</span>
-                </button>
+                {!isGuest && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#346739] bg-[#f2edc2]/50 hover:bg-[#f2edc2] border border-[#9fcb98] transition-colors shadow-2xs"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>પ્રોફાઇલ એડિટ કરો (Edit)</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={onClose}

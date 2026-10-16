@@ -15,6 +15,7 @@ import {
   X,
   User,
   AlertCircle,
+  Eye,
 } from 'lucide-react';
 import ImeFloatWidget from './ImeFloatWidget';
 import LanguageSelector from './LanguageSelector';
@@ -75,6 +76,7 @@ export default function Header({
   };
 
   const isSuperAdmin = instructor.role === 'super_admin';
+  const isGuest = instructor.role === 'guest' || instructor.is_guest || instructor.id === 'guest-demo-instructor';
 
   return (
     <>
@@ -86,9 +88,11 @@ export default function Header({
             <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-xs shrink-0 ${
               isSuperAdmin
                 ? 'bg-gradient-to-br from-slate-900 to-slate-800 text-amber-400 border border-slate-700'
+                : isGuest
+                ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white border border-amber-500'
                 : 'bg-gradient-to-br from-[#346739] to-[#1b381e] text-[#f2edc2] border border-[#264e2b]'
             }`}>
-              {isSuperAdmin ? <ShieldCheck className="w-5 h-5 text-amber-400" /> : 'ITI'}
+              {isSuperAdmin ? <ShieldCheck className="w-5 h-5 text-amber-400" /> : isGuest ? <Eye className="w-5 h-5 text-white" /> : 'ITI'}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
@@ -98,6 +102,11 @@ export default function Header({
                 {isSuperAdmin && (
                   <span className="hidden lg:inline-flex text-[11px] font-bold bg-slate-900 text-amber-400 border border-slate-800 px-2.5 py-0.5 rounded-full shrink-0">
                     {t('tabSuperAdmin')}
+                  </span>
+                )}
+                {isGuest && (
+                  <span className="inline-flex text-[10px] sm:text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full shrink-0">
+                    👁️ ગેસ્ટ ડેમો (View-Only)
                   </span>
                 )}
               </div>
@@ -157,31 +166,49 @@ export default function Header({
               className={`flex items-center gap-2 px-2 sm:px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors shadow-2xs min-h-[34px] sm:min-h-[36px] shrink-0 ${
                 isSuperAdmin
                   ? 'border-slate-800 bg-slate-900 text-white hover:bg-slate-800'
+                  : isGuest
+                  ? 'border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100'
                   : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800'
               }`}
               title={
                 isSuperAdmin
                   ? `${t('superAdminTitle')} (લાઈફટાઈમ એક્સેસ)`
+                  : isGuest
+                  ? 'ગેસ્ટ ડેમો એકાઉન્ટ (નિરીક્ષણ મોડ / View Only)'
                   : `${t('profile')}: ${instructor.name} (૧ વર્ષ માન્યતા: ${formatValidityDate(instructor.valid_until)})`
               }
             >
-              <div className={`w-2 h-2 rounded-full shrink-0 ${isSuperAdmin ? 'bg-amber-400 ring-2 ring-amber-400/30' : 'bg-emerald-500'}`}></div>
+              <div className={`w-2 h-2 rounded-full shrink-0 ${
+                isSuperAdmin
+                  ? 'bg-amber-400 ring-2 ring-amber-400/30'
+                  : isGuest
+                  ? 'bg-amber-500 ring-2 ring-amber-400/40'
+                  : 'bg-emerald-500'
+              }`}></div>
               <div className="text-left max-w-[90px] sm:max-w-[170px] truncate hidden sm:block">
                 <div className="font-semibold truncate flex items-center gap-1 text-[11px] sm:text-xs text-slate-800">
                   <span className="truncate">{instructor.name}</span>
-                  {instructor.email_verified && (
+                  {!isGuest && instructor.email_verified && (
                     <CheckCircle2 className={`w-3 h-3 shrink-0 inline ${isSuperAdmin ? 'text-amber-400' : 'text-emerald-600'}`} title="Verified" />
                   )}
                 </div>
-                <div className={`text-[10px] truncate hidden md:block ${isSuperAdmin ? 'text-amber-300 font-semibold' : 'text-slate-500'}`}>
+                <div className={`text-[10px] truncate hidden md:block ${
+                  isSuperAdmin
+                    ? 'text-amber-300 font-semibold'
+                    : isGuest
+                    ? 'text-amber-700 font-bold'
+                    : 'text-slate-500'
+                }`}>
                   {isSuperAdmin
                     ? tText('સુપર એડમિન • લાઈફટાઈમ', 'सुपर एडमिन • लाइफटाइम', 'Super Admin • Lifetime')
+                    : isGuest
+                    ? 'ડેમો મુલાકાતી • View Only'
                     : instructor.valid_until
                     ? `${instructor.trade} • ${formatValidityDate(instructor.valid_until)} સુધી`
                     : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
                 </div>
               </div>
-              <User className={`w-3.5 h-3.5 shrink-0 ${isSuperAdmin ? 'text-amber-400' : 'text-slate-500'}`} />
+              <User className={`w-3.5 h-3.5 shrink-0 ${isSuperAdmin ? 'text-amber-400' : isGuest ? 'text-amber-600' : 'text-slate-500'}`} />
             </button>
 
             {/* Logout Button */}

@@ -110,26 +110,54 @@
     resize: none !important;
   }
 
-  /* When printing from A4 Print Preview modal, hide everything else */
-  body.is-printing-a4-preview > :not(#print-modal-root) {
+  /* When printing from any Print Preview modal (A4 or Batch Notices), isolate preview */
+  body.is-printing-modal > :not(#print-modal-root):not(#batch-print-modal-root) {
     display: none !important;
   }
 
-  body.is-printing-a4-preview #print-modal-root {
+  body.is-printing-modal #print-modal-root,
+  body.is-printing-modal #batch-print-modal-root {
     position: static !important;
-    background: transparent !important;
+    background: #ffffff !important;
     display: block !important;
     overflow: visible !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
   }
 
-  body.is-printing-a4-preview #printable-preview-a4-content {
+  body.is-printing-modal #printable-preview-a4-content,
+  body.is-printing-modal .a4-printable-document {
     box-shadow: none !important;
     border: none !important;
     padding: 10mm !important;
     width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    background-color: #ffffff !important;
   }
+
+  /* When printing from clean document helper */
+  body.is-printing-clean-doc > :not(#print-modal-root):not(#batch-print-modal-root) {
+    display: none !important;
+  }
+}
+
+/* Indic Typography and Font Rendering Rules to Prevent Jumbled / Overlapped Letters */
+.font-gujarati,
+.report-rendered-document,
+.a4-printable-document {
+  font-family: 'Noto Sans Gujarati', 'Noto Sans Devanagari', 'Anek Gujarati', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+.report-rendered-document p,
+.a4-printable-document p {
+  text-justify: inter-word;
+  word-break: normal;
+  overflow-wrap: break-word;
 }

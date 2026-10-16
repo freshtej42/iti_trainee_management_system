@@ -422,6 +422,9 @@ export async function saveBatchDispatchLogsToCloud(logs: DispatchLog[]): Promise
  * Delete a dispatch log from Firestore and local cache
  */
 export async function deleteDispatchLogFromCloud(logId: string): Promise<void> {
+  if (logId.startsWith('disp-demo-')) {
+    return;
+  }
   const current = getLocalCache<DispatchLog[]>(CACHE_KEYS.DISPATCH, INITIAL_DISPATCH_LOGS);
   const updated = current.filter((l) => l.id !== logId);
   setLocalCache(CACHE_KEYS.DISPATCH, updated);
@@ -438,8 +441,10 @@ export async function deleteDispatchLogFromCloud(logId: string): Promise<void> {
  * Delete multiple dispatch logs from Firestore and local cache
  */
 export async function deleteBatchDispatchLogsFromCloud(logIds: string[]): Promise<void> {
+  const filteredIds = logIds.filter((id) => !id.startsWith('disp-demo-'));
+  if (filteredIds.length === 0) return;
   const current = getLocalCache<DispatchLog[]>(CACHE_KEYS.DISPATCH, INITIAL_DISPATCH_LOGS);
-  const updated = current.filter((l) => !logIds.includes(l.id));
+  const updated = current.filter((l) => !filteredIds.includes(l.id));
   setLocalCache(CACHE_KEYS.DISPATCH, updated);
 
   try {
@@ -482,6 +487,9 @@ export function subscribeToDispatchLogs(callback: (logs: DispatchLog[]) => void)
  * Save or update instructor in Firestore and local cache
  */
 export async function saveInstructorToCloud(instructor: Instructor): Promise<void> {
+  if (instructor.id === 'guest-demo-instructor' || instructor.role === 'guest' || instructor.is_guest) {
+    return; // Strictly read-only for demo guest
+  }
   const current = getLocalCache<Instructor[]>(CACHE_KEYS.INSTRUCTORS, INITIAL_INSTRUCTORS);
   const updated = current.some((i) => i.id === instructor.id)
     ? current.map((i) => (i.id === instructor.id ? instructor : i))
@@ -500,6 +508,9 @@ export async function saveInstructorToCloud(instructor: Instructor): Promise<voi
  * Save or update a trainee in Firestore and local cache
  */
 export async function saveTraineeToCloud(trainee: Trainee): Promise<void> {
+  if (trainee.id.startsWith('demo-') || trainee.instructor_id === 'guest-demo-instructor') {
+    return; // Strictly read-only for demo records
+  }
   const current = getLocalCache<Trainee[]>(CACHE_KEYS.TRAINEES, INITIAL_TRAINEES);
   const updated = current.some((t) => t.id === trainee.id)
     ? current.map((t) => (t.id === trainee.id ? trainee : t))
@@ -518,6 +529,9 @@ export async function saveTraineeToCloud(trainee: Trainee): Promise<void> {
  * Delete a trainee from Firestore and local cache
  */
 export async function deleteTraineeFromCloud(traineeId: string): Promise<void> {
+  if (traineeId.startsWith('demo-')) {
+    return; // Never delete demo trainee
+  }
   const current = getLocalCache<Trainee[]>(CACHE_KEYS.TRAINEES, INITIAL_TRAINEES);
   const updated = current.filter((t) => t.id !== traineeId);
   setLocalCache(CACHE_KEYS.TRAINEES, updated);

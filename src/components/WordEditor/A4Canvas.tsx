@@ -16,6 +16,7 @@ import {
   Plus,
   Sparkles,
 } from 'lucide-react';
+import { renderLetterheadHtml } from '../../utils/letterheadPresets';
 
 interface A4CanvasProps {
   contentHtml: string;
@@ -451,11 +452,47 @@ export default function A4Canvas({
                   </div>
                 )}
 
-                {/* Banner Content Layout (Left Logo + Editable Center Text + Right Logo) */}
-                <div className="flex items-center justify-between gap-3">
-                  {/* ---------------------------------------------------- */}
-                  {/* LEFT LOGO / EMBLEM SLOT */}
-                  {/* ---------------------------------------------------- */}
+                {/* Banner Content Layout (Rich TinyMCE HTML OR Custom Banner Image OR Blank Preprinted Spacer OR Standard Layout) */}
+                {activeHeader.letterhead_html ? (
+                  <div
+                    className="w-full select-none iti-canvas-rich-letterhead"
+                    dangerouslySetInnerHTML={{
+                      __html: renderLetterheadHtml(activeHeader.letterhead_html, {
+                        refNumber: `${activeHeader.ref_prefix || 'ઔતાસં/૨૦૨૫-૨૬'}/૧૦૧`,
+                        issueDate: new Date().toLocaleDateString('gu-IN'),
+                      }),
+                    }}
+                  />
+                ) : activeHeader.letterhead_mode === 'custom_banner' && activeHeader.custom_banner_image_url ? (
+                  <div
+                    className="w-full select-none"
+                    style={{ marginBottom: `${activeHeader.custom_banner_margin_bottom_mm ?? 4}mm` }}
+                  >
+                    <div
+                      className="w-full flex items-center justify-center overflow-hidden"
+                      style={{ height: `${activeHeader.custom_banner_height_mm || 38}mm` }}
+                    >
+                      <img
+                        src={activeHeader.custom_banner_image_url}
+                        alt="Custom Letterhead Banner"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </div>
+                ) : activeHeader.letterhead_mode === 'blank_for_preprinted' ? (
+                  <div
+                    className="w-full border-2 border-dashed border-slate-300 rounded-xl mb-2 flex flex-col items-center justify-center text-slate-400 p-4 bg-slate-50/50"
+                    style={{ height: `${activeHeader.custom_banner_height_mm || 40}mm` }}
+                  >
+                    <span className="text-xs font-bold text-slate-600">
+                      [ઓફિસ પ્રિન્ટેડ લેટરહેડ કાગળ માટે રાખેલ જગ્યા - {activeHeader.custom_banner_height_mm || 40}mm]
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-3">
+                    {/* ---------------------------------------------------- */}
+                    {/* LEFT LOGO / EMBLEM SLOT */}
+                    {/* ---------------------------------------------------- */}
                   <div
                     className="logo-selection-container relative shrink-0 flex items-center justify-center self-center"
                     onDragOver={(e) => {
@@ -865,8 +902,9 @@ export default function A4Canvas({
                     )}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          )}
 
             {/* ========================================================= */}
             {/* 2. DOCUMENT BODY AREA */}

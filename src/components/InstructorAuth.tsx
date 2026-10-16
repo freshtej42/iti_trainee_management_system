@@ -18,9 +18,10 @@ import {
   HelpCircle,
   KeyRound,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { transliterateText } from '../utils/phoneticIme';
-import { INITIAL_INSTRUCTORS } from '../data/initialData';
+import { INITIAL_INSTRUCTORS, DEMO_GUEST_INSTRUCTOR } from '../data/initialData';
 import {
   validatePassword,
   cleanPhoneNumber,
@@ -46,6 +47,8 @@ import {
   ACADEMIC_BATCHES,
   STANDARD_UNITS,
   COMMON_TRADES,
+  GUJARAT_DISTRICTS,
+  POPULAR_TALUKAS_BY_DISTRICT,
 } from '../data/registrationOptions';
 
 export default function InstructorAuth({
@@ -89,6 +92,10 @@ export default function InstructorAuth({
   const [customBatch, setCustomBatch] = useState<string>('');
   const [regUnit, setRegUnit] = useState<string>(STANDARD_UNITS[0]);
   const [customUnit, setCustomUnit] = useState<string>('');
+  const [regDistrict, setRegDistrict] = useState<string>(GUJARAT_DISTRICTS[0] || 'ગાંધીનગર');
+  const [customDistrict, setCustomDistrict] = useState<string>('');
+  const [regTaluka, setRegTaluka] = useState<string>('ગાંધીનગર');
+  const [customTaluka, setCustomTaluka] = useState<string>('');
   const [regAddress, setRegAddress] = useState<string>('');
 
   // Live password validation
@@ -117,6 +124,17 @@ export default function InstructorAuth({
 
     const cleanQuery = rawQuery.toLowerCase();
     const cleanPhone = cleanPhoneNumber(rawQuery);
+
+    // Fast-path for guest demo login
+    if (
+      cleanQuery === 'guest' ||
+      cleanQuery === 'demo' ||
+      cleanQuery === 'guest@itidemo.gov.in' ||
+      cleanPhone === '9999900000'
+    ) {
+      onLogin(DEMO_GUEST_INSTRUCTOR);
+      return;
+    }
 
     // Search by Email OR 10-digit Mobile Number OR User ID
     const searchPool = [...instructors, ...INITIAL_INSTRUCTORS];
@@ -265,14 +283,14 @@ export default function InstructorAuth({
       unit: effectiveUnit,
       units: [effectiveUnit],
       academic_hierarchy: initialAcademicHierarchy,
-      institution_address: regAddress,
+      institution_address: regAddress.trim() || `તા. ${regTaluka === 'other' ? customTaluka : regTaluka.split(' ')[0]}, જી. ${regDistrict === 'other' ? customDistrict : regDistrict.split(' ')[0]}, ગુજરાત`,
       outward_code_prefix: 'ઔતાસં/તલમ/૨૦૨૫',
       header_config: {
         show_logo: true,
         institute_name_gu: effectiveItiName,
         institute_name_en: 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE',
         department_subtitle: 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત રાજ્ય',
-        address: regAddress,
+        address: regAddress.trim() || `તા. ${regTaluka === 'other' ? customTaluka : regTaluka.split(' ')[0]}, જી. ${regDistrict === 'other' ? customDistrict : regDistrict.split(' ')[0]}, ગુજરાત`,
         ref_prefix: 'આઈટીઆઈ/તલમ/૨૦૨૫',
       },
     };
@@ -319,7 +337,7 @@ export default function InstructorAuth({
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl">
         <div className="bg-white py-6 px-4 shadow-2xl rounded-2xl sm:px-8 border border-slate-200">
           {/* Top Auth Mode Tabs */}
-          <div className="flex border-b border-slate-200 mb-6">
+          <div className="flex border-b border-slate-200 mb-5">
             <button
               onClick={() => {
                 setAuthMode('login');
@@ -348,6 +366,64 @@ export default function InstructorAuth({
             >
               નવું રજીસ્ટ્રેશન (Register)
             </button>
+          </div>
+
+          {/* Guest Demo Portal Exploration Card */}
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-amber-50 via-emerald-50/40 to-slate-50 border border-amber-300 shadow-2xs">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-black text-slate-900">
+                      ગેસ્ટ ડેમો મોડ (Guest Demo Mode)
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                      ચૂકવણી પહેલાં ચકાસણી (Free Preview)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                    સેવા માટે ચૂકવણી કરતાં પહેલાં મુલાકાતી તરીકે પોર્ટલની તમામ સુવિધાઓ (હાજરી, નોટિસ ડ્રાફ્ટિંગ, યુનિફાઇડ રિપોર્ટ, પ્રિન્ટ/PDF પ્રિવ્યૂ) ચકાસો.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3.5 pt-3 border-t border-amber-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+              <div className="text-[10px] sm:text-[11px] text-slate-600 font-mono flex items-center gap-1.5 flex-wrap">
+                <span className="bg-white px-2 py-1 rounded-md border border-amber-200 text-slate-700">
+                  ID: <strong className="text-slate-900 font-bold">guest@itidemo.gov.in</strong>
+                </span>
+                <span className="bg-white px-2 py-1 rounded-md border border-amber-200 text-slate-700">
+                  Pass: <strong className="text-slate-900 font-bold">Guest@Demo2026!</strong>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginIdentifier('guest@itidemo.gov.in');
+                    setLoginPassword('Guest@Demo2026!');
+                    setAuthMode('login');
+                    setErrorMsg('');
+                  }}
+                  className="px-2.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-[11px] font-bold transition-colors"
+                  title="ડેમો ક્રેડેન્શિયલ્સ ભરો"
+                >
+                  ઓટો-ફિલ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onLogin(DEMO_GUEST_INSTRUCTOR)}
+                  className="flex-1 sm:flex-initial px-4 py-2 bg-[#346739] hover:bg-[#2b552f] text-[#f2edc2] rounded-xl text-xs font-black shadow-xs transition-transform active:scale-[0.98] flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>ડેમો તરીકે તરત પ્રવેશ કરો (Instant Demo)</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Error Message */}
@@ -810,6 +886,76 @@ export default function InstructorAuth({
                 </div>
               </div>
 
+              {/* Institution District & Taluka Dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    સંસ્થાનો જિલ્લો (District) *
+                  </label>
+                  <select
+                    value={regDistrict}
+                    onChange={(e) => {
+                      const dist = e.target.value;
+                      setRegDistrict(dist);
+                      const talukas = POPULAR_TALUKAS_BY_DISTRICT[dist] || [];
+                      if (talukas.length > 0) {
+                        setRegTaluka(talukas[0].split(' ')[0] || talukas[0]);
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium"
+                  >
+                    {GUJARAT_DISTRICTS.map((dist) => (
+                      <option key={dist} value={dist}>
+                        {dist}
+                      </option>
+                    ))}
+                    <option value="other">અન્ય જિલ્લો (Other District)...</option>
+                  </select>
+                  {regDistrict === 'other' && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="જિલ્લાનું નામ દાખલ કરો"
+                      value={customDistrict}
+                      onChange={(e) => setCustomDistrict(e.target.value)}
+                      className="mt-1.5 w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] text-slate-900 font-medium"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    સંસ્થાનો તાલુકો (Taluka) *
+                  </label>
+                  <select
+                    value={regTaluka}
+                    onChange={(e) => setRegTaluka(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] focus:bg-white text-slate-900 font-medium"
+                  >
+                    {(POPULAR_TALUKAS_BY_DISTRICT[regDistrict] || [
+                      'ગાંધીનગર',
+                      'અમદાવાદ',
+                      'પાટણ',
+                    ]).map((tal) => (
+                      <option key={tal} value={tal.split(' ')[0] || tal}>
+                        {tal}
+                      </option>
+                    ))}
+                    <option value="other">અન્ય તાલુકો (Other Taluka)...</option>
+                  </select>
+                  {regTaluka === 'other' && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="તાલુકાનું નામ દાખલ કરો"
+                      value={customTaluka}
+                      onChange={(e) => setCustomTaluka(e.target.value)}
+                      className="mt-1.5 w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#346739] text-slate-900 font-medium"
+                    />
+                  )}
+                </div>
+              </div>
+
               {/* Institution Address */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -819,7 +965,7 @@ export default function InstructorAuth({
                   rows={2}
                   value={regAddress}
                   onChange={(e) => setRegAddress(e.target.value)}
-                  placeholder="દા.ત. કેમ્પસ રોડ, તા. પાટણ, જી. પાટણ-૩૮૪૨૬૫"
+                  placeholder="દા.ત. કેમ્પસ રોડ, જી.આઈ.ડી.સી. પાસે (વૈકલ્પિક વિગત)"
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium"
                 />
               </div>

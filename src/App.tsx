@@ -55,7 +55,7 @@ import AcademicHierarchyManager from './components/AcademicHierarchyManager';
 import TemplateStudio from './components/TemplateStudio';
 import ReportGenerator from './components/ReportGenerator';
 import { HeaderConfig } from './types';
-import { Calendar } from 'lucide-react';
+import { Calendar, Eye, ShieldAlert, Sparkles, AlertCircle } from 'lucide-react';
 import { isAccountExpired, formatValidityDate } from './utils/validityHelper';
 
 export default function App() {
@@ -155,6 +155,20 @@ export default function App() {
   }, [instructors, currentInstructorId]);
 
   const isSuperAdmin = currentInstructor.role === 'super_admin';
+  const isGuest = Boolean(
+    currentInstructor.is_guest ||
+    currentInstructor.role === 'guest' ||
+    currentInstructor.id === 'guest-demo-instructor'
+  );
+
+  const [guestActionBlockedNotice, setGuestActionBlockedNotice] = useState<string | null>(null);
+
+  const notifyGuestBlocked = (actionMsg?: string) => {
+    setGuestActionBlockedNotice(
+      actionMsg ||
+        'આ ડેમો એકાઉન્ટ (Guest Mode) છે. પોર્ટલની સુવિધાઓ ચકાસવા માટે ડેમો ડેટા સુરક્ષિત રાખવામાં આવ્યો છે. ગેસ્ટ યુઝર ડેટાબેઝમાં રેકોર્ડ ઉમેરી, સુધારી કે ડિલીટ કરી શકતા નથી.'
+    );
+  };
 
   // Strict role isolation: Super Admin is locked to 'admin' console; Instructors never access 'admin'
   useEffect(() => {
@@ -243,6 +257,10 @@ export default function App() {
   };
 
   const handleUpdateInstructor = async (updated: Instructor) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં પ્રોફાઇલ વિગતો સાચવી શકાતી નથી (Profile changes cannot be saved in Demo Mode).');
+      return;
+    }
     setInstructors((prev) => {
       const exists = prev.some(
         (i) => i.id === updated.id || (i.email && i.email === updated.email) || (i.phone && i.phone === updated.phone)
@@ -263,6 +281,10 @@ export default function App() {
 
   // 1. Trainee Handlers
   const handleAddTrainee = async (newTrainee: Omit<Trainee, 'id' | 'created_at'>) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં નવા તાલીમાર્થી ઉમેરી શકાતા નથી (Adding trainees is disabled in Demo Mode).');
+      return;
+    }
     const created: Trainee = {
       ...newTrainee,
       id: `trainee-${Date.now()}`,
@@ -277,21 +299,37 @@ export default function App() {
   };
 
   const handleUpdateTrainee = async (updated: Trainee) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં તાલીમાર્થીની વિગતો બદલી શકાતી નથી (Updating trainees is disabled in Demo Mode).');
+      return;
+    }
     setTrainees((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     await saveTraineeToCloud(updated);
   };
 
   const handleDeleteTrainee = async (id: string) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં તાલીમાર્થી ડિલીટ કરી શકાતા નથી (Deleting trainees is disabled in Demo Mode).');
+      return;
+    }
     setTrainees((prev) => prev.filter((t) => t.id !== id));
     await deleteTraineeFromCloud(id);
   };
 
   const handleBatchDeleteTrainees = async (ids: string[]) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં રેકોર્ડ્સ ડિલીટ કરી શકાતા નથી (Deleting trainees is disabled in Demo Mode).');
+      return;
+    }
     setTrainees((prev) => prev.filter((t) => !ids.includes(t.id)));
     await deleteBatchTraineesFromCloud(ids);
   };
 
   const handleUpdateAdminSettings = async (settings: SuperAdminSettings) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં એડમિન સેટિંગ્સ બદલી શકાતા નથી.');
+      return;
+    }
     setAdminSettings(settings);
     await saveAdminSettingsToCloud(settings);
   };
@@ -302,6 +340,10 @@ export default function App() {
     batch: string,
     unit: string
   ) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં યુનિટ ફાળવણી બદલી શકાતી નથી.');
+      return;
+    }
     const updated = trainees.map((t) => {
       if (traineeIds.includes(t.id)) {
         return {
@@ -325,6 +367,10 @@ export default function App() {
     newTrainees: Trainee[],
     newAttendance: AttendanceRecord[]
   ) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં એક્સેલ ફાઈલ ઈમ્પોર્ટ અક્ષમ છે (Excel Import is disabled in Demo Mode).');
+      return;
+    }
     // Automatically tag imported students to current instructor profile and active trade/batch/unit if missing
     const taggedTrainees = newTrainees.map((t) => ({
       ...t,
@@ -349,6 +395,10 @@ export default function App() {
 
   // 2. Attendance Handlers
   const handleUpdateAttendance = (records: AttendanceRecord[]) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં હાજરી રેકોર્ડ ડેટાબેઝમાં સાચવી શકાતો નથી (Saving attendance is disabled in Demo Mode).');
+      return;
+    }
     setAttendanceRecords((prev) => {
       const recordMap = new Map<string, AttendanceRecord>();
       prev.forEach((r) => recordMap.set(r.id, r));
@@ -368,6 +418,10 @@ export default function App() {
 
   // 3. Dispatch Handlers
   const handleLogDispatch = async (newLog: Omit<DispatchLog, 'id' | 'created_at'>) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં જાવક રજિસ્ટરમાં નવી નોંધ ઉમેરી શકાતી નથી (Adding dispatch logs is disabled in Demo Mode).');
+      return;
+    }
     const created: DispatchLog = {
       ...newLog,
       id: `disp-${Date.now()}`,
@@ -379,6 +433,10 @@ export default function App() {
   };
 
   const handleBatchLogDispatch = async (logs: Omit<DispatchLog, 'id' | 'created_at'>[]) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં જાવક રજિસ્ટરમાં બેચ નોંધ ઉમેરી શકાતી નથી (Batch dispatch logs disabled in Demo Mode).');
+      return;
+    }
     const createdLogs: DispatchLog[] = logs.map((l, idx) => ({
       ...l,
       id: `disp-batch-${Date.now()}-${idx}`,
@@ -390,6 +448,10 @@ export default function App() {
   };
 
   const handleUpdateDispatchStatus = async (logId: string, newStatus: DispatchLog['status']) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં રવાનગી સ્ટેટસ બદલી શકાતું નથી (Updating dispatch status is disabled in Demo Mode).');
+      return;
+    }
     setDispatchLogs((prev) =>
       prev.map((l) => (l.id === logId ? { ...l, status: newStatus } : l))
     );
@@ -400,6 +462,10 @@ export default function App() {
   };
 
   const handleUpdateDispatchLog = async (updatedLog: DispatchLog) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં જાવક નોંધ સુધારી શકાતી નથી (Editing dispatch logs is disabled in Demo Mode).');
+      return;
+    }
     setDispatchLogs((prev) =>
       prev.map((l) => (l.id === updatedLog.id ? updatedLog : l))
     );
@@ -407,11 +473,19 @@ export default function App() {
   };
 
   const handleDeleteDispatchLog = async (logId: string) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં જાવક નોંધ ડિલીટ કરી શકાતી નથી (Deleting dispatch logs is disabled in Demo Mode).');
+      return;
+    }
     setDispatchLogs((prev) => prev.filter((l) => l.id !== logId));
     await deleteDispatchLogFromCloud(logId);
   };
 
   const handleBatchDeleteDispatchLogs = async (logIds: string[]) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં જાવક નોંધ ડિલીટ કરી શકાતી નથી (Deleting dispatch logs is disabled in Demo Mode).');
+      return;
+    }
     setDispatchLogs((prev) => prev.filter((l) => !logIds.includes(l.id)));
     await deleteBatchDispatchLogsFromCloud(logIds);
   };
@@ -422,6 +496,10 @@ export default function App() {
 
   // 4. Template Handlers
   const handleSaveTemplate = async (updated: LetterTemplate) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં ટેમ્પલેટ સેવ કરી શકાતી નથી (Saving templates is disabled in Demo Mode).');
+      return;
+    }
     setTemplates((prev) => {
       const exists = prev.some((t) => t.id === updated.id);
       if (exists) {
@@ -433,20 +511,33 @@ export default function App() {
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં ટેમ્પલેટ ડિલીટ કરી શકાતી નથી (Deleting templates is disabled in Demo Mode).');
+      return;
+    }
     setTemplates((prev) => prev.filter((t) => t.id !== templateId));
     await deleteTemplateFromCloud(templateId);
   };
 
   const handleUpdateInstructorHeader = async (headerConfig: HeaderConfig) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં લેટરહેડ સેટિંગ્સ સાચવી શકાતા નથી (Updating letterhead is disabled in Demo Mode).');
+      return;
+    }
     const updated: Instructor = {
       ...currentInstructor,
       header_config: headerConfig,
+      letterhead_html: headerConfig.letterhead_html ?? currentInstructor.letterhead_html,
     };
     await handleUpdateInstructor(updated);
   };
 
   // 5. Tenant Handlers
   const handleAddInstructor = async (inst: Omit<Instructor, 'id' | 'created_at'> | Instructor) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં ઇન્સ્ટ્રક્ટર ખાતું ઉમેરી શકાતું નથી.');
+      return;
+    }
     const created: Instructor = {
       ...inst,
       id: 'id' in inst && inst.id ? inst.id : `inst-${Date.now()}`,
@@ -473,6 +564,10 @@ export default function App() {
   };
 
   const handleDeleteInstructor = async (id: string) => {
+    if (isGuest) {
+      notifyGuestBlocked('ડેમો મોડમાં ઇન્સ્ટ્રક્ટર ખાતું ડિલીટ કરી શકાતું નથી.');
+      return;
+    }
     setInstructors((prev) => prev.filter((i) => i.id !== id));
     await deleteInstructorFromCloud(id);
     if (currentInstructorId === id) {
@@ -510,7 +605,7 @@ export default function App() {
     currentInstructor.role === 'super_admin' ||
     currentInstructor.email === 'tejassuthar21696@gmail.com';
 
-  if (currentInstructor.status === 'pending' && !isSuperAdminUser) {
+  if (!isGuest && currentInstructor.status === 'pending' && !isSuperAdminUser) {
     return (
       <div className="min-h-screen bg-[#f7f9f6] flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-amber-200 shadow-xl text-center space-y-5">
@@ -613,7 +708,7 @@ export default function App() {
   }
 
   // Check if current user's account validity has expired (usable for 1 year from approval date, lifetime for admin)
-  if (!isSuperAdminUser && isAccountExpired(currentInstructor)) {
+  if (!isGuest && !isSuperAdminUser && isAccountExpired(currentInstructor)) {
     return (
       <div className="min-h-screen bg-[#f7f9f6] flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-rose-200 shadow-xl text-center space-y-5 animate-in fade-in">
@@ -689,6 +784,35 @@ export default function App() {
         lowAttendanceCount={lowAttendanceCount}
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
       />
+
+      {/* Read-Only Guest Mode Banner */}
+      {isGuest && (
+        <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-[#1b381e] text-white px-3 sm:px-6 py-2.5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs border-b border-amber-400/40">
+          <div className="flex items-center gap-2.5">
+            <span className="px-2.5 py-0.5 rounded-md bg-white/20 font-black text-[11px] tracking-wide flex items-center gap-1.5 uppercase shadow-2xs">
+              <Eye className="w-3.5 h-3.5 text-amber-200" /> ગેસ્ટ ડેમો મોડ (View-Only)
+            </span>
+            <span className="text-[11px] sm:text-xs text-amber-50">
+              આપ અતિથિ તરીકે પોર્ટલની સુવિધાઓ નિહાળી રહ્યા છો. ડેટા સુરક્ષા માટે રેકોર્ડ્સ એડિટ, ડિલીટ કે અપડેટ અક્ષમ છે.
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            <button
+              onClick={handleInstructorLogout}
+              className="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-xs font-black shadow-xs transition-transform active:scale-95 flex items-center gap-1"
+            >
+              <Sparkles className="w-3 h-3 text-slate-900" />
+              <span>ખાતું રજીસ્ટર કરો (Register)</span>
+            </button>
+            <button
+              onClick={handleInstructorLogout}
+              className="px-2.5 py-1 bg-black/30 hover:bg-black/40 text-white rounded-lg text-xs font-semibold"
+            >
+              બહાર નીકળો (Logout)
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 py-3 sm:py-6 pb-24 md:pb-6 overflow-x-hidden">
@@ -837,6 +961,50 @@ export default function App() {
           dispatchLogs={dispatchLogs}
           onBatchLogDispatch={handleBatchLogDispatch}
         />
+      )}
+
+      {/* Guest Mode Action Blocked Modal Dialog */}
+      {guestActionBlockedNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-amber-200 relative animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-3 shadow-inner">
+              <ShieldAlert className="w-6 h-6 text-amber-600" />
+            </div>
+            <h3 className="text-base font-black text-slate-900 text-center">
+              ડેમો મોડ પ્રતિબંધિત (View-Only Demo Restriction)
+            </h3>
+            <p className="text-xs text-slate-600 text-center mt-2 leading-relaxed">
+              {guestActionBlockedNotice}
+            </p>
+            <div className="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 space-y-1">
+              <div className="font-bold flex items-center gap-1 text-amber-950">
+                <span>✨ ડેમો મોડમાં ઉપલબ્ધ સુવિધાઓ:</span>
+              </div>
+              <div>• તાલીમાર્થીઓની વિગતો અને બેચ/યુનિટ ફિલ્ટર ચકાસવા</div>
+              <div>• માસિક હાજરી ટ્રેકર અને ઓછી હાજરી (&lt;૮૦%) ચેતવણીઓ</div>
+              <div>• નોટિસ/અહેવાલ જનરેટર અને A4 પ્રિન્ટ / PDF ડાઉનલોડ પ્રિવ્યૂ</div>
+              <div>• જાવક રજિસ્ટર (આઉટવર્ડ બુક) અને રવાનગી વિગતો</div>
+            </div>
+            <div className="mt-5 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setGuestActionBlockedNotice(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors"
+              >
+                સમજાઈ ગયું (Close)
+              </button>
+              <button
+                onClick={() => {
+                  setGuestActionBlockedNotice(null);
+                  handleInstructorLogout();
+                }}
+                className="px-4 py-2 bg-[#346739] hover:bg-[#2b552f] text-[#f2edc2] font-bold rounded-xl text-xs shadow-xs transition-colors flex items-center gap-1"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>નવું ખાતું બનાવો (Register)</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

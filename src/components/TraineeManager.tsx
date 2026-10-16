@@ -54,6 +54,7 @@ export default function TraineeManager({
 }: TraineeManagerProps) {
   const { t, tText, imeLanguageName } = useLanguage();
   const imeLanguage = propImeLanguage || imeLanguageName;
+  const isGuest = instructor.role === 'guest' || instructor.is_guest || instructor.id === 'guest-demo-instructor';
   const [searchQuery, setSearchQuery] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -156,6 +157,8 @@ export default function TraineeManager({
     grandfather_name_en: '',
     mobile: '',
     parent_mobile: '',
+    gender: 'પુરુષ (Male)',
+    category: 'General (સામાન્ય)',
     address: '',
     village: '',
     taluka: '',
@@ -237,6 +240,8 @@ export default function TraineeManager({
       grandfather_name_en: trainee.grandfather_name_en || '',
       mobile: trainee.mobile || '',
       parent_mobile: trainee.parent_mobile || '',
+      gender: trainee.gender || 'પુરુષ (Male)',
+      category: trainee.category || 'General (સામાન્ય)',
       address: trainee.address || '',
       village: trainee.village || '',
       taluka: trainee.taluka || '',
@@ -309,7 +314,12 @@ export default function TraineeManager({
         <div>
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <Users className="w-5 h-5 text-[#346739]" />
-            <span>{tText('તાલીમાર્થી ડેટાબેઝ અને સંચાલન', 'प्रशिक्षु डेटाबेस एवं प्रबंधन', 'Trainee Records & Management')}</span>
+            <span>{tText('તાલીમાર્થી ડેટાબેઝ અને સંચાલન', 'પ્રશિક્ષુ ડેટાબેઝ એવં પ્રબંધન', 'Trainee Records & Management')}</span>
+            {isGuest && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                ડેમો મોડ (View-Only)
+              </span>
+            )}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {instructor.iti_name} • {instructor.trade} • {instructor.batch} ({trainees.length} {tText('નોંધાયેલ તાલીમાર્થીઓ', 'पंजीकृत प्रशिक्षु', 'Registered Trainees')})
@@ -812,6 +822,41 @@ export default function TraineeManager({
                 </div>
               </div>
 
+              {/* Demographics Dropdowns: Gender & Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {tText('જાતિ (Gender)', 'लिंग (Gender)', 'Gender')}
+                  </label>
+                  <select
+                    value={formData.gender || 'પુરુષ (Male)'}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium text-slate-900 focus:ring-2 focus:ring-[#346739] focus:outline-none"
+                  >
+                    <option value="પુરુષ (Male)">પુરુષ (Male)</option>
+                    <option value="સ્ત્રી (Female)">સ્ત્રી (Female)</option>
+                    <option value="અન્ય (Other)">અન્ય (Other)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {tText('સામાજિક વર્ગ / કેટેગરી (Category)', 'श्रेणी (Category)', 'Category')}
+                  </label>
+                  <select
+                    value={formData.category || 'General (સામાન્ય)'}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium text-slate-900 focus:ring-2 focus:ring-[#346739] focus:outline-none"
+                  >
+                    <option value="General (સામાન્ય)">General / સામાન્ય</option>
+                    <option value="SEBC/OBC (સા.શૈ.પ.વ.)">SEBC / OBC (સા.શૈ.પ.વ.)</option>
+                    <option value="SC (અનુસૂચિત જાતિ)">SC (અનુસૂચિત જાતિ)</option>
+                    <option value="ST (અનુસૂચિત જનજાતિ)">ST (અનુસૂચિત જનજાતિ)</option>
+                    <option value="EWS (આર્થિક નબળા વર્ગ)">EWS (આર્થિક નબળા વર્ગ)</option>
+                  </select>
+                </div>
+              </div>
+
               {/* English Demographics (Type here to auto-convert to regional script) */}
               <div className="pt-2 border-t border-slate-200">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
@@ -992,15 +1037,29 @@ export default function TraineeManager({
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">{t('taluka')}</label>
-                      <input
-                        type="text"
-                        list="taluka-suggestions"
-                        value={formData.taluka || ''}
-                        onChange={(e) => setFormData({ ...formData, taluka: e.target.value })}
-                        placeholder="દા.ત. શંખેશ્વર"
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                      <datalist id="taluka-suggestions">
+                      <select
+                        value={
+                          Object.entries(POPULAR_TALUKAS_BY_DISTRICT)
+                            .filter(([distKey]) => !formData.district || distKey.includes(formData.district))
+                            .flatMap(([, talukas]) => talukas)
+                            .some((tal) => tal.split(' ')[0] === formData.taluka || tal === formData.taluka)
+                            ? formData.taluka
+                            : formData.taluka
+                            ? 'other'
+                            : ''
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'other') {
+                            setFormData({ ...formData, taluka: '' });
+                          } else {
+                            const cleanTal = val.split(' ')[0] || val;
+                            setFormData({ ...formData, taluka: cleanTal });
+                          }
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      >
+                        <option value="">-- {tText('તાલુકો પસંદ કરો', 'तालुका चुनें', 'Select Taluka')} --</option>
                         {Object.entries(POPULAR_TALUKAS_BY_DISTRICT)
                           .filter(([distKey]) => !formData.district || distKey.includes(formData.district))
                           .flatMap(([, talukas]) => talukas)
@@ -1009,7 +1068,21 @@ export default function TraineeManager({
                               {tal}
                             </option>
                           ))}
-                      </datalist>
+                        <option value="other">{tText('અન્ય તાલુકો...', 'अन्य तालुका...', 'Other Taluka...')}</option>
+                      </select>
+                      {(!Object.entries(POPULAR_TALUKAS_BY_DISTRICT)
+                        .filter(([distKey]) => !formData.district || distKey.includes(formData.district))
+                        .flatMap(([, talukas]) => talukas)
+                        .some((tal) => tal.split(' ')[0] === formData.taluka || tal === formData.taluka) &&
+                        formData.taluka !== undefined) && (
+                        <input
+                          type="text"
+                          value={formData.taluka || ''}
+                          onChange={(e) => setFormData({ ...formData, taluka: e.target.value })}
+                          placeholder="તાલુકાનું નામ દાખલ કરો"
+                          className="mt-1 w-full px-2 py-1 text-xs border rounded"
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">{t('villageCity')}</label>

@@ -1,6 +1,6 @@
 export type Language = 'Gujarati' | 'Hindi' | 'English';
 
-export type UserRole = 'super_admin' | 'instructor';
+export type UserRole = 'super_admin' | 'instructor' | 'guest';
 export type UserStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
 export interface AcademicUnit {
@@ -38,6 +38,12 @@ export interface HeaderConfig {
   ref_prefix: string;
   banner_border_style?: 'double' | 'solid' | 'dashed' | 'none';
   banner_layout?: 'standard' | 'centered' | 'compact';
+  // Custom Letterhead Facilities
+  letterhead_mode?: 'tinymce_canvas' | 'standard' | 'custom_banner' | 'blank_for_preprinted';
+  letterhead_html?: string; // Rich-text HTML content created and edited via TinyMCE
+  custom_banner_image_url?: string; // Pre-designed full letterhead graphic/banner
+  custom_banner_height_mm?: number; // Height in mm for custom banner (e.g. 35-50mm)
+  custom_banner_margin_bottom_mm?: number; // Space below banner
 }
 
 export interface Instructor {
@@ -48,7 +54,8 @@ export interface Instructor {
   name_gu?: string;
   email: string;
   phone: string; // Official Mobile Number (10 digits) - used as Login ID along with Email
-  role?: UserRole; // 'super_admin' or 'instructor'
+  role?: UserRole; // 'super_admin' or 'instructor' or 'guest'
+  is_guest?: boolean; // Read-only guest mode to check portal facilities before paying
   status?: UserStatus; // 'pending' | 'approved' | 'rejected' | 'suspended'
   email_verified?: boolean; // Whether instructor email has been verified
   mobile_verified?: boolean;
@@ -65,6 +72,7 @@ export interface Instructor {
   institution_address?: string;
   outward_code_prefix?: string;
   letterhead_header_url?: string;
+  letterhead_html?: string; // Global default TinyMCE rich-text letterhead HTML
   signature_footer_url?: string;
   header_config?: HeaderConfig;
   payment_screenshot_url?: string; // Uploaded payment receipt image
@@ -154,6 +162,8 @@ export interface LetterTemplate {
   subject: string;
   content_html: string;
   header_config?: HeaderConfig;
+  letterhead_html?: string; // Template-specific TinyMCE rich-text letterhead HTML
+  use_custom_letterhead?: boolean; // True if using template-specific letterhead rather than global instructor default
   show_letterhead?: boolean; // Facility to toggle letterhead per template
   required_fields?: string[]; // dynamic field tags needed, e.g. ['Trainee_Name', 'Attendance_Percentage']
   created_at: string;

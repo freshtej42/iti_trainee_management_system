@@ -41,6 +41,7 @@ export default function AttendanceTracker({
   onBulkDraft,
 }: AttendanceTrackerProps) {
   const { t, tText } = useLanguage();
+  const isGuest = instructor.role === 'guest' || instructor.is_guest || instructor.id === 'guest-demo-instructor';
   // 12 Standard Calendar Months (Academic Order Starting August)
   const MONTHS_LIST = useMemo(
     () => [
@@ -367,9 +368,14 @@ export default function AttendanceTracker({
               <span className="text-[11px] text-[#346739]/80 font-medium">{tText('દિવસ', 'दिन', 'Days')}</span>
             </div>
 
-            <div className="text-xs text-slate-500 flex items-center gap-1">
+            <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
               <span>{t('unit')}:</span>
               <strong className="text-slate-800 truncate max-w-[200px]">{instructor.trade} ({instructor.unit || 'Unit A'})</strong>
+              {isGuest && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                  ડેમો મોડ (View-Only)
+                </span>
+              )}
             </div>
           </div>
 

@@ -1,62 +1,48 @@
-# Full TinyMCE Letterhead Editor: Replacing Fixed Form Inputs with Freeform WYSIWYG
+# Full Interactive Demo Account & Rich Sample Data Plan
 
-A complete transformation from rigid letterhead form fields to a 100% flexible TinyMCE rich-text letterhead experience. Instructors will have complete creative freedom to design, layout, format, and align official letterheads without being bound to rigid input forms.
+Enable all portal facilities in the Demo Account (`guest@itidemo.gov.in`) as an interactive in-session sandbox and enrich the pre-loaded demo dataset so prospective instructors can experience every feature before deciding to register and pay.
 
----
-
-## 1. User Intent & Architecture Overview
-
-The user explicitly requested:
-> *"instead of using form to get details of the letterhead let's use tinyMCE text editor which gives flexibility to user insted of bind in the fixed format."*
-- **Placement**: Both on the A4 canvas above the document body and in a dedicated expansive popup modal.
-- **Starting Canvas**: Start with a clean/blank TinyMCE canvas for complete custom design freedom, with optional presets for quick reference.
-- **Elimination of Form**: Completely remove the rigid form inputs (`institute_name_gu`, `institute_name_en`, `department_subtitle`, `address`, `contact_info`, fixed border dropdowns, etc.) from the letterhead editing workflow and rely entirely on TinyMCE rich HTML.
-
----
-
-## 2. Core Architectural Changes
-
-### A. Dedicated TinyMCE Letterhead Modal (`TinyMceLetterheadModal.tsx`)
-- Replaces the 860-line `LetterheadEditorModal.tsx` form.
-- Provides a distraction-free, full-featured dialog for designing letterheads:
-  - Full TinyMCE editor loaded with Table tools, Font Families (Noto Sans Gujarati, Shruti, Arial, etc.), Font Sizes, Colors, Alignment, Logo/Image upload or embedding, Horizontal rules, and Outward/Date tags.
-  - Scope Selector: **ગ્લોબલ ડિફોલ્ટ (Global Default)** vs **આ ટેમ્પ્લેટ ખાસ (Template-Specific)**.
-  - Quick Actions: **"કોરો લેટરહેડ (Blank Slate)"**, **"પ્રીસેટ પસંદ કરો (Presets)"**, **"ગ્લોબલ સાચવો (Save as Global)"**, and **"સાચવો અને લાગુ કરો (Save & Apply)"**.
-  - A4 Live Width Container (`max-w-[820px]`) with real-time print styling.
-
-### B. In-Place A4 Canvas TinyMCE Editor (`TinyMceLetterheadEditor.tsx`)
-- Sits seamlessly directly above the notice body on the `#notice-a4-sheet`.
-- Added an **"મોટું પોપઅપ ખોલો (Open in Full Modal)"** button in the letterhead toolbar to open the full modal whenever desired.
-- Allows immediate inline editing, typing Gujarati/English, adjusting tables, or inserting logos directly on the document sheet.
-
-### C. Deprecation of Rigid Form Schema
-- Update `TemplateStudio.tsx`:
-  - When clicking the prominent **"લેટરહેડ એડિટ કરો (Edit Letterhead)"** button in the top action bar or canvas badge, open the new `TinyMceLetterheadModal` instead of the old form modal.
-  - Save `letterhead_html` as the primary letterhead source of truth on `LetterTemplate` and `Instructor`.
-- Update `ReportGenerator.tsx` and Print Modals:
-  - Render `letterhead_html` everywhere (Screen preview, A4 Print Modal, Batch Notice Modal, and native Print).
+## Confirmed User Preferences
+1. **Interactive Session Sandbox**: Allow all actions in the Demo Account (adding/editing/deleting/importing trainees, marking/updating attendance, creating/editing templates and letterheads, logging/updating/deleting inward & outward dispatch entries, and managing academic hierarchy/batches/units) in memory during the active session, resetting cleanly on reload without writing to the production Cloud Firestore database.
+2. **Comprehensive Pre-loaded Demo Dataset**:
+   - **Trainees**: Realistic trainees across multiple trades (`કોપા (COPA)` and `ઇલેક્ટ્રિશિયન (Electrician)`), batches (`84`, `85`), and units (`Unit A`, `Unit B`).
+   - **Multi-Month Attendance**: Attendance records across multiple session months (`July 2026`, `August 2026`, `September 2026`) showcasing regular (`≥80%`), low attendance (`<80%` requiring notice), progressive-safe (`<80%` monthly but `≥80%` cumulative), and continuous absence cases.
+   - **All Official Templates**: Pre-load 1st Warning Notice, 2nd Strict Warning Notice, Final Show-Cause / Name Removal Notice, Parent Meeting Invitation, and the Principal Monthly Low-Attendance Forwarding Report (`{{Low_Attendance_Table}}`).
+   - **Inward & Outward Dispatch Register**: Sample Outward parent notices (Speed Post, RPAD, Hand Delivery) and Inward correspondence (parent medical certificate reply, Principal forwarding report filing).
+3. **Minimal Demo Badge UI**: Remove the bulky read-only warning banner and action-blocked modal, and display only a clean, minimal Demo badge in the header.
 
 ---
 
-## 3. Step-by-Step Implementation Tasks
+## Proposed Changes
 
-### Task 1: Create `src/components/WordEditor/TinyMceLetterheadModal.tsx`
-- Build a dedicated modal dialog for rich-text letterhead authoring.
-- Include TinyMCE with table controls (columns, borders, background colors), image insertion, font styling, merge tags (`{{Ref_No}}`, `{{Current_Date}}`), blank reset, preset selector, and global vs template scope.
+### 1. Enrich Pre-loaded Demo Dataset (`src/data/demoData.ts`)
+- **`DEMO_GUEST_INSTRUCTOR`**:
+  - Update batches to `'84'` and `'85'` (matching the numeric batch format) across trades `'કોપા (COPA)'` and `'ઇલેક્ટ્રિશિયન (Electrician)'` with `'Unit A'` and `'Unit B'` in `academic_hierarchy`.
+  - Update designation and labels to reflect an interactive demo account rather than view-only.
+- **`DEMO_SAMPLE_TRAINEES`**:
+  - Expand the trainee list to **15 trainees** spanning `કોપા (COPA)` (Batch `84` Unit A & Unit B, Batch `85` Unit A) and `ઇલેક્ટ્રિશિયન (Electrician)` (Batch `84` Unit A) with complete Gujarati/English names, enrollment numbers, parent mobile numbers, and addresses.
+- **`DEMO_SAMPLE_ATTENDANCE`**:
+  - Provide 3 months of session records (`July 2026`, `August 2026`, `September 2026`) for the demo trainees so month-wise columns (`Jul '26 %`, `Aug '26 %`, `Sep '26 %`), red `<80%` highlights, progressive safe badges, and notice-required filters work immediately out of the box.
+- **`DEMO_SAMPLE_TEMPLATES`**:
+  - Include all 5 official Gujarati templates:
+    1. `પ્રથમ ગેરહાજરી ચેતવણી નોટિસ (1st Warning)`
+    2. `દ્વિતીય કડક ચેતવણી નોટિસ (2nd Warning)`
+    3. `આખરી કારણદર્શક નોટિસ - નામ કમી કરવા બાબત (Final Notice)`
+    4. `વાલી મિટિંગ માટે હાજર રહેવા બાબત (General Notice)`
+    5. `આચાર્યશ્રીને માસિક ઓછી હાજરીનો અહેવાલ (Principal Report)` with dynamic `{{Low_Attendance_Table}}`
+- **`DEMO_SAMPLE_DISPATCH_LOGS`**:
+  - Include 6 realistic Outward and Inward register entries across different statuses (`Dispatched`, `Delivered`, `Acknowledged`, `Printed`) and modes (`Speed Post`, `RPAD`, `Hand Delivery`, `કચેરી ફાઇલિંગ`).
 
-### Task 2: Update `src/components/WordEditor/TinyMceLetterheadEditor.tsx`
-- Add an "Open in Full Modal" action button to the canvas toolbar.
-- Support "Start Blank" action for complete freeform designing.
-- Ensure seamless two-way state synchronization between canvas editor and modal editor.
+### 2. Enable Full In-Session Operations for Demo Mode (`src/App.tsx`)
+- Remove `notifyGuestBlocked(...)` early returns from all handlers (`handleUpdateInstructor`, `handleAddTrainee`, `handleUpdateTrainee`, `handleDeleteTrainee`, `handleBatchDeleteTrainees`, `handleAssignTraineesToUnit`, `handleImportTrainees`, `handleUpdateAttendance`, `handleLogDispatch`, `handleBatchLogDispatch`, `handleUpdateDispatchStatus`, `handleUpdateDispatchLog`, `handleDeleteDispatchLog`, `handleBatchDeleteDispatchLogs`, `handleSaveTemplate`, `handleDeleteTemplate`, `handleUpdateInstructorHeader`).
+- In each handler, update React state (`setTrainees`, `setAttendanceRecords`, `setTemplates`, `setDispatchLogs`, `setInstructors`) normally so the Demo user experiences full interactivity, while guarding cloud persistence calls with `if (!isGuest)` so demo actions never touch Firestore or local storage cache.
+- Remove the top read-only guest warning banner and the `guestActionBlockedNotice` modal from `src/App.tsx`.
 
-### Task 3: Replace `LetterheadEditorModal` in `src/components/TemplateStudio.tsx`
-- Replace imports and usage of the old form-based `LetterheadEditorModal` with `TinyMceLetterheadModal`.
-- Wire top bar "લેટરહેડ એડિટ કરો" button to open the TinyMCE modal.
-- Ensure saving persists to `template.letterhead_html` and `instructor.letterhead_html` without prompting for form fields.
-
-### Task 4: Clean up and retire `LetterheadEditorModal.tsx`
-- Remove unused form logic and legacy code to eliminate any remaining fixed-form binding.
-
-### Task 5: Compilation and Verification
-- Run `compile_applet` and `lint_applet` to ensure 0 build errors.
-- Test letterhead editing on canvas, in modal, blank slate creation, global saving, and verify print/PDF output.
+### 3. Unlock Component-Level Controls in Demo Mode
+- **`src/components/DispatchHistory.tsx`**:
+  - Enable the **Add Entry (`+`)** button, **Status** dropdown, **Edit** button, and **Delete** button for the Demo account so users can test full Inward/Outward register management.
+- **`src/components/ReportGenerator.tsx`**:
+  - Remove the `if (isGuest)` block inside `logEntriesToRegister` so Demo users can log generated Parent Notices (Outward) and Principal Reports (Inward) directly into the register and see the confirmation toast.
+- **`src/components/Header.tsx` & `src/components/InstructorAuth.tsx`**:
+  - Update the header badge from `"Guest Demo (View-Only)"` to a clean, minimal `"Demo Mode"` badge.
+  - Update the login screen's Instant Demo card copy to highlight that all features (attendance entry, Excel import, template studio, notice generation, and dispatch register) are unlocked for live hands-on testing.

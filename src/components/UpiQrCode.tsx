@@ -49,7 +49,7 @@ export const UpiQrCode: React.FC<UpiQrCodeProps> = ({
       <div className="mb-2 text-center">
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-          {isCustom ? 'એડમિન અધિકૃત પેમેન્ટ QR કોડ (Admin Added QR)' : 'અધિકૃત UPI પેમેન્ટ QR કોડ'}
+          {isCustom ? 'Official Admin Payment QR Code' : 'Official UPI Payment QR Code'}
         </span>
       </div>
 
@@ -78,8 +78,10 @@ export const UpiQrCode: React.FC<UpiQrCodeProps> = ({
         {upiId}
       </div>
       <div className="text-[11px] text-slate-600 font-medium text-center mt-0.5">
-        (GPay / PhonePe / Paytm / BHIM UPI થી સ્કેન કરી <strong>₹{amount}</strong> ચૂકવો)
+        (Scan with GPay / PhonePe / Paytm / BHIM to pay <strong>₹{amount}</strong>)
       </div>
     </div>
   );
 };
+
+export default UpiQrCode;

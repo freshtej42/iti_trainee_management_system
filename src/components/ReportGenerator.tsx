@@ -34,6 +34,7 @@ import {
   Download,
 } from 'lucide-react';
 import { mergeTemplateTags } from '../utils/mergeTags';
+import { calculateProgressiveAttendance } from '../utils/progressiveAttendance';
 import DraggableFieldsPalette from './DraggableFieldsPalette';
 import BatchNoticePrintPreviewModal, { BatchNoticeItem } from './BatchNoticePrintPreviewModal';
 import A4PrintPreviewModal from './A4PrintPreviewModal';
@@ -60,6 +61,12 @@ export default function ReportGenerator({
   dispatchLogs = [],
   onBatchLogDispatch,
 }: ReportGeneratorProps) {
+  const isGuest = Boolean(
+    instructor.role === 'guest' ||
+    instructor.is_guest ||
+    instructor.id === 'guest-demo-instructor'
+  );
+
   // Step 1: Selected Template
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
     templates[0]?.id || ''
@@ -75,8 +82,8 @@ export default function ReportGenerator({
   const availableUnits = instructor.units || [instructor.unit || 'Unit A'];
   const [selectedUnit, setSelectedUnit] = useState<string>(availableUnits[0] || '');
 
-  // Step 2: Quick Filter
-  const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'low_only' | 'continuous_absent'>('low_only');
+  // Step 2: Quick Filter (Notice Required, Progressive Safe, Continuous Absent, All)
+  const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'low_only' | 'progressive_safe' | 'continuous_absent'>('low_only');
 
   // Trainee Selection State
   const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
@@ -99,7 +106,7 @@ export default function ReportGenerator({
 
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Filter trainees by selected Trade, Batch, Unit
+  // Filter trainees by selected Trade, Batch, Unit and Progressive Attendance Rules
   const filteredTrainees = trainees.filter((tr) => {
     const matchesTrade = !selectedTrade || tr.trade === selectedTrade;
     const matchesBatch = !selectedBatch || tr.batch === selectedBatch;
@@ -107,10 +114,29 @@ export default function ReportGenerator({
     if (!matchesTrade || !matchesBatch || !matchesUnit) return false;
 
     const att = attendanceRecords.find((a) => a.trainee_id === tr.id);
-    const pct = att ? att.attendance_percentage : 100;
+    const progStats = calculateProgressiveAttendance(
+      tr.id,
+      att || {
+        id: `att-${tr.id}-default`,
+        trainee_id: tr.id,
+        instructor_id: instructor.id,
+        month_year: attendanceRecords[0]?.month_year || 'August 2026',
+        total_working_days: 24,
+        present_days: 18,
+        absent_days: 6,
+        attendance_percentage: 75.0,
+        flagged_low: true,
+        updated_at: new Date().toISOString(),
+      },
+      attendanceRecords
+    );
 
     if (attendanceFilter === 'low_only') {
-      return pct < 80.0;
+      // Confirmed decision: Trainee with progressive attendance >= 80% does NOT require notice
+      return progStats.requiresNotice;
+    }
+    if (attendanceFilter === 'progressive_safe') {
+      return progStats.isProgressiveSafe;
     }
     if (attendanceFilter === 'continuous_absent') {
       return Boolean(att?.continuous_absent_since);
@@ -197,12 +223,72 @@ export default function ReportGenerator({
     const att = attendanceRecords.find((a) => a.trainee_id === trainee.id);
     const refNo = `${cleanRefPrefix}/${trainee.roll_no || '૧'}`;
 
+    // Compute progressive stats for current trainee
+    const progStats = calculateProgressiveAttendance(
+      trainee.id,
+      att || {
+        id: `att-${trainee.id}-temp`,
+        trainee_id: trainee.id,
+        instructor_id: instructor.id,
+        month_year: attendanceRecords[0]?.month_year || 'August 2026',
+        total_working_days: 24,
+        present_days: 18,
+        absent_days: 6,
+        attendance_percentage: 75,
+        flagged_low: true,
+        updated_at: new Date().toISOString(),
+      },
+      attendanceRecords
+    );
+
+    // Filter trainees requiring notice based on progressive rules (progressive < 80%)
     const lowAttendanceList = trainees
-      .map((tr) => ({
-        trainee: tr,
-        attendance: attendanceRecords.find((a) => a.trainee_id === tr.id),
-      }))
-      .filter((item) => (item.attendance?.attendance_percentage ?? 100) < 80);
+      .map((tr) => {
+        const trAtt = attendanceRecords.find((a) => a.trainee_id === tr.id);
+        const pStats = calculateProgressiveAttendance(
+          tr.id,
+          trAtt || {
+            id: `att-${tr.id}-temp`,
+            trainee_id: tr.id,
+            instructor_id: instructor.id,
+            month_year: attendanceRecords[0]?.month_year || 'August 2026',
+            total_working_days: 24,
+            present_days: 18,
+            absent_days: 6,
+            attendance_percentage: 75,
+            flagged_low: true,
+            updated_at: new Date().toISOString(),
+          },
+          attendanceRecords
+        );
+        return {
+          trainee: tr,
+          attendance: trAtt
+            ? {
+                ...trAtt,
+                progressive_attendance_percentage: pStats.progressivePercentage,
+                progressive_recorded_months: pStats.recordedMonthsCount,
+                progressive_safe: pStats.isProgressiveSafe,
+              }
+            : {
+                id: `att-${tr.id}-temp`,
+                trainee_id: tr.id,
+                instructor_id: instructor.id,
+                month_year: attendanceRecords[0]?.month_year || 'August 2026',
+                total_working_days: 24,
+                present_days: 18,
+                absent_days: 6,
+                attendance_percentage: 75,
+                flagged_low: true,
+                updated_at: new Date().toISOString(),
+                progressive_attendance_percentage: pStats.progressivePercentage,
+                progressive_recorded_months: pStats.recordedMonthsCount,
+                progressive_safe: pStats.isProgressiveSafe,
+              },
+          requiresNotice: pStats.requiresNotice,
+        };
+      })
+      .filter((item) => item.requiresNotice);
 
     return mergeTemplateTags(currentTemplateContent, {
       trainee,
@@ -217,6 +303,9 @@ export default function ReportGenerator({
       presentDays: att?.present_days || 0,
       absentDays: att?.absent_days || 0,
       attendancePercentage: att?.attendance_percentage || 0,
+      progressiveAttendancePercentage: progStats.progressivePercentage,
+      progressiveRecordedMonths: progStats.recordedMonthsCount,
+      progressiveStatus: progStats.statusLabelGu,
       absentFromDate: att?.absent_from_date || '૦૧/૦૯/૨૦૨૫',
       absentToDate: att?.absent_to_date || new Date().toLocaleDateString('gu-IN'),
       continuousAbsentSince: att?.continuous_absent_since || '૦૧/૦૯/૨૦૨૫',
@@ -352,7 +441,7 @@ export default function ReportGenerator({
   );
 
   // Manual or automatic logging into Inward/Outward register
-  const logEntriesToRegister = (silent = false) => {
+  const logEntriesToRegister = (_silent = false) => {
     if (!onBatchLogDispatch || selectedTraineesList.length === 0) return;
     const validTrainees = selectedTraineesList.filter(isTraineeAssigned);
     if (validTrainees.length === 0) return;
@@ -665,29 +754,43 @@ export default function ReportGenerator({
             </div>
 
             {/* Attendance Status Filter */}
-            <div className="flex gap-1.5 pt-1">
+            <div className="flex gap-1 pt-1 overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setAttendanceFilter('low_only')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-colors ${
+                className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-bold transition-colors whitespace-nowrap text-center ${
                   attendanceFilter === 'low_only'
                     ? 'bg-rose-100 text-rose-800 border border-rose-300'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
+                title="પ્રગતિશીલ હાજરી ૮૦% થી ઓછી (નોટિસ પાઠવવી જરૂરી)"
               >
-                ગેરહાજર (&lt;૮૦%)
+                નોટિસ પાત્ર (&lt;૮૦%)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAttendanceFilter('progressive_safe')}
+                className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-bold transition-colors whitespace-nowrap text-center ${
+                  attendanceFilter === 'progressive_safe'
+                    ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+                title="ચાલુ માસમાં <૮૦% પણ સરેરાશ પ્રગતિશીલ હાજરી ≥૮૦% હોવાથી નોટિસ મુક્ત"
+              >
+                પ્રગતિશીલ સુરક્ષિત
               </button>
 
               <button
                 type="button"
                 onClick={() => setAttendanceFilter('all')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-colors ${
+                className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-bold transition-colors whitespace-nowrap text-center ${
                   attendanceFilter === 'all'
                     ? 'bg-[#346739] text-[#f2edc2]'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                તમામ વિદ્યાર્થી
+                તમામ
               </button>
             </div>
           </div>
@@ -743,7 +846,22 @@ export default function ReportGenerator({
                   const isChecked = selectedTraineeIds.includes(tr.id) && assigned;
                   const att = attendanceRecords.find((a) => a.trainee_id === tr.id);
                   const pct = att ? att.attendance_percentage : 0;
-                  const isLow = pct < 80.0;
+                  const pStats = calculateProgressiveAttendance(
+                    tr.id,
+                    att || {
+                      id: `att-${tr.id}-default`,
+                      trainee_id: tr.id,
+                      instructor_id: instructor.id,
+                      month_year: attendanceRecords[0]?.month_year || 'August 2026',
+                      total_working_days: 24,
+                      present_days: 18,
+                      absent_days: 6,
+                      attendance_percentage: 75.0,
+                      flagged_low: true,
+                      updated_at: new Date().toISOString(),
+                    },
+                    attendanceRecords
+                  );
 
                   return (
                     <div
@@ -769,8 +887,13 @@ export default function ReportGenerator({
                           <div className="font-bold text-slate-900 truncate">
                             {tr.roll_no}. {tr.student_name} {tr.surname}
                           </div>
-                          <div className="text-[10px] text-slate-500">
-                            મો: {tr.mobile || '—'}
+                          <div className="text-[10px] text-slate-500 flex items-center gap-1.5">
+                            <span>મો: {tr.mobile || '—'}</span>
+                            {pStats.isProgressiveSafe && (
+                              <span className="text-[9px] font-bold text-sky-800 bg-sky-100 px-1 py-0.2 rounded">
+                                સંચિત ≥૮૦% (સુરક્ષિત)
+                              </span>
+                            )}
                           </div>
                           {!assigned && (
                             <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
@@ -780,16 +903,24 @@ export default function ReportGenerator({
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <span
-                          className={`inline-block font-bold text-[10px] px-1.5 py-0.5 rounded-full ${
-                            isLow
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-emerald-100 text-emerald-800'
-                          }`}
-                        >
-                          {pct.toFixed(1)}%
-                        </span>
+                      <div className="text-right shrink-0 space-y-0.5">
+                        <div className="flex items-center gap-1 justify-end">
+                          <span
+                            className={`inline-block font-mono font-bold text-[10px] px-1.5 py-0.5 rounded-full ${
+                              pStats.isProgressiveSafe
+                                ? 'bg-sky-100 text-sky-800'
+                                : pStats.requiresNotice
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                            title={`માસિક: ${pct.toFixed(1)}% | પ્રગતિશીલ: ${pStats.progressivePercentage.toFixed(1)}%`}
+                          >
+                            {pStats.progressivePercentage.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="text-[9px] text-slate-400 font-mono">
+                          માસિક: {pct.toFixed(1)}%
+                        </div>
                       </div>
                     </div>
                   );
@@ -820,9 +951,16 @@ export default function ReportGenerator({
 
               <button
                 type="button"
-                onClick={() => setViewMode('editor')}
+                onClick={() => {
+                  if (isGuest) return;
+                  setViewMode('editor');
+                }}
+                disabled={isGuest}
+                title={isGuest ? 'Editing disabled in Demo Mode' : undefined}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  viewMode === 'editor'
+                  isGuest
+                    ? 'opacity-40 cursor-not-allowed text-slate-400'
+                    : viewMode === 'editor'
                     ? 'bg-[#346739] text-[#f2edc2] shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}

@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for replacing fixed letterhead form inputs with a 100% TinyMCE rich-text editor, available both directly on the A4 canvas and in a dedicated popup modal, with blank-canvas freedom and global/template persistence.",
-  "updatedAt": "2026-10-16T00:00:38.742773263Z",
+  "summary": "Implementation plan to enable full interactive sandbox capabilities in the Demo account (session-only without affecting cloud production data), populate comprehensive pre-loaded demo data across trades/batches (84, 85), multi-month attendance, official templates including Principal Report, and inward/outward dispatch entries, with a minimal header demo badge.",
+  "updatedAt": "2026-10-20T05:33:56.556892185Z",
   "requestFeedback": true,
   "userFacing": true
 }

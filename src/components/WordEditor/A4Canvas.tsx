@@ -138,7 +138,7 @@ export default function A4Canvas({
   const processImageFile = useCallback(
     (file: File, target: 'left' | 'right') => {
       if (!file.type.startsWith('image/')) {
-        alert('કૃપા કરીને માન્ય ઇમેજ ફાઇલ (PNG, JPG, SVG, WebP) પસંદ કરો.');
+        alert('Please select a valid image file (PNG, JPG, SVG, WebP).');
         return;
       }
       const reader = new FileReader();
@@ -314,12 +314,12 @@ export default function A4Canvas({
             }
           }}
           className="mb-3 px-3 py-1 bg-white/95 hover:bg-white border border-blue-200 hover:border-blue-400 rounded-full text-[11px] text-blue-800 font-medium flex items-center gap-1.5 shadow-2xs transition-all active:scale-95 cursor-pointer"
-          title="ટેપ કરીને ઝૂમ સ્વિચ કરો (Tap to switch between Page View and 100% Zoom)"
+          title="Tap to switch between Page View and 100% Zoom"
         >
           <Smartphone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
           <span>Mobile Auto-Fit: {Math.round(effectiveScale * 100)}%</span>
           <span className="text-blue-600 font-bold underline ml-1 text-[10px]">
-            {zoomLevel === 1 ? 'ફિટ વ્યુ' : '100% ઝૂમ'}
+            {zoomLevel === 1 ? 'Fit View' : '100% Zoom'}
           </span>
         </button>
       )}
@@ -396,7 +396,7 @@ export default function A4Canvas({
                   <div className="absolute inset-0 bg-blue-600/10 border-2 border-dashed border-blue-600 rounded-xl flex items-center justify-center z-40 backdrop-blur-xs">
                     <div className="bg-white px-4 py-2 rounded-xl shadow-lg border border-blue-200 text-blue-900 font-bold text-xs flex items-center gap-2 animate-bounce">
                       <Upload className="w-4 h-4 text-blue-600" />
-                      <span>સંસ્થાનો લોગો સેટ કરવા ઇમેજ અહીં છોડો (Drop image here)</span>
+                      <span>Drop image here to set institute logo</span>
                     </div>
                   </div>
                 )}
@@ -404,14 +404,14 @@ export default function A4Canvas({
                 {/* Edit Mode Top Banner Quick Toolbar */}
                 {!previewMerged && (
                   <div className="absolute -top-7 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 bg-slate-900/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-t-lg shadow-md z-30 select-none">
-                    <span className="text-blue-300">ટોપ બેનર એડિટર:</span>
+                    <span className="text-blue-300">Top Banner Editor:</span>
                     <button
                       type="button"
                       onClick={() => leftFileInputRef.current?.click()}
                       className="hover:text-blue-300 flex items-center gap-0.5 px-1 py-0.5 rounded hover:bg-slate-800"
                       title="Upload Left Logo from Computer"
                     >
-                      <Upload className="w-3 h-3" /> ડાબો લોગો
+                      <Upload className="w-3 h-3" /> Left Logo
                     </button>
                     <button
                       type="button"
@@ -419,7 +419,7 @@ export default function A4Canvas({
                       className="hover:text-blue-300 flex items-center gap-0.5 px-1 py-0.5 rounded hover:bg-slate-800"
                       title="Upload Right Logo from Computer"
                     >
-                      <Upload className="w-3 h-3" /> જમણો લોગો
+                      <Upload className="w-3 h-3" /> Right Logo
                     </button>
                     <button
                       type="button"
@@ -427,7 +427,7 @@ export default function A4Canvas({
                       className="hover:text-blue-300 flex items-center gap-0.5 px-1 py-0.5 rounded hover:bg-slate-800"
                       title="Swap Left and Right Logos"
                     >
-                      <RefreshCw className="w-3 h-3" /> સ્વેપ
+                      <RefreshCw className="w-3 h-3" /> Swap
                     </button>
                     <button
                       type="button"
@@ -447,7 +447,7 @@ export default function A4Canvas({
                       className="hover:text-blue-300 px-1 py-0.5 rounded hover:bg-slate-800"
                       title="Toggle Border Style"
                     >
-                      બોર્ડર
+                      Border
                     </button>
                   </div>
                 )}
@@ -485,7 +485,7 @@ export default function A4Canvas({
                     style={{ height: `${activeHeader.custom_banner_height_mm || 40}mm` }}
                   >
                     <span className="text-xs font-bold text-slate-600">
-                      [ઓફિસ પ્રિન્ટેડ લેટરહેડ કાગળ માટે રાખેલ જગ્યા - {activeHeader.custom_banner_height_mm || 40}mm]
+                      [Reserved space for pre-printed letterhead paper - {activeHeader.custom_banner_height_mm || 40}mm]
                     </span>
                   </div>
                 ) : (
@@ -540,9 +540,9 @@ export default function A4Canvas({
                             }}
                             className="bg-blue-600 hover:bg-blue-700 px-1.5 py-0.5 rounded shadow-xs"
                           >
-                            બદલો
+                            Change
                           </button>
-                          <span className="text-[8px] text-white/90">ડ્રેગ & ડ્રોપ</span>
+                          <span className="text-[8px] text-white/90">Drag &amp; Drop</span>
                         </div>
                       )}
 
@@ -551,7 +551,7 @@ export default function A4Canvas({
                         <div
                           onMouseDown={(e) => handleResizeMouseDown(e, 'left')}
                           className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-blue-600 border-2 border-white rounded-full cursor-se-resize shadow-md flex items-center justify-center z-30 hover:scale-125 transition-transform"
-                          title="સાઈઝ બદલવા ખેંચો (Drag to resize)"
+                          title="Drag to resize"
                         />
                       )}
                     </div>
@@ -561,7 +561,7 @@ export default function A4Canvas({
                       <div className="logo-control-bar absolute top-full left-0 mt-2 bg-slate-900 text-white p-2.5 rounded-xl shadow-2xl z-50 min-w-[210px] border border-slate-700 animate-in fade-in zoom-in-95 duration-100 text-xs">
                         <div className="flex items-center justify-between pb-1.5 border-b border-slate-800 mb-2">
                           <span className="font-bold text-[11px] text-blue-300">
-                            ડાબો લોગો સાઈઝ: {leftWidth}px
+                            Left Logo Size: {leftWidth}px
                           </span>
                           <button
                             type="button"
@@ -619,7 +619,7 @@ export default function A4Canvas({
                             onClick={() => leftFileInputRef.current?.click()}
                             className="grow flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-500 text-white py-1 rounded text-[10px] font-bold"
                           >
-                            <Upload className="w-3 h-3" /> ડિવાઇસમાંથી અપલોડ
+                            <Upload className="w-3 h-3" /> Upload from Device
                           </button>
                           {activeHeader.logo_url && (
                             <button
@@ -631,7 +631,7 @@ export default function A4Canvas({
                                 })
                               }
                               className="p-1 bg-red-900/80 hover:bg-red-700 text-red-200 rounded"
-                              title="ડિફોલ્ટ લોગો રીસેટ કરો"
+                              title="Reset Default Logo"
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>
@@ -682,7 +682,7 @@ export default function A4Canvas({
                             onHeaderChange?.({ ...activeHeader, department_subtitle: val });
                           }}
                           className="text-xs font-semibold text-slate-600 tracking-wider hover:bg-blue-50/80 hover:outline-dashed hover:outline-1 hover:outline-blue-400 rounded px-1.5 py-0.5 cursor-text transition-all focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                          title="ક્લિક કરીને ખાતાનું નામ બદલો (Click to edit department name)"
+                          title="Click to edit department name"
                         >
                           {activeHeader.department_subtitle ||
                             'શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર'}
@@ -697,9 +697,9 @@ export default function A4Canvas({
                             onHeaderChange?.({ ...activeHeader, institute_name_gu: val });
                           }}
                           className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-serif hover:bg-blue-50/80 hover:outline-dashed hover:outline-1 hover:outline-blue-400 rounded px-2 py-0.5 cursor-text transition-all focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                          title="ક્લિક કરીને સંસ્થાનું ગુજરાતી નામ બદલો (Click to edit Institute Gujarati Name)"
+                          title="Click to edit Institute Gujarati Name"
                         >
-                          {activeHeader.institute_name_gu || instructor.iti_name}
+                          {activeHeader.institute_name_gu || instructor.iti_name_gu || instructor.iti_name}
                         </div>
 
                         {/* 3. Institute Name in English */}
@@ -711,7 +711,7 @@ export default function A4Canvas({
                             onHeaderChange?.({ ...activeHeader, institute_name_en: val });
                           }}
                           className="text-xs font-bold text-slate-700 uppercase tracking-wide hover:bg-blue-50/80 hover:outline-dashed hover:outline-1 hover:outline-blue-400 rounded px-1.5 py-0.5 cursor-text transition-all focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                          title="ક્લિક કરીને Institute Name (English) બદલો"
+                          title="Click to edit Institute Name (English)"
                         >
                           {activeHeader.institute_name_en ||
                             'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE'}
@@ -726,10 +726,10 @@ export default function A4Canvas({
                             onHeaderChange?.({ ...activeHeader, contact_info: val });
                           }}
                           className="text-xs font-medium text-slate-600 hover:bg-blue-50/80 hover:outline-dashed hover:outline-1 hover:outline-blue-400 rounded px-1.5 py-0.5 cursor-text transition-all focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                          title="ક્લિક કરીને ટ્રેડ / બેચ / યુનિટ સબ-ટાઇટલ બદલો"
+                          title="Click to edit Trade / Batch subtitle"
                         >
                           {activeHeader.contact_info ||
-                            `${instructor.trade} • ${instructor.batch || '૨૦૨૫-૨૦૨૬'} (${
+                            `${instructor.trade} • ${instructor.batch || '2025-2026'} (${
                               instructor.unit || 'Unit A'
                             })`}
                         </div>
@@ -743,11 +743,11 @@ export default function A4Canvas({
                             onHeaderChange?.({ ...activeHeader, address: val });
                           }}
                           className="text-[11px] text-slate-500 font-sans hover:bg-blue-50/80 hover:outline-dashed hover:outline-1 hover:outline-blue-400 rounded px-1.5 py-0.5 cursor-text transition-all focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                          title="ક્લિક કરીને સંસ્થાનું સરનામું બદલો (Click to edit address)"
+                          title="Click to edit address"
                         >
                           {activeHeader.address ||
                             instructor.institution_address ||
-                            'સંસ્થાનું સરનામું...'}
+                            'Institute Address...'}
                         </div>
                       </div>
                     )}
@@ -801,9 +801,9 @@ export default function A4Canvas({
                             }}
                             className="bg-blue-600 hover:bg-blue-700 px-1.5 py-0.5 rounded shadow-xs"
                           >
-                            બદલો
+                            Change
                           </button>
-                          <span className="text-[8px] text-white/90">ડ્રેગ & ડ્રોપ</span>
+                          <span className="text-[8px] text-white/90">Drag &amp; Drop</span>
                         </div>
                       )}
 
@@ -812,7 +812,7 @@ export default function A4Canvas({
                         <div
                           onMouseDown={(e) => handleResizeMouseDown(e, 'right')}
                           className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-blue-600 border-2 border-white rounded-full cursor-se-resize shadow-md flex items-center justify-center z-30 hover:scale-125 transition-transform"
-                          title="સાઈઝ બદલવા ખેંચો (Drag to resize)"
+                          title="Drag to resize"
                         />
                       )}
                     </div>
@@ -822,7 +822,7 @@ export default function A4Canvas({
                       <div className="logo-control-bar absolute top-full right-0 mt-2 bg-slate-900 text-white p-2.5 rounded-xl shadow-2xl z-50 min-w-[210px] border border-slate-700 animate-in fade-in zoom-in-95 duration-100 text-xs">
                         <div className="flex items-center justify-between pb-1.5 border-b border-slate-800 mb-2">
                           <span className="font-bold text-[11px] text-blue-300">
-                            જમણો લોગો સાઈઝ: {rightWidth}px
+                            Right Logo Size: {rightWidth}px
                           </span>
                           <button
                             type="button"
@@ -880,7 +880,7 @@ export default function A4Canvas({
                             onClick={() => rightFileInputRef.current?.click()}
                             className="grow flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-500 text-white py-1 rounded text-[10px] font-bold"
                           >
-                            <Upload className="w-3 h-3" /> ડિવાઇસમાંથી અપલોડ
+                            <Upload className="w-3 h-3" /> Upload from Device
                           </button>
                           {activeHeader.right_logo_url && (
                             <button
@@ -892,7 +892,7 @@ export default function A4Canvas({
                                 })
                               }
                               className="p-1 bg-red-900/80 hover:bg-red-700 text-red-200 rounded"
-                              title="ડિફોલ્ટ લોગો રીસેટ કરો"
+                              title="Reset Default Logo"
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>

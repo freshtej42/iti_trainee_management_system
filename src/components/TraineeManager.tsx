@@ -62,7 +62,10 @@ export default function TraineeManager({
   const [editingTrainee, setEditingTrainee] = useState<Trainee | null>(null);
   const [useImeInForm, setUseImeInForm] = useState(true);
 
-  // Unit and Batch Filters
+  // Trade, Unit, and Batch Filters
+  const [selectedTradeFilter, setSelectedTradeFilter] = useState<string>(
+    initialTradeFilter || 'ALL'
+  );
   const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>(
     initialUnitFilter || 'ALL'
   );
@@ -72,6 +75,10 @@ export default function TraineeManager({
   const [mobileViewMode, setMobileViewMode] = useState<'cards' | 'table'>('cards');
 
   // Update filter if initial prop changes
+  useEffect(() => {
+    if (initialTradeFilter) setSelectedTradeFilter(initialTradeFilter);
+  }, [initialTradeFilter]);
+
   useEffect(() => {
     if (initialUnitFilter) setSelectedUnitFilter(initialUnitFilter);
   }, [initialUnitFilter]);
@@ -157,13 +164,17 @@ export default function TraineeManager({
     grandfather_name_en: '',
     mobile: '',
     parent_mobile: '',
-    gender: 'પુરુષ (Male)',
-    category: 'General (સામાન્ય)',
+    gender: 'Male',
+    category: 'General',
     address: '',
+    address_gu: '',
     village: '',
+    village_gu: '',
     taluka: '',
-    district: 'પાટણ',
-    pincode: '૩૮૪૨૪૨',
+    taluka_gu: '',
+    district: 'Patan',
+    district_gu: 'પાટણ',
+    pincode: '384242',
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -240,12 +251,16 @@ export default function TraineeManager({
       grandfather_name_en: trainee.grandfather_name_en || '',
       mobile: trainee.mobile || '',
       parent_mobile: trainee.parent_mobile || '',
-      gender: trainee.gender || 'પુરુષ (Male)',
-      category: trainee.category || 'General (સામાન્ય)',
+      gender: trainee.gender || 'Male',
+      category: trainee.category || 'General',
       address: trainee.address || '',
+      address_gu: trainee.address_gu || '',
       village: trainee.village || '',
+      village_gu: trainee.village_gu || '',
       taluka: trainee.taluka || '',
-      district: trainee.district || '',
+      taluka_gu: trainee.taluka_gu || '',
+      district: trainee.district || 'Patan',
+      district_gu: trainee.district_gu || 'પાટણ',
       pincode: trainee.pincode || '',
     });
     setIsModalOpen(true);
@@ -282,7 +297,7 @@ export default function TraineeManager({
     setIsModalOpen(false);
   };
 
-  // Filtered trainees by search, unit, and batch
+  // Filtered trainees by search, trade, unit, and batch
   const filteredTrainees = trainees.filter((t) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
@@ -295,6 +310,9 @@ export default function TraineeManager({
       (t.mobile && t.mobile.includes(q)) ||
       t.village.toLowerCase().includes(q);
 
+    const matchesTrade =
+      selectedTradeFilter === 'ALL' || (t.trade || instructor.trade) === selectedTradeFilter;
+
     const matchesUnit =
       selectedUnitFilter === 'ALL' ||
       t.unit.toLowerCase() === selectedUnitFilter.toLowerCase() ||
@@ -304,7 +322,7 @@ export default function TraineeManager({
     const matchesBatch =
       selectedBatchFilter === 'ALL' || t.batch === selectedBatchFilter;
 
-    return matchesSearch && matchesUnit && matchesBatch;
+    return matchesSearch && matchesTrade && matchesUnit && matchesBatch;
   });
 
   return (
@@ -315,11 +333,6 @@ export default function TraineeManager({
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <Users className="w-5 h-5 text-[#346739]" />
             <span>{tText('તાલીમાર્થી ડેટાબેઝ અને સંચાલન', 'પ્રશિક્ષુ ડેટાબેઝ એવં પ્રબંધન', 'Trainee Records & Management')}</span>
-            {isGuest && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
-                ડેમો મોડ (View-Only)
-              </span>
-            )}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {instructor.iti_name} • {instructor.trade} • {instructor.batch} ({trainees.length} {tText('નોંધાયેલ તાલીમાર્થીઓ', 'पंजीकृत प्रशिक्षु', 'Registered Trainees')})
@@ -331,7 +344,7 @@ export default function TraineeManager({
           {onImportTrainees && (
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-bold rounded-lg bg-[#79ae6f] hover:bg-[#669a5c] text-white shadow-xs min-h-[42px] transition-colors"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-bold rounded-lg shadow-xs min-h-[42px] transition-colors bg-[#79ae6f] hover:bg-[#669a5c] text-white"
             >
               <FileSpreadsheet className="w-4 h-4 shrink-0" />
               <span>{tText('આયાત કરો', 'आयात करें', 'Import')}</span>
@@ -341,7 +354,7 @@ export default function TraineeManager({
           {/* Enroll Single Trainee */}
           <button
             onClick={openAddModal}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg bg-[#346739] hover:bg-[#264e2b] text-[#f2edc2] shadow-xs min-h-[42px] transition-colors"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg shadow-xs min-h-[42px] transition-colors bg-[#346739] hover:bg-[#264e2b] text-[#f2edc2]"
           >
             <UserPlus className="w-4 h-4 shrink-0" />
             <span>{tText('નવો તાલીમાર્થી', 'नया प्रशिक्षु', 'Enroll Trainee')}</span>
@@ -384,8 +397,22 @@ export default function TraineeManager({
           ))}
         </div>
 
-        {/* Batch Dropdown Filter */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+        {/* Trade & Batch Dropdown Filters */}
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
+          <span className="text-xs font-semibold text-slate-500">{tText('ટ્રેડ:', 'ट्रेड:', 'Trade:')}</span>
+          <select
+            value={selectedTradeFilter}
+            onChange={(e) => setSelectedTradeFilter(e.target.value)}
+            className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800 max-w-[180px] truncate"
+          >
+            <option value="ALL">{tText('તમામ ટ્રેડ (All Trades)', 'सभी ट्रेड', 'All Trades')}</option>
+            {availableTrades.map((tr) => (
+              <option key={tr} value={tr}>
+                {tr}
+              </option>
+            ))}
+          </select>
+
           <span className="text-xs font-semibold text-slate-500">{t('batch')}:</span>
           <select
             value={selectedBatchFilter}
@@ -546,7 +573,8 @@ export default function TraineeManager({
                 <button
                   type="button"
                   onClick={() => openEditModal(trainee)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 min-h-[40px] transition-colors"
+                  title={t('edit')}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold min-h-[40px] transition-colors bg-slate-100 hover:bg-slate-200 text-slate-800"
                 >
                   <Edit2 className="w-3.5 h-3.5 text-slate-600" />
                   <span>{t('edit')}</span>
@@ -554,7 +582,7 @@ export default function TraineeManager({
                 <button
                   type="button"
                   onClick={() => onDeleteTrainee(trainee.id)}
-                  className="flex items-center justify-center p-2 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 min-w-[40px] min-h-[40px] transition-colors"
+                  className="flex items-center justify-center p-2 rounded-lg text-xs font-semibold min-w-[40px] min-h-[40px] transition-colors bg-rose-50 hover:bg-rose-100 text-rose-700"
                   title={t('delete')}
                   aria-label={t('delete')}
                 >
@@ -643,14 +671,14 @@ export default function TraineeManager({
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEditModal(trainee)}
-                          className="p-1.5 rounded-md hover:bg-slate-200 text-slate-600 transition-colors"
+                          className="p-1.5 rounded-md transition-colors hover:bg-slate-200 text-slate-600"
                           title={t('edit')}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => onDeleteTrainee(trainee.id)}
-                          className="p-1.5 rounded-md hover:bg-rose-100 text-rose-600 transition-colors"
+                          className="p-1.5 rounded-md transition-colors hover:bg-rose-100 text-rose-600"
                           title={t('delete')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -826,55 +854,55 @@ export default function TraineeManager({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    {tText('જાતિ (Gender)', 'लिंग (Gender)', 'Gender')}
+                    Gender
                   </label>
                   <select
-                    value={formData.gender || 'પુરુષ (Male)'}
+                    value={formData.gender || 'Male'}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium text-slate-900 focus:ring-2 focus:ring-[#346739] focus:outline-none"
                   >
-                    <option value="પુરુષ (Male)">પુરુષ (Male)</option>
-                    <option value="સ્ત્રી (Female)">સ્ત્રી (Female)</option>
-                    <option value="અન્ય (Other)">અન્ય (Other)</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    {tText('સામાજિક વર્ગ / કેટેગરી (Category)', 'श्रेणी (Category)', 'Category')}
+                    Category
                   </label>
                   <select
-                    value={formData.category || 'General (સામાન્ય)'}
+                    value={formData.category || 'General'}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium text-slate-900 focus:ring-2 focus:ring-[#346739] focus:outline-none"
                   >
-                    <option value="General (સામાન્ય)">General / સામાન્ય</option>
-                    <option value="SEBC/OBC (સા.શૈ.પ.વ.)">SEBC / OBC (સા.શૈ.પ.વ.)</option>
-                    <option value="SC (અનુસૂચિત જાતિ)">SC (અનુસૂચિત જાતિ)</option>
-                    <option value="ST (અનુસૂચિત જનજાતિ)">ST (અનુસૂચિત જનજાતિ)</option>
-                    <option value="EWS (આર્થિક નબળા વર્ગ)">EWS (આર્થિક નબળા વર્ગ)</option>
+                    <option value="General">General</option>
+                    <option value="SEBC/OBC">SEBC / OBC</option>
+                    <option value="SC">SC</option>
+                    <option value="ST">ST</option>
+                    <option value="EWS">EWS</option>
                   </select>
                 </div>
               </div>
 
-              {/* English Demographics (Type here to auto-convert to regional script) */}
+              {/* English Names */}
               <div className="pt-2 border-t border-slate-200">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
-                  1. {tText('અંગ્રેજી નામો', 'अंग्रेजी नाम', 'English Names')} ({tText('ફોનેટિક ઇનપુટ', 'ध्वन्यात्मक इनपुट', 'Phonetic Input')})
+                  1. Trainee Name in English (Phonetic Input)
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">{t('surname')} ({tText('અંગ્રેજી', 'अंग्रेजी', 'English')})</label>
+                    <label className="block text-xs text-slate-600 mb-1">Surname (English)</label>
                     <input
                       type="text"
                       placeholder="e.g. Patel"
                       value={formData.surname_en || ''}
                       onChange={(e) => handleEnglishFieldChange('surname_en', 'surname', e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">{t('studentName')} ({tText('અંગ્રેજી', 'अंग्रेजी', 'English')}) *</label>
+                    <label className="block text-xs text-slate-600 mb-1">Student Name (English) *</label>
                     <input
                       type="text"
                       required
@@ -883,11 +911,11 @@ export default function TraineeManager({
                       onChange={(e) =>
                         handleEnglishFieldChange('student_name_en', 'student_name', e.target.value)
                       }
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">{t('fatherName')} ({tText('અંગ્રેજી', 'अंग्रेजी', 'English')})</label>
+                    <label className="block text-xs text-slate-600 mb-1">Father's Name (English)</label>
                     <input
                       type="text"
                       placeholder="e.g. Bharatbhai"
@@ -895,11 +923,11 @@ export default function TraineeManager({
                       onChange={(e) =>
                         handleEnglishFieldChange('father_name_en', 'father_name', e.target.value)
                       }
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">{t('grandfatherName')} ({tText('અંગ્રેજી', 'अंग्रेजी', 'English')})</label>
+                    <label className="block text-xs text-slate-600 mb-1">Grandfather's Name (English)</label>
                     <input
                       type="text"
                       placeholder="e.g. Keshavlal"
@@ -911,50 +939,54 @@ export default function TraineeManager({
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Regional Script Demographics (Gujarati / Hindi) */}
+              {/* Gujarati Names */}
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
-                  2. {tText('પ્રાદેશિક લિપિમાં નામો', 'प्रादेशिक लिपि में नाम', 'Regional Script Names')}
+                  2. Trainee Name in Gujarati (પ્રાદેશિક લિપિ)
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">{t('surname')}</label>
+                    <label className="block text-xs text-slate-600 mb-1">અટક (Surname Gu)</label>
                     <input
                       type="text"
+                      placeholder="દા.ત. પટેલ"
                       value={formData.surname || ''}
                       onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
                       className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-semibold text-slate-800"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">{t('studentName')} *</label>
+                    <label className="block text-xs text-slate-600 mb-1">નામ (Name Gu) *</label>
                     <input
                       type="text"
                       required
+                      placeholder="દા.ત. રમેશ"
                       value={formData.student_name || ''}
                       onChange={(e) => setFormData({ ...formData, student_name: e.target.value })}
                       className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-bold text-slate-900"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">{t('fatherName')}</label>
+                    <label className="block text-xs text-slate-600 mb-1">પિતાનું નામ (Father Gu)</label>
                     <input
                       type="text"
+                      placeholder="દા.ત. ભરતભાઈ"
                       value={formData.father_name || ''}
                       onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
                       className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-medium text-slate-800"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">{t('grandfatherName')}</label>
+                    <label className="block text-xs text-slate-600 mb-1">દાદાનું નામ (Grandfather Gu)</label>
                     <input
                       type="text"
+                      placeholder="દા.ત. કેશવલાલ"
                       value={formData.grandfather_name || ''}
                       onChange={(e) => setFormData({ ...formData, grandfather_name: e.target.value })}
                       className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-medium text-slate-800"
@@ -966,145 +998,132 @@ export default function TraineeManager({
               {/* Smart Concatenation Live Preview */}
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  {tText('મર્જ ટેગ લાઇવ પૂર્વાવલોકન:', 'मर्ज टैग लाइव पूर्वावलोकन:', 'Smart Merge Tag Live Preview:')}
+                  Merge Tag Preview:
                 </div>
-                <div className="text-xs text-slate-800 font-semibold">
-                  &#123;&#123;Full_Name&#125;&#125; &rarr;{' '}
-                  <span className="text-blue-700">
-                    {formData.surname || formData.student_name
-                      ? `${formData.surname} ${formData.student_name} ${formData.father_name}`.trim()
-                      : `(${tText('નામ દાખલ કરેલ નથી', 'नाम दर्ज नहीं', 'No name yet')})`}
+                <div className="text-xs text-slate-800 font-semibold flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-slate-500">&#123;&#123;Trainee_Name&#125;&#125; &rarr;</span>
+                  <span className="text-blue-700 font-bold">
+                    {formData.student_name_en || formData.student_name
+                      ? `${formData.student_name_en || formData.student_name} ${formData.father_name_en || formData.father_name || ''}`.trim()
+                      : '(No name entered yet)'}
                   </span>
+                  {formData.student_name && (
+                    <span className="text-slate-500 text-xs">
+                      ({formData.student_name} {formData.father_name})
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Address Details */}
-              <div className="pt-2 border-t border-slate-200">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
-                  3. {tText('સરનામું અને ટપાલ વિગત', 'पता एवं डाक विवरण', 'Address & Postal Details')}
+              {/* Address Details (Dual Language: English and Gujarati) */}
+              <div className="pt-2 border-t border-slate-200 space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                  3. Address &amp; Location Details (English &amp; Gujarati)
                 </span>
-                <div className="space-y-3">
+
+                {/* Street Address */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-600 mb-1">{t('address')}</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Address (English)</label>
                     <input
                       type="text"
                       value={formData.address || ''}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      placeholder="પ્લોટ નં. ૪૫, શિવ શક્તિ સોસાયટી, બક્ષીપંચ વાસ"
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg"
+                      placeholder="e.g. Plot No. 45, Shiv Shakti Society"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">{t('district')}</label>
-                      <select
-                        value={
-                          GUJARAT_DISTRICTS.includes(formData.district || '')
-                            ? formData.district
-                            : formData.district
-                            ? 'other'
-                            : ''
-                        }
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === 'other') {
-                            setFormData({ ...formData, district: '' });
-                          } else {
-                            // Extract clean district name e.g. "પાટણ" from "પાટણ (Patan)"
-                            const cleanDist = val.split(' ')[0] || val;
-                            setFormData({ ...formData, district: cleanDist });
-                          }
-                        }}
-                        className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      >
-                        <option value="">-- {tText('જિલ્લો પસંદ કરો', 'जिला चुनें', 'Select District')} --</option>
-                        {GUJARAT_DISTRICTS.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                        <option value="other">{tText('અન્ય જિલ્લો...', 'अन्य जिला...', 'Other District...')}</option>
-                      </select>
-                      {(!GUJARAT_DISTRICTS.some((d) => d.startsWith(formData.district || '___')) && formData.district) && (
-                        <input
-                          type="text"
-                          value={formData.district}
-                          onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                          placeholder="જિલ્લાનું નામ દાખલ કરો"
-                          className="mt-1 w-full px-2 py-1 text-xs border rounded"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">{t('taluka')}</label>
-                      <select
-                        value={
-                          Object.entries(POPULAR_TALUKAS_BY_DISTRICT)
-                            .filter(([distKey]) => !formData.district || distKey.includes(formData.district))
-                            .flatMap(([, talukas]) => talukas)
-                            .some((tal) => tal.split(' ')[0] === formData.taluka || tal === formData.taluka)
-                            ? formData.taluka
-                            : formData.taluka
-                            ? 'other'
-                            : ''
-                        }
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === 'other') {
-                            setFormData({ ...formData, taluka: '' });
-                          } else {
-                            const cleanTal = val.split(' ')[0] || val;
-                            setFormData({ ...formData, taluka: cleanTal });
-                          }
-                        }}
-                        className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      >
-                        <option value="">-- {tText('તાલુકો પસંદ કરો', 'तालुका चुनें', 'Select Taluka')} --</option>
-                        {Object.entries(POPULAR_TALUKAS_BY_DISTRICT)
-                          .filter(([distKey]) => !formData.district || distKey.includes(formData.district))
-                          .flatMap(([, talukas]) => talukas)
-                          .map((tal) => (
-                            <option key={tal} value={tal.split(' ')[0] || tal}>
-                              {tal}
-                            </option>
-                          ))}
-                        <option value="other">{tText('અન્ય તાલુકો...', 'अन्य तालुका...', 'Other Taluka...')}</option>
-                      </select>
-                      {(!Object.entries(POPULAR_TALUKAS_BY_DISTRICT)
-                        .filter(([distKey]) => !formData.district || distKey.includes(formData.district))
-                        .flatMap(([, talukas]) => talukas)
-                        .some((tal) => tal.split(' ')[0] === formData.taluka || tal === formData.taluka) &&
-                        formData.taluka !== undefined) && (
-                        <input
-                          type="text"
-                          value={formData.taluka || ''}
-                          onChange={(e) => setFormData({ ...formData, taluka: e.target.value })}
-                          placeholder="તાલુકાનું નામ દાખલ કરો"
-                          className="mt-1 w-full px-2 py-1 text-xs border rounded"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">{t('villageCity')}</label>
-                      <input
-                        type="text"
-                        value={formData.village || ''}
-                        onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                        placeholder="દા.ત. શંખેશ્વર"
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">{t('pincode')}</label>
-                      <input
-                        type="text"
-                        maxLength={6}
-                        value={formData.pincode || ''}
-                        onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
-                        placeholder="384242"
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-mono focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">સરનામું (Address Gujarati)</label>
+                    <input
+                      type="text"
+                      value={formData.address_gu || ''}
+                      onChange={(e) => setFormData({ ...formData, address_gu: e.target.value })}
+                      placeholder="દા.ત. પ્લોટ નં. ૪૫, શિવ શક્તિ સોસાયટી"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* District, Taluka, Village, Pincode */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">District (English)</label>
+                    <input
+                      type="text"
+                      value={formData.district || ''}
+                      onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                      placeholder="e.g. Patan"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Taluka (English)</label>
+                    <input
+                      type="text"
+                      value={formData.taluka || ''}
+                      onChange={(e) => setFormData({ ...formData, taluka: e.target.value })}
+                      placeholder="e.g. Shankheshwar"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Village / City (English)</label>
+                    <input
+                      type="text"
+                      value={formData.village || ''}
+                      onChange={(e) => setFormData({ ...formData, village: e.target.value })}
+                      placeholder="e.g. Shankheshwar"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Pincode</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={formData.pincode || ''}
+                      onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
+                      placeholder="384242"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg font-mono focus:ring-2 focus:ring-blue-500 font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Gujarati Location Fields */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">જિલ્લો (District Gujarati)</label>
+                    <input
+                      type="text"
+                      value={formData.district_gu || ''}
+                      onChange={(e) => setFormData({ ...formData, district_gu: e.target.value })}
+                      placeholder="દા.ત. પાટણ"
+                      className="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-md bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">તાલુકો (Taluka Gujarati)</label>
+                    <input
+                      type="text"
+                      value={formData.taluka_gu || ''}
+                      onChange={(e) => setFormData({ ...formData, taluka_gu: e.target.value })}
+                      placeholder="દા.ત. શંખેશ્વર"
+                      className="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-md bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">ગામ / શહેર (Village Gujarati)</label>
+                    <input
+                      type="text"
+                      value={formData.village_gu || ''}
+                      onChange={(e) => setFormData({ ...formData, village_gu: e.target.value })}
+                      placeholder="દા.ત. શંખેશ્વર"
+                      className="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-md bg-white"
+                    />
                   </div>
                 </div>
               </div>

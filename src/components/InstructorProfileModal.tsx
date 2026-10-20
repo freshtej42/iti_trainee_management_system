@@ -11,15 +11,12 @@ import {
   ShieldCheck,
   LogOut,
   X,
-  Lock,
   Edit3,
   Save,
   Eye,
   EyeOff,
   AlertCircle,
   MapPin,
-  Hash,
-  Check,
   Calendar,
 } from 'lucide-react';
 import {
@@ -52,17 +49,22 @@ export default function InstructorProfileModal({
   const isSuperAdmin = instructor.role === 'super_admin';
   const isGuest = instructor.role === 'guest' || instructor.is_guest || instructor.id === 'guest-demo-instructor';
 
-  // Form State
+  // Dual Language Form States (English & Gujarati stored separately)
   const [formName, setFormName] = useState(instructor.name || '');
+  const [formNameGu, setFormNameGu] = useState(instructor.name_gu || '');
   const [formDesignation, setFormDesignation] = useState(instructor.designation || '');
+  const [formDesignationGu, setFormDesignationGu] = useState(instructor.designation_gu || '');
   const [formEmail, setFormEmail] = useState(instructor.email || '');
   const [formPhone, setFormPhone] = useState(instructor.phone || '');
   const [formPassword, setFormPassword] = useState(instructor.password || '');
   const [showPassword, setShowPassword] = useState(false);
   const [formItiName, setFormItiName] = useState(instructor.iti_name || '');
+  const [formItiNameGu, setFormItiNameGu] = useState(instructor.iti_name_gu || '');
   const [formAddress, setFormAddress] = useState(instructor.institution_address || '');
+  const [formAddressGu, setFormAddressGu] = useState(instructor.institution_address_gu || '');
   const [formOutwardCode, setFormOutwardCode] = useState(instructor.outward_code_prefix || '');
   const [formTrade, setFormTrade] = useState(instructor.trade || '');
+  const [formTradeGu, setFormTradeGu] = useState(instructor.trade_gu || '');
   const [formBatch, setFormBatch] = useState(instructor.batch || '');
   const [formUnit, setFormUnit] = useState(instructor.unit || '');
 
@@ -73,20 +75,25 @@ export default function InstructorProfileModal({
   // Sync state if instructor changes
   useEffect(() => {
     setFormName(instructor.name || '');
+    setFormNameGu(instructor.name_gu || '');
     setFormDesignation(instructor.designation || '');
+    setFormDesignationGu(instructor.designation_gu || '');
     setFormEmail(instructor.email || '');
     setFormPhone(instructor.phone || '');
     setFormPassword(instructor.password || '');
     setFormItiName(instructor.iti_name || '');
+    setFormItiNameGu(instructor.iti_name_gu || '');
     setFormAddress(instructor.institution_address || '');
+    setFormAddressGu(instructor.institution_address_gu || '');
     setFormOutwardCode(instructor.outward_code_prefix || '');
     setFormTrade(instructor.trade || '');
+    setFormTradeGu(instructor.trade_gu || '');
     setFormBatch(instructor.batch || '');
     setFormUnit(instructor.unit || '');
-    setIsEditing(initialEditMode);
+    setIsEditing(isGuest ? false : initialEditMode);
     setFormError('');
     setSuccessMessage('');
-  }, [instructor, initialEditMode, isOpen]);
+  }, [instructor, initialEditMode, isOpen, isGuest]);
 
   if (!isOpen) return null;
 
@@ -96,7 +103,7 @@ export default function InstructorProfileModal({
     setSuccessMessage('');
 
     if (isGuest) {
-      setFormError('આ ડેમો એકાઉન્ટ (Guest Mode) છે. ડેમો મોડમાં ડેટાબેઝ સુરક્ષા માટે પ્રોફાઇલ ફેરફાર સેવ કરી શકાતો નથી.');
+      setFormError('This is a Guest Demo account. Profile modifications are disabled for security.');
       return;
     }
 
@@ -104,15 +111,15 @@ export default function InstructorProfileModal({
     const cleanPhone = cleanPhoneNumber(formPhone);
 
     if (!formName.trim()) {
-      setFormError('પૂરું નામ દાખલ કરવું ફરજિયાત છે.');
+      setFormError('Please enter full name in English.');
       return;
     }
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      setFormError('માન્ય ઈમેલ આઈડી દાખલ કરો.');
+      setFormError('Please enter a valid email address.');
       return;
     }
     if (!cleanPhone || cleanPhone.length < 10) {
-      setFormError('૧૦ આંકડાનો માન્ય મોબાઈલ નંબર દાખલ કરો.');
+      setFormError('Please enter a valid 10-digit mobile number.');
       return;
     }
 
@@ -135,7 +142,7 @@ export default function InstructorProfileModal({
       const pwdValidation = validatePassword(formPassword);
       if (!pwdValidation.isValid) {
         setFormError(
-          'પાસવર્ડ આંતરરાષ્ટ્રીય માપદંડો મુજબ મજબૂત હોવો જોઈએ (ઓછામાં ઓછા ૮ અક્ષરો, કેપિટલ, સ્મોલ, નંબર, સ્પેશિયલ સિમ્બોલ).'
+          'Password must meet standard security criteria (minimum 8 characters with uppercase, lowercase, number, and special character).'
         );
         return;
       }
@@ -144,14 +151,19 @@ export default function InstructorProfileModal({
     const updatedInstructor: Instructor = {
       ...instructor,
       name: formName.trim(),
+      name_gu: formNameGu.trim() || undefined,
       designation: formDesignation.trim(),
+      designation_gu: formDesignationGu.trim() || undefined,
       email: cleanEmail,
       phone: cleanPhone,
       password: formPassword || instructor.password,
       iti_name: formItiName.trim(),
+      iti_name_gu: formItiNameGu.trim() || undefined,
       institution_address: formAddress.trim(),
+      institution_address_gu: formAddressGu.trim() || undefined,
       outward_code_prefix: formOutwardCode.trim(),
       trade: isSuperAdmin ? instructor.trade : formTrade.trim(),
+      trade_gu: isSuperAdmin ? instructor.trade_gu : formTradeGu.trim() || undefined,
       batch: isSuperAdmin ? instructor.batch : formBatch.trim(),
       unit: isSuperAdmin ? instructor.unit : formUnit.trim(),
       updated_at: new Date().toISOString(),
@@ -161,7 +173,7 @@ export default function InstructorProfileModal({
       onUpdateInstructor(updatedInstructor);
     }
 
-    setSuccessMessage('પ્રોફાઇલ વિગતો સફળતાપૂર્વક સાચવવામાં આવી છે!');
+    setSuccessMessage('Profile details saved successfully!');
     setTimeout(() => {
       setSuccessMessage('');
       setIsEditing(false);
@@ -171,7 +183,7 @@ export default function InstructorProfileModal({
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
       <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
-      <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden z-10 animate-in zoom-in-95 duration-150 flex flex-col max-h-[92vh]">
+      <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-150 flex flex-col max-h-[92vh]">
         {/* Header */}
         <div
           className={`flex items-center justify-between px-5 py-4 border-b ${
@@ -198,12 +210,12 @@ export default function InstructorProfileModal({
               <h3 className="font-black text-base tracking-tight leading-tight text-white flex items-center gap-2">
                 <span>
                   {isSuperAdmin
-                    ? 'સુપર એડમિન પ્રોફાઇલ (Super Admin Profile)'
-                    : 'ઇન્સ્ટ્રક્ટર પ્રોફાઇલ (My Profile)'}
+                    ? 'Super Admin Profile'
+                    : 'Instructor Profile'}
                 </span>
                 {isEditing && (
                   <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                    એડિટ મોડ
+                    Edit Mode
                   </span>
                 )}
               </h3>
@@ -213,15 +225,15 @@ export default function InstructorProfileModal({
                 }`}
               >
                 {isEditing
-                  ? 'આપની વ્યક્તિગત પ્રોફાઇલ વિગતો સુધારો અને સાચવો'
-                  : 'સુરક્ષિત સત્તાવાર લોગિન કરેલ સત્ર વિગતો'}
+                  ? 'Update and manage your dual-language details'
+                  : 'Official authenticated account details'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-            title="બંધ કરો (Close)"
+            title="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -250,9 +262,9 @@ export default function InstructorProfileModal({
             <div className="p-3.5 bg-amber-50 border border-amber-300 text-amber-950 text-xs rounded-xl flex items-start gap-2.5 font-medium animate-in fade-in">
               <Eye className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <div className="font-bold text-amber-900">ગેસ્ટ ડેમો એકાઉન્ટ (Guest Demo Profile)</div>
+                <div className="font-bold text-amber-900">Guest Demo Account</div>
                 <div className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                  આ ડેમો નિરીક્ષણ એકાઉન્ટ છે. પોર્ટલની સુવિધાઓ ચકાસવા માટે ડેમો વિગતો પ્રદર્શિત કરેલ છે. ડેમો મોડમાં ડેટાબેઝ સુરક્ષા માટે પ્રોફાઇલ ફેરફાર સેવ કરી શકાતો નથી.
+                  This is a read-only demo account for evaluation. Profile modifications are disabled.
                 </div>
               </div>
             </div>
@@ -261,33 +273,73 @@ export default function InstructorProfileModal({
           {isEditing ? (
             /* EDIT FORM */
             <form id="profile-edit-form" onSubmit={handleSave} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    પૂરું નામ (Full Name) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder="દા.ત. તેજસભાઈ સુથાર"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#346739]"
-                  />
+              {/* Dual Language Names */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-[#346739]" />
+                  <span>Instructor Name (Dual Language)</span>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Full Name (English) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      placeholder="e.g. Tejas Suthar"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Full Name (Gujarati)
+                    </label>
+                    <input
+                      type="text"
+                      value={formNameGu}
+                      onChange={(e) => setFormNameGu(e.target.value)}
+                      placeholder="e.g. તેજસભાઈ સુથાર"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
+                    />
+                  </div>
+                </div>
+              </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    હોદ્દો (Designation) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formDesignation}
-                    onChange={(e) => setFormDesignation(e.target.value)}
-                    placeholder="દા.ત. સુપરવાઇઝર ઇન્સ્ટ્રક્ટર / સુપર એડમિનિસ્ટ્રેટર"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#346739]"
-                  />
+              {/* Dual Language Designation */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-[#346739]" />
+                  <span>Designation (Dual Language)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Designation (English) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formDesignation}
+                      onChange={(e) => setFormDesignation(e.target.value)}
+                      placeholder="e.g. Supervisor Instructor"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Designation (Gujarati)
+                    </label>
+                    <input
+                      type="text"
+                      value={formDesignationGu}
+                      onChange={(e) => setFormDesignationGu(e.target.value)}
+                      placeholder="e.g. સુપરવાઇઝર ઇન્સ્ટ્રક્ટર"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -295,23 +347,23 @@ export default function InstructorProfileModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-                    <span>ઈમેલ આઈડી (Official Email) *</span>
-                    <span className="text-[10px] text-blue-700 font-mono">યુનિક લોગિન</span>
+                    <span>Official Email *</span>
+                    <span className="text-[10px] text-blue-700 font-mono">Login ID</span>
                   </label>
                   <input
                     type="email"
                     required
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
-                    placeholder="admin@iti.gov.in"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#346739]"
+                    placeholder="instructor@iti.gov.in"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
                   />
                 </div>
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-                    <span>મોબાઈલ નંબર (Mobile No) *</span>
-                    <span className="text-[10px] text-blue-700 font-mono">૧૦ આંકડા</span>
+                    <span>Mobile Number *</span>
+                    <span className="text-[10px] text-blue-700 font-mono">10 digits</span>
                   </label>
                   <input
                     type="tel"
@@ -319,8 +371,8 @@ export default function InstructorProfileModal({
                     maxLength={10}
                     value={formPhone}
                     onChange={(e) => setFormPhone(e.target.value.replace(/\D/g, ''))}
-                    placeholder="૧૦ આંકડાનો મોબાઈલ નંબર"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#346739]"
+                    placeholder="98250 12345"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
                   />
                 </div>
               </div>
@@ -328,16 +380,16 @@ export default function InstructorProfileModal({
               {/* Password */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-                  <span>પાસવર્ડ (Password)</span>
-                  <span className="text-[10px] text-slate-500">બદલવા માટે જ દાખલ કરો</span>
+                  <span>Password</span>
+                  <span className="text-[10px] text-slate-500">Leave blank to keep existing</span>
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={formPassword}
                     onChange={(e) => setFormPassword(e.target.value)}
-                    placeholder="નવો પાસવર્ડ દાખલ કરો"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium pr-10 focus:bg-white focus:ring-2 focus:ring-[#346739]"
+                    placeholder="Enter new password"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium pr-10 focus:ring-2 focus:ring-[#346739]"
                   />
                   <button
                     type="button"
@@ -347,87 +399,139 @@ export default function InstructorProfileModal({
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">
-                  નિયમ: ઓછામાં ઓછા ૮ અક્ષર, ૧ કેપિટલ, ૧ સ્મોલ, ૧ અંક અને ૧ સ્પેશિયલ સિમ્બોલ (@$!%*#?&).
+              </div>
+
+              {/* Dual Language ITI / Institute Name */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <Building className="w-3.5 h-3.5 text-[#346739]" />
+                  <span>ITI / Institute Name (Dual Language)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Institute Name (English) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formItiName}
+                      onChange={(e) => setFormItiName(e.target.value)}
+                      placeholder="e.g. Government ITI Shankheshwar"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Institute Name (Gujarati)
+                    </label>
+                    <input
+                      type="text"
+                      value={formItiNameGu}
+                      onChange={(e) => setFormItiNameGu(e.target.value)}
+                      placeholder="e.g. સરકારી ઔદ્યોગિક તાલીમ સંસ્થા, શંખેશ્વર"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Institute / Directorate Name */}
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  {isSuperAdmin ? 'સંચાલનાલય / કચેરીનું નામ *' : 'સંસ્થાનું નામ (ITI Institute Name) *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formItiName}
-                  onChange={(e) => setFormItiName(e.target.value)}
-                  placeholder="દા.ત. રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગાંધીનગર"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#346739]"
-                />
-              </div>
-
-              {/* Address */}
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  કચેરી / સંસ્થાનું સત્તાવાર સરનામું (Official Address)
-                </label>
-                <input
-                  type="text"
-                  value={formAddress}
-                  onChange={(e) => setFormAddress(e.target.value)}
-                  placeholder="દા.ત. બ્લોક નં. ૧/૨, ડો. જીવરાજ મહેતા ભવન, ગાંધીનગર"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#346739]"
-                />
+              {/* Dual Language Address */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#346739]" />
+                  <span>Institution Address (Dual Language)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Address (English)
+                    </label>
+                    <input
+                      type="text"
+                      value={formAddress}
+                      onChange={(e) => setFormAddress(e.target.value)}
+                      placeholder="e.g. Station Road, Shankheshwar, Dist. Patan"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Address (Gujarati)
+                    </label>
+                    <input
+                      type="text"
+                      value={formAddressGu}
+                      onChange={(e) => setFormAddressGu(e.target.value)}
+                      placeholder="e.g. સ્ટેશન રોડ, શંખેશ્વર, જિ. પાટણ"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Outward Code Prefix */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-                  <span>જાવક નંબર પ્રીફિક્સ (Outward Reference Code Prefix)</span>
-                  <span className="text-[10px] text-slate-500">દા.ત. DTE/ITI/ADMIN/2026/</span>
+                  <span>Outward Reference Code Prefix</span>
+                  <span className="text-[10px] text-slate-500">e.g. ITI/SHANK/2026/</span>
                 </label>
                 <input
                   type="text"
                   value={formOutwardCode}
                   onChange={(e) => setFormOutwardCode(e.target.value)}
-                  placeholder="દા.ત. આઈટીઆઈ/શંખેશ્વર/કોપા/૨૦૨૬/"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#346739]"
+                  placeholder="e.g. ITI/SHANK/COPA/2026/"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-[#346739]"
                 />
               </div>
 
-              {/* For standard instructors: Trade, Batch, Unit */}
+              {/* Classroom Academic Scope (Instructors Only) */}
               {!isSuperAdmin && (
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                   <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-[#346739]" />
-                    <span>વર્ગખંડ શૈક્ષણિક વિગતો (Trade, Batch & Unit)</span>
+                    <span>Academic Scope (Trade, Batch &amp; Unit)</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">ટ્રેડ</label>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">Trade (English)</label>
                       <input
                         type="text"
                         value={formTrade}
                         onChange={(e) => setFormTrade(e.target.value)}
+                        placeholder="e.g. COPA"
                         className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">બેચ</label>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">Trade (Gujarati)</label>
+                      <input
+                        type="text"
+                        value={formTradeGu}
+                        onChange={(e) => setFormTradeGu(e.target.value)}
+                        placeholder="e.g. કોપા"
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">Batch</label>
                       <input
                         type="text"
                         value={formBatch}
                         onChange={(e) => setFormBatch(e.target.value)}
+                        placeholder="e.g. 2025-2026"
                         className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">યુનિટ</label>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">Unit</label>
                       <input
                         type="text"
                         value={formUnit}
                         onChange={(e) => setFormUnit(e.target.value)}
+                        placeholder="e.g. Unit A"
                         className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium"
                       />
                     </div>
@@ -445,10 +549,15 @@ export default function InstructorProfileModal({
                     <span className="font-bold text-slate-900 text-base">
                       {instructor.name}
                     </span>
+                    {instructor.name_gu && (
+                      <span className="text-slate-600 font-medium text-sm">
+                        ({instructor.name_gu})
+                      </span>
+                    )}
                     {instructor.email_verified && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                         <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>વેરિફાઇડ (Verified)</span>
+                        <span>Verified</span>
                       </span>
                     )}
                     <span
@@ -458,18 +567,18 @@ export default function InstructorProfileModal({
                           : 'bg-[#f2edc2] text-[#346739] border border-[#9fcb98]'
                       }`}
                     >
-                      {isSuperAdmin ? 'સુપર એડમિન (Super Admin)' : 'ઇન્સ્ટ્રક્ટર (Instructor)'}
+                      {isSuperAdmin ? 'Super Admin' : 'Instructor'}
                     </span>
                     {isSuperAdmin ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-300">
                         <ShieldCheck className="w-3 h-3 text-purple-700" />
-                        <span>લાઈફટાઈમ એક્સેસ (Lifetime Access)</span>
+                        <span>Lifetime Access</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
                         <Calendar className="w-3 h-3 text-emerald-700" />
                         <span>
-                          ૧ વર્ષ માન્યતા: {formatValidityDate(instructor.valid_until)} સુધી ({getValidityRemainingDays(instructor)} દિવસ બાકી)
+                          Valid until: {formatValidityDate(instructor.valid_until)} ({getValidityRemainingDays(instructor)} days left)
                         </span>
                       </span>
                     )}
@@ -477,13 +586,16 @@ export default function InstructorProfileModal({
                   <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                     <Briefcase className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     <span>
-                      {instructor.designation ||
-                        (isSuperAdmin ? 'સુપર એડમિનિસ્ટ્રેટર' : 'સુપરવાઇઝર ઇન્સ્ટ્રક્ટર')}
+                      {instructor.designation || (isSuperAdmin ? 'Super Administrator' : 'Supervisor Instructor')}
+                      {instructor.designation_gu && ` (${instructor.designation_gu})`}
                     </span>
                   </div>
                   <div className="text-xs text-slate-600 flex items-center gap-1.5">
                     <Building className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                    <span>{instructor.iti_name}</span>
+                    <span>
+                      {instructor.iti_name}
+                      {instructor.iti_name_gu && ` • ${instructor.iti_name_gu}`}
+                    </span>
                   </div>
                   {instructor.institution_address && (
                     <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
@@ -493,15 +605,17 @@ export default function InstructorProfileModal({
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors shrink-0"
-                  title="પ્રોફાઇલ વિગતો એડિટ કરો"
-                >
-                  <Edit3 className="w-3.5 h-3.5 text-[#346739]" />
-                  <span>એડિટ કરો</span>
-                </button>
+                {!isGuest && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors shrink-0"
+                    title="Edit Profile"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#346739]" />
+                    <span>Edit</span>
+                  </button>
+                )}
               </div>
 
               {/* Academic Scope Grid for Instructor OR Administrative Scope for Super Admin */}
@@ -509,19 +623,19 @@ export default function InstructorProfileModal({
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 text-center">
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">
-                      અધિકાર ક્ષેત્ર (Jurisdiction)
+                      Jurisdiction
                     </div>
                     <div className="font-bold text-slate-800 truncate" title="State-Wide ITIs">
-                      સમગ્ર ગુજરાત ITI સંસ્થાઓ
+                      Gujarat ITI Directorate
                     </div>
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 text-center">
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">
-                      મુખ્ય જવાબદારી (Scope)
+                      Scope
                     </div>
                     <div className="font-bold text-slate-800 truncate">
-                      ઇન્સ્ટ્રક્ટર મંજૂરી & સિસ્ટમ ઓડિટ
+                      Instructor Approvals &amp; Audit
                     </div>
                   </div>
                 </div>
@@ -529,7 +643,7 @@ export default function InstructorProfileModal({
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 text-center">
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">
-                      ટ્રેડ (Trade)
+                      Trade
                     </div>
                     <div className="font-bold text-slate-800 truncate" title={instructor.trade}>
                       {instructor.trade}
@@ -538,7 +652,7 @@ export default function InstructorProfileModal({
 
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 text-center">
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">
-                      યુનિટ (Unit)
+                      Unit
                     </div>
                     <div className="font-bold text-slate-800 truncate">
                       {instructor.unit || 'Unit A'}
@@ -547,131 +661,85 @@ export default function InstructorProfileModal({
 
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 text-center">
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">
-                      બેચ (Batch)
+                      Batch
                     </div>
                     <div className="font-bold text-slate-800 truncate">
-                      {instructor.batch || '૨૦૨૫–૨૦૨૬'}
+                      {instructor.batch || '2025-2026'}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Contact Details */}
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-white">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    <span className="font-medium">ઈમેલ આઈડી:</span>
-                  </div>
-                  <span className="font-mono font-bold text-slate-900">{instructor.email}</span>
+              {/* Contact Credentials Card */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 text-xs">
+                <div className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                  Contact &amp; Credentials
                 </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-white">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    <span className="font-medium">મોબાઈલ નંબર:</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="font-mono truncate">{instructor.email}</span>
                   </div>
-                  <span className="font-mono font-bold text-slate-900">
-                    {instructor.phone || 'ઉપલબ્ધ નથી'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="font-mono">{instructor.phone}</span>
+                  </div>
                 </div>
-
                 {instructor.outward_code_prefix && (
-                  <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-white">
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Hash className="w-4 h-4 text-slate-400" />
-                      <span className="font-medium">જાવક નંબર પ્રીફિક્સ:</span>
-                    </div>
-                    <span className="font-mono font-bold text-slate-900">
+                  <div className="pt-2 border-t border-slate-200/60 text-[11px] text-slate-600 flex items-center justify-between">
+                    <span className="text-slate-500">Outward Reference Prefix:</span>
+                    <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">
                       {instructor.outward_code_prefix}
                     </span>
                   </div>
                 )}
               </div>
-
-              {/* Security & Role Boundaries Notice */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5 text-slate-700">
-                <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                  <Lock className="w-4 h-4 text-[#346739]" />
-                  <span>
-                    {isSuperAdmin
-                      ? 'સુપર એડમિન વહીવટી સ્વાયત્તતા (Directorate Authority)'
-                      : 'સુરક્ષિત સિંગલ ઇન્સ્ટ્રક્ટર સત્ર (Isolated Profile)'}
-                  </span>
-                </div>
-                <p className="text-[11px] leading-relaxed text-slate-600">
-                  {isSuperAdmin
-                    ? 'સુપર એડમિન તરીકે આપ સમગ્ર ગુજરાતની તમામ ITI ના તમામ ઇન્સ્ટ્રક્ટર પ્રોફાઇલ તેમજ આપનું વ્યક્તિગત પ્રોફાઇલ સંપૂર્ણ રીતે એડિટ અને વહીવટી નિયંત્રણ કરી શકો છો.'
-                    : 'આપના તાલીમાર્થીઓ, હાજરી રેકોર્ડ, અને વર્ડ નોટિસ માત્ર આપના માટે જ સુલભ છે. આપ કોઈપણ સમયે આપની પ્રોફાઇલ વિગતો એડિટ કરી શકો છો.'}
-                </p>
-              </div>
             </>
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-2">
-          {isEditing ? (
-            <div className="flex items-center justify-between w-full">
+        {/* Footer */}
+        <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-50 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-2 ml-auto">
+            {isEditing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="profile-edit-form"
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#346739] hover:bg-[#264e2b] text-white text-xs font-bold shadow-xs transition-colors"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Changes</span>
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
-                onClick={() => {
-                  setIsEditing(false);
-                  setFormError('');
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-300 transition-colors"
+                onClick={onClose}
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-colors"
               >
-                રદ કરો (Cancel)
+                Close
               </button>
-              <button
-                type="submit"
-                form="profile-edit-form"
-                className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-[#346739] hover:bg-[#264e2b] text-[#f2edc2] shadow-xs transition-colors"
-              >
-                <Save className="w-4 h-4" />
-                <span>ફેરફારો સાચવો (Save Profile)</span>
-              </button>
-            </div>
-          ) : (
-            <>
-              {onLogout ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onLogout();
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors"
-                  title="ખાતામાંથી લોગ આઉટ કરો"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>લોગ આઉટ કરો (Log Out)</span>
-                </button>
-              ) : (
-                <div />
-              )}
-
-              <div className="flex items-center gap-2">
-                {!isGuest && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#346739] bg-[#f2edc2]/50 hover:bg-[#f2edc2] border border-[#9fcb98] transition-colors shadow-2xs"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>પ્રોફાઇલ એડિટ કરો (Edit)</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-300 transition-colors shadow-2xs"
-                >
-                  બંધ કરો (Close)
-                </button>
-              </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

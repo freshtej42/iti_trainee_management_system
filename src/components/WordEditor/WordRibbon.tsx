@@ -155,7 +155,7 @@ export default function WordRibbon({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (!file.type.startsWith('image/')) {
-        alert('કૃપા કરીને માન્ય ઇમેજ ફાઇલ પસંદ કરો.');
+        alert('Please select a valid image file (PNG, JPG, SVG, WebP).');
         return;
       }
       const reader = new FileReader();
@@ -267,7 +267,7 @@ export default function WordRibbon({
               type="button"
               onClick={onToggleCollapse}
               className="p-1 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-900 ml-0.5"
-              title={isCollapsed ? "રિબન ટૂલબાર ખોલો (Expand Ribbon)" : "રિબન સંકોચો (Collapse Ribbon)"}
+              title={isCollapsed ? "Expand Ribbon" : "Collapse Ribbon"}
             >
               {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
             </button>
@@ -288,9 +288,9 @@ export default function WordRibbon({
                   onChange={(e) => setFontFamily(e.target.value)}
                   className="text-xs font-medium border border-slate-300 rounded px-2 py-1 bg-white focus:outline-none focus:border-blue-500 w-36 sm:w-44 truncate"
                 >
-                  <option value="'Noto Sans Gujarati', sans-serif">ગુજરાતી (Noto Sans)</option>
-                  <option value="'Noto Serif Gujarati', serif">ગુજરાતી (Serif)</option>
-                  <option value="'Noto Sans Devanagari', sans-serif">हिन्दी (Devanagari)</option>
+                  <option value="'Noto Sans Gujarati', sans-serif">Gujarati (Noto Sans)</option>
+                  <option value="'Noto Serif Gujarati', serif">Gujarati (Serif)</option>
+                  <option value="'Noto Sans Devanagari', sans-serif">Hindi (Devanagari)</option>
                   <option value="'Segoe UI', sans-serif">Segoe UI</option>
                   <option value="Arial, sans-serif">Arial</option>
                   <option value="'Times New Roman', serif">Times New Roman</option>
@@ -479,7 +479,7 @@ export default function WordRibbon({
               {showImagePicker && (
                 <div className="absolute left-0 top-full mt-1.5 bg-white border border-slate-300 rounded-lg shadow-2xl p-2.5 z-50 w-60 animate-in fade-in zoom-in-95 duration-100 text-xs">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
-                    કમ્પ્યુટરમાંથી છબી ઉમેરો:
+                    Insert Image from Device:
                   </div>
                   <button
                     type="button"
@@ -487,7 +487,7 @@ export default function WordRibbon({
                     className="w-full text-left px-2 py-1.5 rounded hover:bg-blue-50 text-slate-800 flex items-center gap-2"
                   >
                     <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                    <span>ડાબો હેડર લોગો (Left Logo)</span>
+                    <span>Left Header Logo</span>
                   </button>
                   <button
                     type="button"
@@ -495,7 +495,7 @@ export default function WordRibbon({
                     className="w-full text-left px-2 py-1.5 rounded hover:bg-blue-50 text-slate-800 flex items-center gap-2"
                   >
                     <span className="w-2 h-2 rounded-full bg-orange-600"></span>
-                    <span>જમણો હેડર લોગો (Right Logo)</span>
+                    <span>Right Header Logo</span>
                   </button>
                   <button
                     type="button"
@@ -503,7 +503,7 @@ export default function WordRibbon({
                     className="w-full text-left px-2 py-1.5 rounded hover:bg-blue-50 text-slate-800 flex items-center gap-2 border-t border-slate-100 mt-1 pt-1.5"
                   >
                     <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                    <span>દસ્તાવેજમાં છબી (In Document)</span>
+                    <span>In Document</span>
                   </button>
                 </div>
               )}
@@ -524,16 +524,16 @@ export default function WordRibbon({
                 type="button"
                 onClick={() => setShowShapePicker(!showShapePicker)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded hover:bg-slate-100 border border-slate-200 text-slate-800"
-                title="Insert Shapes (બોક્સ, બેનર, સ્ટેમ્પ, ડિવાઇડર)"
+                title="Insert Shapes (Callout Box, Alert Box, Seal, Divider)"
               >
                 <Shapes className="w-4 h-4 text-purple-700" />
-                <span>Shapes (શેપ્સ)</span>
+                <span>Shapes</span>
               </button>
 
               {showShapePicker && (
                 <div className="absolute left-0 top-full mt-1.5 bg-white border border-slate-300 rounded-xl shadow-2xl p-2.5 z-50 w-72 animate-in fade-in zoom-in-95 duration-100 text-xs max-h-96 overflow-y-auto">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
-                    દસ્તાવેજ શેપ્સ & કૉલઆઉટ્સ (Word Shapes):
+                    Document Shapes &amp; Callouts:
                   </div>
 
                   {/* 1. Rectangle Callout Box */}
@@ -542,7 +542,7 @@ export default function WordRibbon({
                     onClick={() => {
                       onExecuteCommand(
                         'insertHTML',
-                        `<div class="doc-shape doc-shape-box" style="border: 2px solid #334155; background-color: #f8fafc; border-radius: 4px; padding: 12px 16px; margin: 14px 0; font-size: 13.5px;"><strong style="color: #0f172a;">📌 અગત્યની સૂચના / નોંધ:</strong> અહીં તમારી વિગતવાર નોંધ દાખલ કરો...</div><p></p>`
+                        `<div class="doc-shape doc-shape-box" style="border: 2px solid #334155; background-color: #f8fafc; border-radius: 4px; padding: 12px 16px; margin: 14px 0; font-size: 13.5px;"><strong style="color: #0f172a;">📌 Important Note / Advisory:</strong> Enter details here...</div><p></p>`
                       );
                       setShowShapePicker(false);
                     }}
@@ -550,8 +550,8 @@ export default function WordRibbon({
                   >
                     <Square className="w-4 h-4 text-slate-700 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-slate-900">લંબચોરસ બોક્સ (Callout Box)</div>
-                      <div className="text-[10px] text-slate-500">સામાન્ય સૂચના કે વિશિષ્ટ નોંધ દર્શાવવા માટે</div>
+                      <div className="font-semibold text-slate-900">Callout Box</div>
+                      <div className="text-[10px] text-slate-500">For general instructions or specific notes</div>
                     </div>
                   </button>
 
@@ -561,7 +561,7 @@ export default function WordRibbon({
                     onClick={() => {
                       onExecuteCommand(
                         'insertHTML',
-                        `<div class="doc-shape doc-shape-warning" style="border: 2px solid #e11d48; background-color: #fff1f2; border-radius: 10px; padding: 12px 16px; margin: 14px 0; font-size: 13.5px; color: #9f1239;"><strong>⚠️ ગંભીર ચેતવણી:</strong> ૮૦% કરતાં ઓછી હાજરી ધરાવતા તાલીમાર્થીઓને પરીક્ષામાં બેસવા દેવામાં આવશે નહીં.</div><p></p>`
+                        `<div class="doc-shape doc-shape-warning" style="border: 2px solid #e11d48; background-color: #fff1f2; border-radius: 10px; padding: 12px 16px; margin: 14px 0; font-size: 13.5px; color: #9f1239;"><strong>⚠️ Warning Notice:</strong> Trainees with less than 80% attendance will not be permitted to appear in exams.</div><p></p>`
                       );
                       setShowShapePicker(false);
                     }}
@@ -569,8 +569,8 @@ export default function WordRibbon({
                   >
                     <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-rose-900">ચેતવણી બોક્સ (Warning Callout)</div>
-                      <div className="text-[10px] text-rose-600">ગંભીર સૂચના, દંડ અથવા નામ કમી ચેતવણી માટે</div>
+                      <div className="font-semibold text-rose-900">Warning Callout</div>
+                      <div className="text-[10px] text-rose-600">For attendance notice or disciplinary warnings</div>
                     </div>
                   </button>
 
@@ -580,7 +580,7 @@ export default function WordRibbon({
                     onClick={() => {
                       onExecuteCommand(
                         'insertHTML',
-                        `<div class="doc-shape doc-shape-stamp" style="display: inline-block; border: 2px dashed #0284c7; background-color: #f0f9ff; border-radius: 8px; padding: 10px 18px; margin: 12px 0; text-align: center; color: #0369a1; font-weight: bold;"><div style="font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase;">સરકારી ઔદ્યોગિક તાલીમ સંસ્થા</div><div style="font-size: 14px; font-weight: 800; margin: 4px 0;">[ સત્તાવાર મંજૂરી સિક્કો ]</div><div style="font-size: 10px; font-weight: normal; color: #475569;">તારીખ: {{Notice_Issue_Date}} | પ્રમાણિત</div></div><p></p>`
+                        `<div class="doc-shape doc-shape-stamp" style="display: inline-block; border: 2px dashed #0284c7; background-color: #f0f9ff; border-radius: 8px; padding: 10px 18px; margin: 12px 0; text-align: center; color: #0369a1; font-weight: bold;"><div style="font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase;">GOVERNMENT INDUSTRIAL TRAINING INSTITUTE</div><div style="font-size: 14px; font-weight: 800; margin: 4px 0;">[ OFFICIAL APPROVAL SEAL ]</div><div style="font-size: 10px; font-weight: normal; color: #475569;">Date: {{Notice_Issue_Date}} | Certified</div></div><p></p>`
                       );
                       setShowShapePicker(false);
                     }}
@@ -588,8 +588,8 @@ export default function WordRibbon({
                   >
                     <Stamp className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-sky-900">સત્તાવાર સિક્કો / સ્ટેમ્પ બોક્સ (Seal Box)</div>
-                      <div className="text-[10px] text-sky-600">કચેરી સિક્કો / પ્રમાણીકરણ ખાનું</div>
+                      <div className="font-semibold text-sky-900">Official Stamp / Seal Box</div>
+                      <div className="text-[10px] text-sky-600">Office seal and verification placeholder</div>
                     </div>
                   </button>
 
@@ -599,7 +599,7 @@ export default function WordRibbon({
                     onClick={() => {
                       onExecuteCommand(
                         'insertHTML',
-                        `<span class="doc-shape doc-shape-badge" style="display: inline-flex; align-items: center; border: 1.5px solid #16a34a; background-color: #f0fdf4; color: #15803d; font-weight: bold; font-size: 11px; padding: 3px 10px; border-radius: 9999px; margin: 2px 4px;">✓ માન્ય / નિયમિત (Approved)</span>&nbsp;`
+                        `<span class="doc-shape doc-shape-badge" style="display: inline-flex; align-items: center; border: 1.5px solid #16a34a; background-color: #f0fdf4; color: #15803d; font-weight: bold; font-size: 11px; padding: 3px 10px; border-radius: 9999px; margin: 2px 4px;">✓ Verified / Approved</span>&nbsp;`
                       );
                       setShowShapePicker(false);
                     }}
@@ -607,8 +607,8 @@ export default function WordRibbon({
                   >
                     <BadgeCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-emerald-900">પ્રમાણિત બેજ (Status Badge)</div>
-                      <div className="text-[10px] text-emerald-600">માન્ય / નિયમિત / પ્રમાણિત ગોળાકાર બેજ</div>
+                      <div className="font-semibold text-emerald-900">Status Badge</div>
+                      <div className="text-[10px] text-emerald-600">Approved / Regular status badge</div>
                     </div>
                   </button>
 
@@ -626,8 +626,8 @@ export default function WordRibbon({
                   >
                     <Minus className="w-4 h-4 text-[#346739] shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-slate-900">ડિઝાઇનર વિભાજક લીટી (Accent Divider)</div>
-                      <div className="text-[10px] text-slate-500">વિભાગો અલગ કરવા માટે કલર લીટી</div>
+                      <div className="font-semibold text-slate-900">Accent Divider Line</div>
+                      <div className="text-[10px] text-slate-500">Color separator between sections</div>
                     </div>
                   </button>
 
@@ -637,7 +637,7 @@ export default function WordRibbon({
                     onClick={() => {
                       onExecuteCommand(
                         'insertHTML',
-                        `<div class="doc-shape doc-shape-frame" style="border: 4px double #334155; padding: 14px 18px; background-color: #fbfbfc; margin: 14px 0;"><h4 style="margin: 0 0 6px 0; font-weight: bold; color: #0f172a; font-size: 14px;">સંસ્થાકીય આદેશ / સારાંશ:</h4><p style="margin: 0; font-size: 13.5px;">અહીં આદેશની વિગતો લખો...</p></div><p></p>`
+                        `<div class="doc-shape doc-shape-frame" style="border: 4px double #334155; padding: 14px 18px; background-color: #fbfbfc; margin: 14px 0;"><h4 style="margin: 0 0 6px 0; font-weight: bold; color: #0f172a; font-size: 14px;">Summary / Institutional Order:</h4><p style="margin: 0; font-size: 13.5px;">Enter summary details here...</p></div><p></p>`
                       );
                       setShowShapePicker(false);
                     }}
@@ -645,8 +645,8 @@ export default function WordRibbon({
                   >
                     <Bookmark className="w-4 h-4 text-indigo-700 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-slate-900">ડબલ બોર્ડર સમરી ફ્રેમ (Summary Box)</div>
-                      <div className="text-[10px] text-slate-500">સરકારી કચેરી પરિપત્ર / સમરી સ્ટાઇલ</div>
+                      <div className="font-semibold text-slate-900">Double Border Summary Box</div>
+                      <div className="text-[10px] text-slate-500">Official circular / summary style</div>
                     </div>
                   </button>
                 </div>
@@ -697,7 +697,7 @@ export default function WordRibbon({
                   className="rounded text-blue-600 focus:ring-blue-500"
                 />
                 <ImageIcon className="w-3.5 h-3.5 text-blue-700" />
-                <span>સંસ્થા લેટરહેડ (Top Letterhead)</span>
+                <span>Top Letterhead</span>
               </label>
             </div>
           </>
@@ -712,10 +712,10 @@ export default function WordRibbon({
                 onClick={onTriggerAiCommentary}
                 disabled={isAiLoading}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white hover:from-amber-700 hover:to-orange-700 shadow-xs disabled:opacity-50 transition-all"
-                title="વાલી પરામર્શ નોંધ ઉમેરો (Add Parent Advisory Note)"
+                title="Add Parent Advisory Note"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>{isAiLoading ? 'તૈયાર થઈ રહ્યું છે...' : 'વાલી પરામર્શ ઉમેરો (Add Parent Advisory)'}</span>
+                <span>{isAiLoading ? 'Generating...' : 'Add Parent Advisory'}</span>
               </button>
 
               {/* Vernacular Language & Grammar Polish */}
@@ -723,10 +723,10 @@ export default function WordRibbon({
                 onClick={onTriggerGrammarCheck}
                 disabled={isAiLoading}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-slate-800 to-slate-900 text-white hover:bg-slate-800 shadow-xs disabled:opacity-50 transition-all"
-                title="સત્તાવાર વ્યાકરણ અને ભાષા શુદ્ધિ કરો"
+                title="Polish official language and grammar"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
-                <span>ભાષા અને વ્યાકરણ શુદ્ધિ (Grammar Polish)</span>
+                <span>Grammar Polish</span>
               </button>
             </div>
           </>

@@ -130,17 +130,17 @@ export default function BatchNoticePrintPreviewModal({
             <FileText className="w-7 h-7" />
           </div>
           <h3 className="text-base font-black text-slate-900">
-            કોઈ તાલીમાર્થી પસંદ થયેલ નથી
+            No Trainees Selected
           </h3>
           <p className="text-xs text-slate-600 leading-relaxed">
-            પ્રિન્ટ પૂર્વાવલોકન અને PDF માટે કૃપા કરીને રિપોર્ટ પેજ પરથી ઓછામાં ઓછો એક તાલીમાર્થી પસંદ કરો અથવા હાજરી ફિલ્ટર તપાસો.
+            Please select at least one trainee from the report page to view preview and export PDFs.
           </p>
           <button
             type="button"
             onClick={onClose}
             className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
           >
-            પાછા જાઓ (Close)
+            Back (Close)
           </button>
         </div>
       </div>
@@ -161,7 +161,7 @@ export default function BatchNoticePrintPreviewModal({
 
     try {
       setIsExportingPdf(true);
-      setPdfProgress(`તમામ ${pages.length} પત્રો માટે A4 PDF તૈયાર થાય છે...`);
+      setPdfProgress(`Preparing A4 PDF for all ${pages.length} notices...`);
       setFeedback(null);
 
       onRecordDispatches?.();
@@ -174,20 +174,20 @@ export default function BatchNoticePrintPreviewModal({
         orientation: 'portrait',
         onProgress: (msg) => setPdfProgress(msg),
         onPageProgress: (curr, total) => {
-          setPdfProgress(`પત્ર ${curr} / ${total} નું રેન્ડરિંગ...`);
+          setPdfProgress(`Rendering notice ${curr} of ${total}...`);
         },
       });
 
       setFeedback({
         type: 'success',
-        msg: `બધા ${pages.length} પત્રો સફળતાપૂર્વક પીડીએફ તરીકે સેવ થયા (${filename})`,
+        msg: `All ${pages.length} notices saved successfully as PDF (${filename})`,
       });
       setTimeout(() => setFeedback(null), 6000);
     } catch (err) {
       console.error('Batch PDF generation failed:', err);
       setFeedback({
         type: 'warn',
-        msg: 'PDF બનાવવામાં ક્ષતિ આવી. કૃપા કરીને પ્રિન્ટ વિકલ્પ વાપરો.',
+        msg: 'Error generating PDF. Please use the Print option.',
       });
     } finally {
       setIsExportingPdf(false);
@@ -200,12 +200,12 @@ export default function BatchNoticePrintPreviewModal({
     if (!singleSheetRef.current) return;
     try {
       setIsExportingPdf(true);
-      setPdfProgress(`પત્ર (રોલ નં: ${currentNotice.trainee.roll_no}) માટે PDF તૈયાર થાય છે...`);
+      setPdfProgress(`Preparing PDF for notice (Roll: ${currentNotice.trainee.roll_no})...`);
       setFeedback(null);
 
       onRecordDispatches?.();
 
-      const filename = `ITI_Notice_Roll_${currentNotice.trainee.roll_no}_${currentNotice.trainee.student_name.replace(/\s+/g, '_')}.pdf`;
+      const filename = `ITI_Notice_Roll_${currentNotice.trainee.roll_no}_${(currentNotice.trainee.student_name_en || currentNotice.trainee.student_name).replace(/\s+/g, '_')}.pdf`;
       await exportElementToPdf(singleSheetRef.current, {
         filename,
         orientation: 'portrait',
@@ -214,14 +214,14 @@ export default function BatchNoticePrintPreviewModal({
 
       setFeedback({
         type: 'success',
-        msg: `પત્ર સફળતાપૂર્વક સાચવવામાં આવ્યો (${filename})`,
+        msg: `Notice saved successfully (${filename})`,
       });
       setTimeout(() => setFeedback(null), 5000);
     } catch (err) {
       console.error('Single PDF error:', err);
       setFeedback({
         type: 'warn',
-        msg: 'પત્ર PDF બનાવવામાં ક્ષતિ આવી.',
+        msg: 'Error generating notice PDF.',
       });
     } finally {
       setIsExportingPdf(false);
@@ -234,7 +234,7 @@ export default function BatchNoticePrintPreviewModal({
     onRecordDispatches?.();
     setFeedback({
       type: 'info',
-      msg: 'પ્રિન્ટ ડાયલોગ ખુલી રહ્યો છે...',
+      msg: 'Opening print dialog...',
     });
 
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -460,10 +460,10 @@ export default function BatchNoticePrintPreviewModal({
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-[160px] sm:max-w-xs">
-                A4 પૂર્વાવલોકન
+                A4 Preview
               </h2>
               <span className="text-[10px] sm:text-[11px] bg-blue-900/60 text-blue-300 font-semibold px-2 py-0.5 rounded border border-blue-700/50">
-                {notices.length} પત્રો
+                {notices.length} Notices
               </span>
             </div>
           </div>
@@ -475,7 +475,7 @@ export default function BatchNoticePrintPreviewModal({
               onClick={() => setCurrentPageIndex((p) => Math.max(0, p - 1))}
               disabled={currentPageIndex === 0}
               className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 transition-colors"
-              title="અગાઉનો પત્ર"
+              title="Previous Notice"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
@@ -487,7 +487,7 @@ export default function BatchNoticePrintPreviewModal({
               onClick={() => setCurrentPageIndex((p) => Math.min(notices.length - 1, p + 1))}
               disabled={currentPageIndex >= notices.length - 1}
               className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 transition-colors"
-              title="આગળનો પત્ર"
+              title="Next Notice"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -505,10 +505,10 @@ export default function BatchNoticePrintPreviewModal({
                 ? 'bg-blue-900/80 border-blue-400 text-blue-200'
                 : 'bg-slate-800 border-slate-600 text-slate-300'
             }`}
-            title="લેટરહેડ હેડર ચાલુ/બંધ કરો"
+            title="Toggle Letterhead Header"
           >
             <Building2 className="w-3 h-3 text-amber-300" />
-            <span className="hidden sm:inline">લેટરહેડ:</span>
+            <span className="hidden sm:inline">Letterhead:</span>
             <span>{isLetterheadActive ? 'On' : 'Off'}</span>
           </button>
 
@@ -552,7 +552,7 @@ export default function BatchNoticePrintPreviewModal({
             onClick={handleExportAllPdf}
             disabled={isExportingPdf}
             className="flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white shadow-md transition-all disabled:opacity-50 min-h-[34px]"
-            title="બધા પત્રો A4 PDF તરીકે ડાઉનલોડ કરો"
+            title="Download all notices as A4 PDF"
           >
             {isExportingPdf ? (
               <>
@@ -562,7 +562,7 @@ export default function BatchNoticePrintPreviewModal({
             ) : (
               <>
                 <Download className="w-3.5 h-3.5 text-emerald-200" />
-                <span>સેવ PDF</span>
+                <span>Save PDF</span>
               </>
             )}
           </button>
@@ -572,10 +572,10 @@ export default function BatchNoticePrintPreviewModal({
             type="button"
             onClick={handlePrintAll}
             className="flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-md transition-all min-h-[34px]"
-            title="પ્રિન્ટર પર સીધી પ્રિન્ટ કરો"
+            title="Print all notices directly"
           >
             <Printer className="w-3.5 h-3.5 text-blue-200" />
-            <span>પ્રિન્ટ</span>
+            <span>Print</span>
           </button>
 
           {/* Close Modal */}
@@ -583,7 +583,7 @@ export default function BatchNoticePrintPreviewModal({
             type="button"
             onClick={onClose}
             className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors min-h-[34px] min-w-[34px] flex items-center justify-center"
-            title="બંધ કરો (Esc)"
+            title="Close (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
@@ -663,12 +663,12 @@ export default function BatchNoticePrintPreviewModal({
       <div className="bg-slate-900 border-t border-slate-800 text-slate-400 px-3 sm:px-4 py-1.5 text-xs flex flex-col sm:flex-row items-center justify-between gap-1.5 shrink-0 print:hidden select-none">
         <div className="flex items-center gap-2">
           <span>
-            💡 <strong>Android:</strong> <strong>&quot;સેવ PDF&quot;</strong> થી ડાઉનલોડ કરો અથવા <strong>&quot;પ્રિન્ટ&quot;</strong> થી સીધી પ્રિન્ટ કાઢો.
+            💡 <strong>Android:</strong> Use <strong>&quot;Save PDF&quot;</strong> to download or <strong>&quot;Print&quot;</strong> to print directly.
           </span>
         </div>
         <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
-          <span>તાલીમાર્થી: [રોલ {currentNotice.trainee.roll_no}] {currentNotice.trainee.student_name}</span>
-          <span className="hidden sm:inline">પત્ર {currentPageIndex + 1} / {notices.length}</span>
+          <span>Trainee: [Roll {currentNotice.trainee.roll_no}] {currentNotice.trainee.student_name_en || currentNotice.trainee.student_name}</span>
+          <span className="hidden sm:inline">Notice {currentPageIndex + 1} / {notices.length}</span>
         </div>
       </div>
     </div>

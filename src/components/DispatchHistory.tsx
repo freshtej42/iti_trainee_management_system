@@ -50,6 +50,11 @@ export default function DispatchHistory({
   onViewNotice,
 }: DispatchHistoryProps) {
   const { t, tText, language } = useLanguage();
+  const isGuest = Boolean(
+    instructor.role === 'guest' ||
+    instructor.is_guest ||
+    instructor.id === 'guest-demo-instructor'
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [directionFilter, setDirectionFilter] = useState<'all' | 'outward' | 'inward'>('all');
@@ -205,10 +210,12 @@ export default function DispatchHistory({
 
   // Delete Single Handler
   const confirmDeleteSingle = (log: DispatchLog) => {
+    if (isGuest) return;
     setDeletingLog(log);
   };
 
   const executeDeleteSingle = () => {
+    if (isGuest) return;
     if (!deletingLog) return;
     if (onDeleteDispatchLog) {
       onDeleteDispatchLog(deletingLog.id);
@@ -223,6 +230,7 @@ export default function DispatchHistory({
 
   // Batch Delete Handler
   const executeBatchDelete = () => {
+    if (isGuest) return;
     const ids = Array.from(selectedLogIds) as string[];
     if (ids.length === 0) return;
     if (onBatchDeleteDispatchLogs) {
@@ -236,6 +244,7 @@ export default function DispatchHistory({
 
   // Batch Status Update
   const handleBatchStatusUpdate = (newStatus: DispatchLog['status']) => {
+    if (isGuest) return;
     const ids = Array.from(selectedLogIds) as string[];
     ids.forEach((id) => onUpdateStatus(id, newStatus));
     setSelectedLogIds(new Set());
@@ -244,6 +253,7 @@ export default function DispatchHistory({
   // Save Edit Handler
   const handleSaveEdit = (e: FormEvent) => {
     e.preventDefault();
+    if (isGuest) return;
     if (!editingLog) return;
     const sanitizedLog: DispatchLog = {
       ...editingLog,
@@ -359,6 +369,23 @@ export default function DispatchHistory({
 
   return (
     <div className="space-y-6">
+      {/* Guest Mode View-Only Banner */}
+      {isGuest && (
+        <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-950 text-xs flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="p-1 px-2 bg-amber-200 text-amber-900 rounded-md font-bold text-[11px] shrink-0">
+              👁️ View-Only
+            </span>
+            <span className="font-medium">
+              Guest Demo Mode: Inward & Outward Dispatch Register is protected. Creating, editing, deleting, or status changes are disabled.
+            </span>
+          </div>
+          <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 shrink-0">
+            Register Locked
+          </span>
+        </div>
+      )}
+
       {/* Header Bar */}
       <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -382,7 +409,7 @@ export default function DispatchHistory({
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg shadow-xs transition-colors bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer"
             title={tText('નવી આવક અથવા જાવક એન્ટ્રી ઉમેરો', 'नई आवक या जावक प्रविष्टि जोड़ें', 'Add new inward or outward entry')}
           >
             <Plus className="w-4 h-4" />
@@ -859,12 +886,12 @@ export default function DispatchHistory({
                           onChange={(e) =>
                             onUpdateStatus(log.id, e.target.value as DispatchLog['status'])
                           }
-                          className={`text-[11px] font-bold border rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer ${
+                          className={`text-[11px] font-bold border rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 ${
                             log.status === 'Delivered' || log.status === 'Acknowledged'
-                              ? 'border-emerald-300 text-emerald-800 bg-emerald-50/40'
+                              ? 'border-emerald-300 text-emerald-800 bg-emerald-50/40 cursor-pointer'
                               : log.status === 'Dispatched'
-                              ? 'border-blue-300 text-blue-800 bg-blue-50/40'
-                              : 'border-slate-300 text-slate-700'
+                              ? 'border-blue-300 text-blue-800 bg-blue-50/40 cursor-pointer'
+                              : 'border-slate-300 text-slate-700 cursor-pointer'
                           }`}
                         >
                           <option value="Dispatched">{t('inTransit')}</option>
@@ -895,7 +922,7 @@ export default function DispatchHistory({
                           <button
                             type="button"
                             onClick={() => setEditingLog({ ...log })}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 p-1.5 rounded transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold p-1.5 rounded transition-colors text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 cursor-pointer"
                             title={t('edit')}
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -905,7 +932,7 @@ export default function DispatchHistory({
                           <button
                             type="button"
                             onClick={() => confirmDeleteSingle(log)}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 p-1.5 rounded transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold p-1.5 rounded transition-colors text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 cursor-pointer"
                             title={t('delete')}
                           >
                             <Trash2 className="w-3.5 h-3.5" />

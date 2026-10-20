@@ -245,7 +245,7 @@ export default function InstructorAuth({
 
     const effectiveItiName = regItiName === 'other' ? (customItiName.trim() || 'ઔદ્યોગિક તાલીમ સંસ્થા') : regItiName;
     const effectiveDesignation = regDesignation === 'other' ? (customDesignation.trim() || 'સુપરવાઇઝર ઇન્સ્ટ્રક્ટર') : regDesignation;
-    const effectiveBatch = regBatch === 'other' ? (customBatch.trim() || '૨૦૨૫–૨૦૨૬') : regBatch;
+    const effectiveBatch = regBatch === 'other' ? (customBatch.trim() || '84') : regBatch;
     const effectiveUnit = regUnit === 'other' ? (customUnit.trim() || 'Unit A') : regUnit;
 
     const initialAcademicHierarchy: AcademicTrade[] = [
@@ -378,14 +378,14 @@ export default function InstructorAuth({
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-black text-slate-900">
-                      ગેસ્ટ ડેમો મોડ (Guest Demo Mode)
+                      લાઇવ ડેમો એકાઉન્ટ (Full Interactive Demo)
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300">
-                      ચૂકવણી પહેલાં ચકાસણી (Free Preview)
+                      તમામ સુવિધાઓ ચાલુ (All Features Unlocked)
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                    સેવા માટે ચૂકવણી કરતાં પહેલાં મુલાકાતી તરીકે પોર્ટલની તમામ સુવિધાઓ (હાજરી, નોટિસ ડ્રાફ્ટિંગ, યુનિફાઇડ રિપોર્ટ, પ્રિન્ટ/PDF પ્રિવ્યૂ) ચકાસો.
+                    ચૂકવણી કરતાં પહેલાં પોર્ટલની તમામ સુવિધાઓ (તાલીમાર્થી ઉમેરવા/એક્સેલ ઈમ્પોર્ટ, માસિક હાજરી નોંધણી, ટેમ્પલેટ સ્ટુડિયો, નોટિસ/આચાર્ય રિપોર્ટ જનરેશન અને આવક-જાવક રજીસ્ટર) લાઇવ વાપરીને અનુભવ કરો.
                   </p>
                 </div>
               </div>
@@ -770,7 +770,7 @@ export default function InstructorAuth({
                       <input
                         type="text"
                         required
-                        placeholder="બેચ વર્ષ દા.ત. ૨૦૨૫–૨૦૨૬"
+                        placeholder="બેચ દા.ત. 84, 85, 86..."
                         value={customBatch}
                         onChange={(e) => setCustomBatch(e.target.value)}
                         className="mt-1.5 w-full px-2 py-1 text-xs border rounded"

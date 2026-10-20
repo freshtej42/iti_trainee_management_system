@@ -105,8 +105,8 @@ export default function Header({
                   </span>
                 )}
                 {isGuest && (
-                  <span className="inline-flex text-[10px] sm:text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full shrink-0">
-                    👁️ ગેસ્ટ ડેમો (View-Only)
+                  <span className="inline-flex text-[10px] sm:text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full shrink-0">
+                    Demo Mode
                   </span>
                 )}
               </div>
@@ -172,10 +172,10 @@ export default function Header({
               }`}
               title={
                 isSuperAdmin
-                  ? `${t('superAdminTitle')} (લાઈફટાઈમ એક્સેસ)`
+                  ? `${t('superAdminTitle')} (Lifetime Access)`
                   : isGuest
-                  ? 'ગેસ્ટ ડેમો એકાઉન્ટ (નિરીક્ષણ મોડ / View Only)'
-                  : `${t('profile')}: ${instructor.name} (૧ વર્ષ માન્યતા: ${formatValidityDate(instructor.valid_until)})`
+                  ? 'Demo Account (All Features Enabled)'
+                  : `${t('profile')}: ${instructor.name} (Valid till: ${formatValidityDate(instructor.valid_until)})`
               }
             >
               <div className={`w-2 h-2 rounded-full shrink-0 ${
@@ -200,11 +200,11 @@ export default function Header({
                     : 'text-slate-500'
                 }`}>
                   {isSuperAdmin
-                    ? tText('સુપર એડમિન • લાઈફટાઈમ', 'सुपर एडमिन • लाइफटाइम', 'Super Admin • Lifetime')
+                    ? 'Super Admin • Lifetime'
                     : isGuest
-                    ? 'ડેમો મુલાકાતી • View Only'
+                    ? `${instructor.trade} • Batch ${instructor.batch}`
                     : instructor.valid_until
-                    ? `${instructor.trade} • ${formatValidityDate(instructor.valid_until)} સુધી`
+                    ? `${instructor.trade} • Valid till ${formatValidityDate(instructor.valid_until)}`
                     : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
                 </div>
               </div>
@@ -365,7 +365,7 @@ export default function Header({
                 <div>
                   <div className="font-bold text-sm text-slate-900">{instructor.name}</div>
                   <div className="text-xs text-slate-500">
-                    {isSuperAdmin ? 'સુપર એડમિન • ગાંધીનગર (DET Gujarat)' : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
+                    {isSuperAdmin ? 'Super Admin • Gandhinagar (DET Gujarat)' : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
                   </div>
                 </div>
               </div>
@@ -462,14 +462,10 @@ export default function Header({
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>{tText('વહીવટી સ્વાયત્તતા સૂચના', 'प्रशासनिक स्वायत्तता सूचना', 'Administrative Notice')}</span>
+                    <span>Administrative Notice</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-amber-800">
-                    {tText(
-                      'સુપર એડમિન તરીકે આપ માત્ર રાજ્ય કક્ષાના વહીવટ, ઇન્સ્ટ્રક્ટર એકાઉન્ટ મંજૂરી અને સિસ્ટમ ઓડિટની કામગીરી સંભાળો છો.',
-                      'सुपर एडमिन के रूप में आप राज्य स्तरीय प्रशासन, प्रशिक्षक सत्यापन और सिस्टम ऑडिट का कार्य संभालते हैं।',
-                      'As Super Admin, you oversee state-level administration, instructor account verifications, and system audits.'
-                    )}
+                    As Super Admin, you oversee state-level administration, instructor account verifications, and system audits.
                   </p>
                 </div>
               </div>
@@ -654,7 +650,7 @@ export default function Header({
               className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-500 hover:text-slate-900 transition-colors min-h-[48px] min-w-[52px]"
             >
               <Menu className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">{tText('વધુ', 'अधिक', 'More')}</span>
+              <span className="text-[10px] leading-tight">More</span>
             </button>
         </nav>
       )}

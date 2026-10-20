@@ -23,6 +23,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { mergeTemplateTags, generateOutwardReference } from '../utils/mergeTags';
+import { calculateProgressiveAttendance } from '../utils/progressiveAttendance';
 import { exportBatchElementsToPdf, printCleanDocument } from '../utils/pdfExport';
 import BatchNoticePrintPreviewModal, { BatchNoticeItem } from './BatchNoticePrintPreviewModal';
 
@@ -49,11 +50,28 @@ export default function BatchNoticeModal({
 }: BatchNoticeModalProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(templates[0]?.id || '');
   const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>(() => {
-    // Default select all low attendance (<80%)
+    // Default select ONLY trainees requiring notice based on progressive rules (Progressive < 80%)
+    // Confirmed rule: If student has progressive attendance >= 80%, instructor does NOT have to issue notice
     const flaggedIds = trainees
       .filter((t) => {
         const rec = attendanceRecords.find((r) => r.trainee_id === t.id);
-        return rec ? rec.attendance_percentage < 80.0 : false;
+        const pStats = calculateProgressiveAttendance(
+          t.id,
+          rec || {
+            id: `att-${t.id}-def`,
+            trainee_id: t.id,
+            instructor_id: instructor.id,
+            month_year: attendanceRecords[0]?.month_year || 'August 2026',
+            total_working_days: 24,
+            present_days: 18,
+            absent_days: 6,
+            attendance_percentage: 75.0,
+            flagged_low: true,
+            updated_at: new Date().toISOString(),
+          },
+          attendanceRecords
+        );
+        return pStats.requiresNotice;
       })
       .map((t) => t.id);
     return flaggedIds.length > 0 ? flaggedIds : trainees.slice(0, 3).map((t) => t.id);
@@ -73,15 +91,37 @@ export default function BatchNoticeModal({
   const activeTemplate = templates.find((t) => t.id === selectedTemplateId) || templates[0];
 
   // Map trainees to attendance records
+  // Map trainees to attendance records and progressive statistics
   const traineeDataList = trainees.map((trainee) => {
     const rec = attendanceRecords.find((r) => r.trainee_id === trainee.id);
     const percentage = rec ? rec.attendance_percentage : 75.0;
-    const isFlagged = percentage < 80.0;
+    const progStats = calculateProgressiveAttendance(
+      trainee.id,
+      rec || {
+        id: `att-${trainee.id}-temp`,
+        trainee_id: trainee.id,
+        instructor_id: instructor.id,
+        month_year: attendanceRecords[0]?.month_year || 'August 2026',
+        total_working_days: 24,
+        present_days: 18,
+        absent_days: 6,
+        attendance_percentage: percentage,
+        flagged_low: percentage < 80.0,
+        updated_at: new Date().toISOString(),
+      },
+      attendanceRecords
+    );
+
     return {
       trainee,
       record: rec,
       percentage,
-      isFlagged,
+      progressivePercentage: progStats.progressivePercentage,
+      recordedMonthsCount: progStats.recordedMonthsCount,
+      isProgressiveSafe: progStats.isProgressiveSafe,
+      requiresNotice: progStats.requiresNotice,
+      isFlagged: progStats.requiresNotice,
+      progStats,
     };
   });
 
@@ -100,7 +140,8 @@ export default function BatchNoticeModal({
   };
 
   const selectAllFlagged = () => {
-    const flagged = traineeDataList.filter((t) => t.isFlagged).map((t) => t.trainee.id);
+    // Select only trainees where requiresNotice is true (Progressive < 80%)
+    const flagged = traineeDataList.filter((t) => t.requiresNotice).map((t) => t.trainee.id);
     setSelectedTraineeIds(flagged);
   };
 
@@ -136,6 +177,9 @@ export default function BatchNoticeModal({
       presentDays,
       absentDays,
       attendancePercentage: percentage,
+      progressiveAttendancePercentage: item.progressivePercentage,
+      progressiveRecordedMonths: item.recordedMonthsCount,
+      progressiveStatus: item.progStats.statusLabelGu,
       referenceNumber: refNum,
       noticeIssueDate: new Date().toLocaleDateString('en-GB', {
         day: '2-digit',
@@ -144,8 +188,8 @@ export default function BatchNoticeModal({
       }),
       lastNoticeDate: lastDate,
       aiCommentary:
-        percentage < 80
-          ? `તાલીમાર્થીની હાજરી ${percentage}% નોંધાયેલ છે, જે નિયમાનુસાર ૮૦% કરતા ઓછી હોવાથી પરીક્ષા માટે ગેરલાયક ઠરી શકે છે. વાલીશ્રીએ તાત્કાલિક સંસ્થા ખાતે આવી ખુલાસો રજૂ કરવો.`
+        item.requiresNotice
+          ? `તાલીમાર્થીની પ્રગતિશીલ હાજરી ${item.progressivePercentage.toFixed(1)}% નોંધાયેલ છે, જે નિયમાનુસાર ૮૦% કરતા ઓછી હોવાથી પરીક્ષા માટે ગેરલાયક ઠરી શકે છે. વાલીશ્રીએ તાત્કાલિક સંસ્થા ખાતે આવી ખુલાસો રજૂ કરવો.`
           : undefined,
     });
   };
@@ -290,11 +334,11 @@ export default function BatchNoticeModal({
                 {activeTemplate.show_letterhead !== false ? (
                   <span className="flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                     <Building2 className="w-3 h-3 text-blue-600" />
-                    <span>લેટરહેડ સહિત</span>
+                    <span>With Letterhead</span>
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                    <span>📄 પ્રી-પ્રિન્ટેડ કાગળ (હેડર વગર)</span>
+                    <span>📄 Pre-printed Paper (No Header)</span>
                   </span>
                 )}
               </div>
@@ -305,7 +349,7 @@ export default function BatchNoticeModal({
               >
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.language}) {t.show_letterhead === false ? '• [પ્રી-પ્રિન્ટેડ કાગળ]' : ''}
+                    {t.name} ({t.language}) {t.show_letterhead === false ? '• [Pre-printed Paper]' : ''}
                   </option>
                 ))}
               </select>
@@ -320,9 +364,10 @@ export default function BatchNoticeModal({
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <button
                     onClick={selectAllFlagged}
-                    className="text-rose-700 hover:underline font-semibold"
+                    className="text-rose-700 hover:underline font-bold"
+                    title="Select only trainees with progressive attendance <80%"
                   >
-                    All &lt;80%
+                    Notice Req. (&lt;80%)
                   </button>
                   <span>•</span>
                   <button onClick={selectAll} className="text-blue-700 hover:underline font-semibold">
@@ -336,43 +381,59 @@ export default function BatchNoticeModal({
               </div>
 
               <div className="border border-slate-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto divide-y divide-slate-100 bg-slate-50/50">
-                {traineeDataList.map(({ trainee, percentage, isFlagged }) => {
+                {traineeDataList.map(({ trainee, percentage, progressivePercentage, isProgressiveSafe, requiresNotice, isFlagged }) => {
                   const isSelected = selectedTraineeIds.includes(trainee.id);
                   return (
                     <div
                       key={trainee.id}
                       onClick={() => toggleTrainee(trainee.id)}
                       className={`px-3 py-2 text-xs flex items-center justify-between cursor-pointer transition-colors ${
-                        isSelected ? 'bg-blue-50/80 font-medium' : 'hover:bg-slate-100'
+                        isSelected
+                          ? 'bg-blue-50/80 font-medium'
+                          : isProgressiveSafe
+                          ? 'bg-sky-50/30 hover:bg-sky-50/60'
+                          : 'hover:bg-slate-100'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         {isSelected ? (
                           <CheckSquare className="w-4 h-4 text-blue-700 shrink-0" />
                         ) : (
                           <Square className="w-4 h-4 text-slate-300 shrink-0" />
                         )}
-                        <div>
-                          <div className="text-slate-900 font-semibold">
+                        <div className="min-w-0">
+                          <div className="text-slate-900 font-semibold truncate">
                             Roll {trainee.roll_no}: {trainee.surname} {trainee.student_name}
                           </div>
-                          <div className="text-[10px] text-slate-500">
-                            {trainee.village}, {trainee.district}
+                          <div className="text-[10px] text-slate-500 flex items-center gap-1.5">
+                            <span>{trainee.village}, {trainee.district}</span>
+                            {isProgressiveSafe && (
+                              <span className="text-[9px] font-bold text-sky-800 bg-sky-100 px-1 py-0.2 rounded">
+                                પ્રગતિશીલ સુરક્ષિત
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="text-right">
-                        <span
-                          className={`font-mono font-bold text-xs ${
-                            isFlagged ? 'text-rose-600' : 'text-emerald-700'
-                          }`}
-                        >
-                          {percentage.toFixed(1)}%
-                        </span>
-                        {isFlagged && (
-                          <div className="text-[10px] text-rose-500 font-bold">&lt;80%</div>
-                        )}
+                      <div className="text-right shrink-0">
+                        <div className="flex items-center gap-1 justify-end">
+                          <span
+                            className={`font-mono font-bold text-xs ${
+                              isProgressiveSafe
+                                ? 'text-sky-800'
+                                : requiresNotice
+                                ? 'text-rose-600'
+                                : 'text-emerald-700'
+                            }`}
+                            title={`Progressive: ${progressivePercentage.toFixed(1)}% | Monthly: ${percentage.toFixed(1)}%`}
+                          >
+                            {progressivePercentage.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          માસિક: {percentage.toFixed(1)}%
+                        </div>
                       </div>
                     </div>
                   );

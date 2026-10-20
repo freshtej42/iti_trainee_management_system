@@ -186,7 +186,10 @@ async function setupViteOrStatic() {
     try {
       const { createServer: createViteServer } = await import('vite');
       const vite = await createViteServer({
-        server: { middlewareMode: true },
+        server: {
+          middlewareMode: true,
+          allowedHosts: true as const,
+        },
         appType: 'spa',
       });
       app.use(vite.middlewares);

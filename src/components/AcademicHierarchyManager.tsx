@@ -50,7 +50,7 @@ const PRESET_TRADES = [
   'સ્ટેનોગ્રાફર (Stenographer Gujarati/English)',
 ];
 
-const PRESET_BATCHES = ['૨૦૨૫–૨૦૨૬', '૨૦૨૪–૨૦૨૬', '૨૦૨૫–૨૦૨૭', '૨૦૨૬–૨૦૨૭'];
+const PRESET_BATCHES = ['84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '94', '95'];
 const PRESET_UNITS = ['Unit A', 'Unit B', 'Unit C', 'યુનિટ ૧', 'યુનિટ ૨'];
 
 import {
@@ -79,6 +79,12 @@ export default function AcademicHierarchyManager({
   onAssignTraineesToUnit,
   onNavigateToTrainees,
 }: AcademicHierarchyManagerProps) {
+  const isGuest = Boolean(
+    instructor.role === 'guest' ||
+    instructor.is_guest ||
+    instructor.id === 'guest-demo-instructor'
+  );
+
   // Ensure hierarchy exists
   const rawHierarchy: AcademicTrade[] =
     instructor.academic_hierarchy && instructor.academic_hierarchy.length > 0
@@ -109,7 +115,7 @@ export default function AcademicHierarchyManager({
   const [isAddingTrade, setIsAddingTrade] = useState(false);
 
   // Add Batch Modal
-  const [newBatchName, setNewBatchName] = useState('૨૦૨૫–૨૦૨૬');
+  const [newBatchName, setNewBatchName] = useState('84');
   const [isAddingBatch, setIsAddingBatch] = useState(false);
 
   // Add Unit Modal
@@ -190,6 +196,7 @@ export default function AcademicHierarchyManager({
 
   // Add Trade
   const handleAddTrade = () => {
+    if (isGuest) return;
     if (!newTradeName.trim()) return;
     const newTrade: AcademicTrade = {
       id: `trade-${Date.now()}`,
@@ -197,7 +204,7 @@ export default function AcademicHierarchyManager({
       batches: [
         {
           id: `batch-${Date.now()}`,
-          name: '૨૦૨૫–૨૦૨૬',
+          name: '84',
           units: [{ id: `unit-${Date.now()}`, name: 'Unit A' }],
         },
       ],
@@ -212,6 +219,7 @@ export default function AcademicHierarchyManager({
 
   // Delete Trade
   const handleDeleteTrade = (tradeId: string) => {
+    if (isGuest) return;
     if (hierarchy.length <= 1) {
       alert('ઓછામાં ઓછો એક ટ્રેડ હોવો ફરજિયાત છે.');
       return;
@@ -235,6 +243,7 @@ export default function AcademicHierarchyManager({
 
   // Add Batch under active trade
   const handleAddBatch = (tradeId: string) => {
+    if (isGuest) return;
     if (!newBatchName.trim()) return;
     const updated = hierarchy.map((trade) => {
       if (trade.id !== tradeId) return trade;
@@ -255,6 +264,7 @@ export default function AcademicHierarchyManager({
 
   // Delete Batch
   const handleDeleteBatch = (tradeId: string, batchId: string) => {
+    if (isGuest) return;
     const trade = hierarchy.find((t) => t.id === tradeId);
     if (!trade || trade.batches.length <= 1) {
       alert('ઓછામાં ઓછી એક બેચ હોવી જરૂરી છે.');
@@ -286,6 +296,7 @@ export default function AcademicHierarchyManager({
 
   // Add Unit under active batch
   const handleAddUnit = (tradeId: string, batchId: string) => {
+    if (isGuest) return;
     if (!newUnitName.trim()) return;
     const updated = hierarchy.map((trade) => {
       if (trade.id !== tradeId) return trade;
@@ -311,6 +322,7 @@ export default function AcademicHierarchyManager({
 
   // Delete Unit
   const handleDeleteUnit = (tradeId: string, batchId: string, unitId: string) => {
+    if (isGuest) return;
     const trade = hierarchy.find((t) => t.id === tradeId);
     const batch = trade?.batches.find((b) => b.id === batchId);
     if (!batch || batch.units.length <= 1) {
@@ -352,6 +364,7 @@ export default function AcademicHierarchyManager({
 
   // Open Quick Assign Modal
   const openAssignModal = (unitName: string) => {
+    if (isGuest) return;
     if (!currentTrade || !currentBatch) return;
     setAssignModalUnit({
       tradeName: currentTrade.name,
@@ -417,6 +430,23 @@ export default function AcademicHierarchyManager({
 
   return (
     <div className="space-y-6">
+      {/* Guest Mode View-Only Banner */}
+      {isGuest && (
+        <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-950 text-xs flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="p-1 px-2 bg-amber-200 text-amber-900 rounded-md font-bold text-[11px] shrink-0">
+              👁️ View-Only
+            </span>
+            <span className="font-medium">
+              Guest Demo Mode: Academic hierarchy structure (Trades, Batches, Units) is protected and cannot be modified.
+            </span>
+          </div>
+          <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 shrink-0">
+            Structure Locked
+          </span>
+        </div>
+      )}
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-emerald-950 via-[#264e2b] to-slate-950 text-white p-6 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -432,8 +462,17 @@ export default function AcademicHierarchyManager({
         </div>
 
         <button
-          onClick={() => setIsAddingTrade(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#f2edc2] text-[#264e2b] hover:bg-white text-xs font-bold rounded-xl shadow-xs transition-colors self-start md:self-auto"
+          onClick={() => {
+            if (isGuest) return;
+            setIsAddingTrade(true);
+          }}
+          disabled={isGuest}
+          title={isGuest ? 'Disabled in Demo Mode' : undefined}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-colors self-start md:self-auto ${
+            isGuest
+              ? 'bg-slate-400 text-slate-200 cursor-not-allowed opacity-60'
+              : 'bg-[#f2edc2] text-[#264e2b] hover:bg-white'
+          }`}
         >
           <PlusCircle className="w-4 h-4" />
           <span>નવો ટ્રેડ ઉમેરો (Add Trade)</span>

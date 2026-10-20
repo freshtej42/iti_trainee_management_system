@@ -78,7 +78,7 @@ export default function VariableDropdown({ onInsertTag }: VariableDropdownProps)
           <div className="p-2.5 border-b border-slate-200 bg-slate-50 sticky top-0 z-10 space-y-1.5">
             <div className="flex items-center justify-between px-1">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Dynamic Merge Tags (ડેટા ટેગ)
+                Dynamic Merge Tags
               </span>
               <button
                 type="button"
@@ -93,7 +93,7 @@ export default function VariableDropdown({ onInsertTag }: VariableDropdownProps)
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="ટેગ શોધો... (Search e.g. roll, name, હાજરી)"
+                placeholder="Search tags... (e.g. roll, name, attendance)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -114,7 +114,7 @@ export default function VariableDropdown({ onInsertTag }: VariableDropdownProps)
           <div className="p-2.5 overflow-y-auto max-h-[360px] space-y-3">
             {filteredTags.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-400">
-                કોઈ મેળ ખાતા ટેગ મળ્યા નથી (No matching tags found)
+                No matching tags found
               </div>
             ) : (
               categories.map((cat) => {
@@ -148,7 +148,7 @@ export default function VariableDropdown({ onInsertTag }: VariableDropdownProps)
                             setIsOpen(false);
                           }}
                           className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-blue-50 hover:text-blue-900 transition-colors flex items-center justify-between group cursor-grab active:cursor-grabbing"
-                          title="ખેંચીને મૂકો (Drag & Drop) અથવા ક્લિક કરીને કર્સર આગળ ઉમેરો"
+                          title="Drag & Drop or click to insert at cursor"
                         >
                           <span className="font-medium text-slate-800 group-hover:text-blue-900">
                             {item.label}
@@ -167,7 +167,7 @@ export default function VariableDropdown({ onInsertTag }: VariableDropdownProps)
 
           {/* Bottom helper bar */}
           <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-500 flex items-center justify-between">
-            <span>ટેગ પર ક્લિક કરવાથી કર્સર આગળ ઉમેરાશે</span>
+            <span>Click any tag to insert at cursor position</span>
             <span className="font-mono text-slate-400 font-semibold">{filteredTags.length} Tags</span>
           </div>
         </div>

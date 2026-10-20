@@ -78,6 +78,7 @@ interface SuperAdminDashboardProps {
   onAddInstructor?: (instructor: Instructor) => void;
   onUpdateInstructor?: (instructor: Instructor) => void;
   onDeleteInstructor?: (id: string) => void;
+  onUpdateTrainee?: (trainee: Trainee) => void;
   onDeleteTrainee?: (id: string) => void;
   onBatchDeleteTrainees?: (ids: string[]) => void;
   onUpdateAdminSettings?: (settings: SuperAdminSettings) => void;
@@ -93,6 +94,7 @@ export default function SuperAdminDashboard({
   onAddInstructor,
   onUpdateInstructor,
   onDeleteInstructor,
+  onUpdateTrainee,
   onDeleteTrainee,
   onBatchDeleteTrainees,
   onUpdateAdminSettings,
@@ -103,6 +105,17 @@ export default function SuperAdminDashboard({
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [studentTradeFilter, setStudentTradeFilter] = useState('ALL');
   const [studentUnitFilter, setStudentUnitFilter] = useState('ALL');
+  const [studentInstructorFilter, setStudentInstructorFilter] = useState('ALL');
+
+  // Trainee Management Modals State (Super Admin Universal Edit & Reassignment)
+  const [editingTrainee, setEditingTrainee] = useState<Trainee | null>(null);
+  const [editTraineeForm, setEditTraineeForm] = useState<Partial<Trainee>>({});
+  const [reassigningTrainee, setReassigningTrainee] = useState<Trainee | null>(null);
+  const [reassignTargetInstructorId, setReassignTargetInstructorId] = useState('');
+  const [reassignTargetTrade, setReassignTargetTrade] = useState('');
+  const [reassignTargetBatch, setReassignTargetBatch] = useState('');
+  const [reassignTargetUnit, setReassignTargetUnit] = useState('');
+  const [traineeActionFeedback, setTraineeActionFeedback] = useState('');
 
   // Instructor Add/Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -252,6 +265,61 @@ export default function SuperAdminDashboard({
     traineeIds: string[];
     count: number;
   }>({ isOpen: false, traineeIds: [], count: 0 });
+
+  // Super Admin Trainee Management Handlers
+  const openEditTrainee = (t: Trainee) => {
+    setEditingTrainee(t);
+    setEditTraineeForm({ ...t });
+  };
+
+  const handleSaveEditTraineeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTrainee || !onUpdateTrainee) return;
+    const updated: Trainee = {
+      ...editingTrainee,
+      ...editTraineeForm,
+      updated_at: new Date().toISOString(),
+    } as Trainee;
+    onUpdateTrainee(updated);
+    setEditingTrainee(null);
+    setTraineeActionFeedback(`તાલીમાર્થી "${updated.student_name} ${updated.surname}" ની વિગતો સફળતાપૂર્વક અપડેટ કરવામાં આવી.`);
+    setTimeout(() => setTraineeActionFeedback(''), 4000);
+  };
+
+  const openReassignTrainee = (t: Trainee) => {
+    setReassigningTrainee(t);
+    setReassignTargetInstructorId(t.instructor_id || '');
+    setReassignTargetTrade(t.trade || '');
+    setReassignTargetBatch(t.batch || '૨૦૨૫–૨૦૨૬');
+    setReassignTargetUnit(t.unit || 'Unit A');
+  };
+
+  const handleSaveReassignSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reassigningTrainee || !onUpdateTrainee) return;
+    const targetInst = instructors.find((i) => i.id === reassignTargetInstructorId);
+    const updated: Trainee = {
+      ...reassigningTrainee,
+      instructor_id: reassignTargetInstructorId,
+      trade: reassignTargetTrade || targetInst?.trade || reassigningTrainee.trade,
+      batch: reassignTargetBatch || targetInst?.batch || reassigningTrainee.batch,
+      unit: reassignTargetUnit || targetInst?.unit || reassigningTrainee.unit,
+      updated_at: new Date().toISOString(),
+    };
+    onUpdateTrainee(updated);
+    setReassigningTrainee(null);
+    setTraineeActionFeedback(`તાલીમાર્થી "${updated.student_name} ${updated.surname}" ને સફળતાપૂર્વક નવા ઇન્સ્ટ્રક્ટર સાથે અસાઇન કરવામાં આવ્યો.`);
+    setTimeout(() => setTraineeActionFeedback(''), 4000);
+  };
+
+  const handleDeleteSingleTrainee = (t: Trainee) => {
+    if (!onDeleteTrainee) return;
+    if (window.confirm(`શું આપ ખરેખર તાલીમાર્થી "${t.student_name} ${t.surname}" (#${t.roll_no}) ને કાયમી ડિલીટ કરવા માંગો છો?`)) {
+      onDeleteTrainee(t.id);
+      setTraineeActionFeedback(`તાલીમાર્થી "${t.student_name} ${t.surname}" ને સફળતાપૂર્વક ડિલીટ કરવામાં આવ્યો.`);
+      setTimeout(() => setTraineeActionFeedback(''), 4000);
+    }
+  };
 
   // Helper to generate a NIST-compliant random strong password
   const generateRandomStrongPassword = () => {
@@ -1662,12 +1730,29 @@ export default function SuperAdminDashboard({
         </div>
       )}
 
-      {/* TAB 3: ALL TRAINEES ACROSS INSTITUTES & TRADES (Super Admin Universal Student Visibility) */}
+      {/* TAB 3: ALL TRAINEES ACROSS INSTITUTES & TRADES (Super Admin Universal Student Visibility & Management) */}
       {activeTab === 'all-students' && (
         <div className="space-y-4">
+          {/* Feedback banner */}
+          {traineeActionFeedback && (
+            <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{traineeActionFeedback}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTraineeActionFeedback('')}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Controls Bar: Search & Filters */}
           <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="relative w-full md:w-96">
+            <div className="relative w-full md:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input
                 type="text"
@@ -1679,6 +1764,24 @@ export default function SuperAdminDashboard({
             </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+              {/* Filter by Instructor */}
+              <span className="text-xs font-semibold text-slate-500">ઇન્સ્ટ્રક્ટર:</span>
+              <select
+                value={studentInstructorFilter}
+                onChange={(e) => setStudentInstructorFilter(e.target.value)}
+                className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 max-w-[200px]"
+              >
+                <option value="ALL">તમામ ઇન્સ્ટ્રક્ટર (All)</option>
+                {instructors
+                  .filter((i) => i.role !== 'super_admin' && !i.is_guest)
+                  .map((inst) => (
+                    <option key={inst.id} value={inst.id}>
+                      {inst.name} ({inst.trade || inst.iti_name})
+                    </option>
+                  ))}
+              </select>
+
+              {/* Filter by Trade */}
               <span className="text-xs font-semibold text-slate-500">ટ્રેડ:</span>
               <select
                 value={studentTradeFilter}
@@ -1707,7 +1810,9 @@ export default function SuperAdminDashboard({
                       (t.village && t.village.toLowerCase().includes(q));
                     const matchesTrade =
                       studentTradeFilter === 'ALL' || t.trade === studentTradeFilter;
-                    return matchesSearch && matchesTrade;
+                    const matchesInstructor =
+                      studentInstructorFilter === 'ALL' || t.instructor_id === studentInstructorFilter;
+                    return matchesSearch && matchesTrade && matchesInstructor;
                   }).length;
                 })()}{' '}
                 વિદ્યાર્થીઓ
@@ -1728,6 +1833,7 @@ export default function SuperAdminDashboard({
                     <th className="py-3 px-4">સંબંધિત ઇન્સ્ટ્રક્ટર / સંસ્થા</th>
                     <th className="py-3 px-4">મોબાઈલ</th>
                     <th className="py-3 px-4">સરનામું</th>
+                    <th className="py-3 px-4 text-right">ક્રિયાઓ (Admin Controls)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1744,13 +1850,15 @@ export default function SuperAdminDashboard({
                         (t.village && t.village.toLowerCase().includes(q));
                       const matchesTrade =
                         studentTradeFilter === 'ALL' || t.trade === studentTradeFilter;
-                      return matchesSearch && matchesTrade;
+                      const matchesInstructor =
+                        studentInstructorFilter === 'ALL' || t.instructor_id === studentInstructorFilter;
+                      return matchesSearch && matchesTrade && matchesInstructor;
                     });
 
                     if (filtered.length === 0) {
                       return (
                         <tr>
-                          <td colSpan={7} className="py-8 text-center text-slate-400">
+                          <td colSpan={8} className="py-8 text-center text-slate-400">
                             કોઈ તાલીમાર્થી મળ્યા નથી.
                           </td>
                         </tr>
@@ -1797,8 +1905,41 @@ export default function SuperAdminDashboard({
                           <td className="py-3 px-4 font-mono text-slate-700">
                             {t.mobile || t.parent_mobile || '—'}
                           </td>
-                          <td className="py-3 px-4 text-slate-600 max-w-[200px] truncate" title={t.address}>
+                          <td className="py-3 px-4 text-slate-600 max-w-[180px] truncate" title={t.address}>
                             {t.village ? `${t.village}, ${t.district}` : t.address}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* Edit Trainee */}
+                              <button
+                                type="button"
+                                onClick={() => openEditTrainee(t)}
+                                title="વિદ્યાર્થી વિગત સુધારો (Admin Edit)"
+                                className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold text-xs flex items-center gap-1 border border-blue-200 transition-colors shadow-2xs"
+                              >
+                                <Edit2 className="w-3 h-3 text-blue-600" />
+                                <span>એડિટ</span>
+                              </button>
+                              {/* Reassign Trainee */}
+                              <button
+                                type="button"
+                                onClick={() => openReassignTrainee(t)}
+                                title="ઇન્સ્ટ્રક્ટર અથવા યુનિટ બદલો (Reassign Trainee)"
+                                className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg font-bold text-xs flex items-center gap-1 border border-amber-300 transition-colors shadow-2xs"
+                              >
+                                <Layers className="w-3 h-3 text-amber-700" />
+                                <span>રી-અસાઇન</span>
+                              </button>
+                              {/* Delete Trainee */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSingleTrainee(t)}
+                                title="કાયમી ડિલીટ કરો"
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg border border-rose-200 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -3316,6 +3457,352 @@ export default function SuperAdminDashboard({
             >
               પૂર્ણ થયું (Done)
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* SUPER ADMIN: EDIT TRAINEE MODAL */}
+      {editingTrainee && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 sm:p-6 border border-slate-200 animate-in fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                  <Edit2 className="w-5 h-5 text-blue-600" />
+                  <span>તાલીમાર્થી વિગતો સુધારો (Admin Edit Student)</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  #{editingTrainee.roll_no} • {editingTrainee.enrollment_no}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingTrainee(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditTraineeSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">અટક (ગુજરાતી) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.surname || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, surname: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">વિદ્યાર્થીનું નામ (ગુજરાતી) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.student_name || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, student_name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">પિતાનું નામ (ગુજરાતી) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.father_name || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, father_name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">દાદાનું નામ (ગુજરાતી)</label>
+                  <input
+                    type="text"
+                    value={editTraineeForm.grandfather_name || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, grandfather_name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Surname (English) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.surname_en || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, surname_en: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Student Name (English) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.student_name_en || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, student_name_en: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Father Name (English)</label>
+                  <input
+                    type="text"
+                    value={editTraineeForm.father_name_en || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, father_name_en: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">રોલ નંબર *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.roll_no || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, roll_no: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">નોંધણી ક્રમાંક (Enrollment) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.enrollment_no || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, enrollment_no: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">ટ્રેડ *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.trade || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, trade: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">બેચ *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.batch || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, batch: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">યુનિટ *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTraineeForm.unit || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, unit: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">તાલીમાર્થી મોબાઈલ નંબર</label>
+                  <input
+                    type="tel"
+                    value={editTraineeForm.mobile || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, mobile: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">વાલીનો મોબાઈલ નંબર</label>
+                  <input
+                    type="tel"
+                    value={editTraineeForm.parent_mobile || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, parent_mobile: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">સરનામું</label>
+                <input
+                  type="text"
+                  value={editTraineeForm.address || ''}
+                  onChange={(e) => setEditTraineeForm({ ...editTraineeForm, address: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">ગામ / શહેર</label>
+                  <input
+                    type="text"
+                    value={editTraineeForm.village || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, village: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">તાલુકો</label>
+                  <input
+                    type="text"
+                    value={editTraineeForm.taluka || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, taluka: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">જિલ્લો</label>
+                  <input
+                    type="text"
+                    value={editTraineeForm.district || ''}
+                    onChange={(e) => setEditTraineeForm({ ...editTraineeForm, district: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingTrainee(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                >
+                  રદ કરો
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#346739] hover:bg-[#28522c] text-white font-bold rounded-xl shadow-xs"
+                >
+                  સુધારો સાચવો (Save Changes)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SUPER ADMIN: REASSIGN TRAINEE MODAL */}
+      {reassigningTrainee && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 border border-slate-200 animate-in fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-amber-700" />
+                  <span>ઇન્સ્ટ્રક્ટર / યુનિટ પુનઃ ફાળવણી (Reassign)</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {reassigningTrainee.student_name} {reassigningTrainee.surname} (#{reassigningTrainee.roll_no})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReassigningTrainee(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveReassignSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  નવા ઇન્સ્ટ્રક્ટર પસંદ કરો (Target Instructor) *
+                </label>
+                <select
+                  required
+                  value={reassignTargetInstructorId}
+                  onChange={(e) => {
+                    const instId = e.target.value;
+                    setReassignTargetInstructorId(instId);
+                    const target = instructors.find((i) => i.id === instId);
+                    if (target) {
+                      setReassignTargetTrade(target.trade || reassigningTrainee.trade);
+                      setReassignTargetBatch(target.batch || reassigningTrainee.batch);
+                      setReassignTargetUnit(target.unit || 'Unit A');
+                    }
+                  }}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800"
+                >
+                  <option value="">ઇન્સ્ટ્રક્ટર પસંદ કરો...</option>
+                  {instructors
+                    .filter((i) => i.role !== 'super_admin' && !i.is_guest)
+                    .map((inst) => (
+                      <option key={inst.id} value={inst.id}>
+                        {inst.name} ({inst.trade} - {inst.iti_name})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">ટ્રેડ *</label>
+                <input
+                  type="text"
+                  required
+                  value={reassignTargetTrade}
+                  onChange={(e) => setReassignTargetTrade(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">બેચ *</label>
+                  <input
+                    type="text"
+                    required
+                    value={reassignTargetBatch}
+                    onChange={(e) => setReassignTargetBatch(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">યુનિટ *</label>
+                  <input
+                    type="text"
+                    required
+                    value={reassignTargetUnit}
+                    onChange={(e) => setReassignTargetUnit(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReassigningTrainee(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                >
+                  રદ કરો
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-xs"
+                >
+                  પુનઃ ફાળવણી કન્ફર્મ કરો (Confirm Reassign)
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

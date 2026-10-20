@@ -15,6 +15,13 @@ import {
   INITIAL_DISPATCH_LOGS,
 } from './data/initialData';
 import {
+  DEMO_GUEST_INSTRUCTOR,
+  DEMO_SAMPLE_TRAINEES,
+  DEMO_SAMPLE_ATTENDANCE,
+  DEMO_SAMPLE_TEMPLATES,
+  DEMO_SAMPLE_DISPATCH_LOGS,
+} from './data/demoData';
+import {
   seedFirestoreIfEmpty,
   fetchInstructors,
   fetchTrainees,
@@ -36,6 +43,7 @@ import {
   fetchAdminSettings,
   saveAdminSettingsToCloud,
   deleteBatchTraineesFromCloud,
+  saveBatchAttendanceToCloud,
   DEFAULT_ADMIN_SETTINGS,
   deduplicateInstructors,
 } from './services/dataService';
@@ -75,17 +83,13 @@ export default function App() {
   const [dispatchLogs, setDispatchLogs] = useState<DispatchLog[]>(INITIAL_DISPATCH_LOGS);
   const [adminSettings, setAdminSettings] = useState<SuperAdminSettings>(DEFAULT_ADMIN_SETTINGS);
 
-  // Load from Firestore on mount
+  // Load instructors and global settings from Firestore on mount
   const syncFromCloud = useCallback(async () => {
     try {
       await seedFirestoreIfEmpty();
 
-      const [insts, trns, atts, tmpls, logs, settings] = await Promise.all([
+      const [insts, settings] = await Promise.all([
         fetchInstructors(),
-        fetchTrainees(),
-        fetchAttendance(),
-        fetchTemplates(),
-        fetchDispatchLogs(),
         fetchAdminSettings(),
       ]);
 
@@ -109,10 +113,6 @@ export default function App() {
         }
         setInstructors(deduplicateInstructors(listToSet));
       }
-      if (trns && trns.length > 0) setTrainees(trns);
-      if (atts && atts.length > 0) setAttendanceRecords(atts);
-      if (tmpls && tmpls.length > 0) setTemplates(tmpls);
-      if (logs && logs.length > 0) setDispatchLogs(logs);
     } catch (err) {
       console.warn('Firestore initial sync encountered error, running with cached data:', err);
     }
@@ -120,15 +120,6 @@ export default function App() {
 
   useEffect(() => {
     syncFromCloud();
-
-    // Listen for real-time dispatch updates
-    const unsubscribe = subscribeToDispatchLogs((cloudLogs) => {
-      if (cloudLogs && cloudLogs.length > 0) {
-        setDispatchLogs(cloudLogs);
-      }
-    });
-
-    return () => unsubscribe();
   }, [syncFromCloud]);
 
   // UI Navigation & View State
@@ -147,12 +138,19 @@ export default function App() {
   const [isBatchUnitModalOpen, setIsBatchUnitModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
+  const [demoInstructor, setDemoInstructor] = useState<Instructor>(() => ({
+    ...DEMO_GUEST_INSTRUCTOR,
+  }));
+
   // Current active instructor
   const currentInstructor = useMemo(() => {
+    if (currentInstructorId === 'guest-demo-instructor') {
+      return demoInstructor;
+    }
     return (
       instructors.find((i) => i.id === currentInstructorId) || instructors[0]
     );
-  }, [instructors, currentInstructorId]);
+  }, [instructors, currentInstructorId, demoInstructor]);
 
   const isSuperAdmin = currentInstructor.role === 'super_admin';
   const isGuest = Boolean(
@@ -161,14 +159,49 @@ export default function App() {
     currentInstructor.id === 'guest-demo-instructor'
   );
 
-  const [guestActionBlockedNotice, setGuestActionBlockedNotice] = useState<string | null>(null);
+  // Active tenant and demo account isolation loader
+  useEffect(() => {
+    if (!currentInstructorId && !isAuthenticated) {
+      return;
+    }
 
-  const notifyGuestBlocked = (actionMsg?: string) => {
-    setGuestActionBlockedNotice(
-      actionMsg ||
-        'આ ડેમો એકાઉન્ટ (Guest Mode) છે. પોર્ટલની સુવિધાઓ ચકાસવા માટે ડેમો ડેટા સુરક્ષિત રાખવામાં આવ્યો છે. ગેસ્ટ યુઝર ડેટાબેઝમાં રેકોર્ડ ઉમેરી, સુધારી કે ડિલીટ કરી શકતા નથી.'
-    );
-  };
+    if (isGuest) {
+      // Demo Account is strictly loaded with isolated static demo data
+      setTrainees([...DEMO_SAMPLE_TRAINEES]);
+      setAttendanceRecords([...DEMO_SAMPLE_ATTENDANCE]);
+      setTemplates([...DEMO_SAMPLE_TEMPLATES]);
+      setDispatchLogs([...DEMO_SAMPLE_DISPATCH_LOGS]);
+    } else if (isSuperAdmin) {
+      // Super Admin loads all production records across all instructors
+      fetchTrainees().then((t) => t && setTrainees(t));
+      fetchAttendance().then((a) => a && setAttendanceRecords(a));
+      fetchTemplates().then((tm) => tm && setTemplates(tm));
+      fetchDispatchLogs().then((l) => l && setDispatchLogs(l));
+    } else {
+      // Regular instructor strictly queries records scoped to their ID
+      fetchTrainees(currentInstructorId).then((t) => t && setTrainees(t));
+      fetchAttendance(currentInstructorId).then((a) => a && setAttendanceRecords(a));
+      fetchTemplates(currentInstructorId).then((tm) => tm && setTemplates(tm));
+      fetchDispatchLogs(currentInstructorId).then((l) => l && setDispatchLogs(l));
+    }
+  }, [currentInstructorId, isAuthenticated, isGuest, isSuperAdmin]);
+
+  // Real-time dispatch logs listener scoped by tenancy
+  useEffect(() => {
+    if (!isAuthenticated || isGuest) return;
+
+    const unsubscribe = subscribeToDispatchLogs((cloudLogs) => {
+      if (cloudLogs && cloudLogs.length > 0) {
+        if (isSuperAdmin) {
+          setDispatchLogs(cloudLogs.filter((d) => !d.id.startsWith('disp-demo-')));
+        } else if (currentInstructorId) {
+          setDispatchLogs(cloudLogs.filter((d) => d.instructor_id === currentInstructorId));
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [isAuthenticated, isGuest, isSuperAdmin, currentInstructorId]);
 
   // Strict role isolation: Super Admin is locked to 'admin' console; Instructors never access 'admin'
   useEffect(() => {
@@ -199,6 +232,16 @@ export default function App() {
     return trainees.filter((t) => isStudentAssignedToInstructor(t, currentInstructor));
   }, [trainees, currentInstructor, isSuperAdmin]);
 
+  // Ensure selectedTraineeId remains valid within current tenant's trainees
+  useEffect(() => {
+    if (instructorTrainees.length > 0) {
+      const exists = instructorTrainees.some((t) => t.id === selectedTraineeId);
+      if (!exists) {
+        setSelectedTraineeId(instructorTrainees[0].id);
+      }
+    }
+  }, [instructorTrainees, selectedTraineeId]);
+
   const [traineeFilterPreset, setTraineeFilterPreset] = useState<{
     trade?: string;
     batch?: string;
@@ -215,6 +258,9 @@ export default function App() {
 
   // --- Auth Handlers ---
   const handleInstructorLogin = (inst: Instructor) => {
+    if (inst.id === 'guest-demo-instructor' || inst.role === 'guest' || inst.is_guest) {
+      setDemoInstructor({ ...DEMO_GUEST_INSTRUCTOR });
+    }
     setCurrentInstructorId(inst.id);
     setIsAuthenticated(true);
     localStorage.setItem('iti_auth_authenticated', 'true');
@@ -254,11 +300,14 @@ export default function App() {
     localStorage.setItem('iti_auth_authenticated', 'false');
     localStorage.removeItem('iti_auth_instructor_id');
     setCurrentInstructorId('');
+    setTrainees([]);
+    setAttendanceRecords([]);
+    setDispatchLogs([]);
   };
 
   const handleUpdateInstructor = async (updated: Instructor) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં પ્રોફાઇલ વિગતો સાચવી શકાતી નથી (Profile changes cannot be saved in Demo Mode).');
+    if (isGuest || updated.id === 'guest-demo-instructor') {
+      setDemoInstructor((prev) => ({ ...prev, ...updated, id: 'guest-demo-instructor' }));
       return;
     }
     setInstructors((prev) => {
@@ -281,13 +330,9 @@ export default function App() {
 
   // 1. Trainee Handlers
   const handleAddTrainee = async (newTrainee: Omit<Trainee, 'id' | 'created_at'>) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં નવા તાલીમાર્થી ઉમેરી શકાતા નથી (Adding trainees is disabled in Demo Mode).');
-      return;
-    }
     const created: Trainee = {
       ...newTrainee,
-      id: `trainee-${Date.now()}`,
+      id: isGuest ? `demo-tr-${Date.now()}` : `trainee-${Date.now()}`,
       instructor_id: currentInstructorId || newTrainee.instructor_id,
       trade: newTrainee.trade || currentInstructor.trade,
       batch: newTrainee.batch || currentInstructor.batch,
@@ -295,43 +340,53 @@ export default function App() {
       created_at: new Date().toISOString(),
     };
     setTrainees((prev) => [created, ...prev]);
-    await saveTraineeToCloud(created);
+    if (!isGuest) {
+      await saveTraineeToCloud(created);
+    }
   };
 
   const handleUpdateTrainee = async (updated: Trainee) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં તાલીમાર્થીની વિગતો બદલી શકાતી નથી (Updating trainees is disabled in Demo Mode).');
+    if (!isSuperAdmin && !isGuest && updated.instructor_id !== currentInstructorId) {
+      console.warn('Unauthorized update attempt on trainee owned by another instructor');
       return;
     }
     setTrainees((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-    await saveTraineeToCloud(updated);
+    if (!isGuest) {
+      await saveTraineeToCloud(updated);
+    }
   };
 
   const handleDeleteTrainee = async (id: string) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં તાલીમાર્થી ડિલીટ કરી શકાતા નથી (Deleting trainees is disabled in Demo Mode).');
+    const target = trainees.find((t) => t.id === id);
+    if (!isSuperAdmin && !isGuest && target && target.instructor_id !== currentInstructorId) {
+      console.warn('Unauthorized delete attempt on trainee owned by another instructor');
       return;
     }
     setTrainees((prev) => prev.filter((t) => t.id !== id));
-    await deleteTraineeFromCloud(id);
+    if (!isGuest) {
+      await deleteTraineeFromCloud(id);
+    }
   };
 
   const handleBatchDeleteTrainees = async (ids: string[]) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં રેકોર્ડ્સ ડિલીટ કરી શકાતા નથી (Deleting trainees is disabled in Demo Mode).');
-      return;
+    const idsToDelete = isSuperAdmin || isGuest
+      ? ids
+      : ids.filter((id) => {
+          const t = trainees.find((item) => item.id === id);
+          return t && t.instructor_id === currentInstructorId;
+        });
+
+    setTrainees((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
+    if (!isGuest) {
+      await deleteBatchTraineesFromCloud(idsToDelete);
     }
-    setTrainees((prev) => prev.filter((t) => !ids.includes(t.id)));
-    await deleteBatchTraineesFromCloud(ids);
   };
 
   const handleUpdateAdminSettings = async (settings: SuperAdminSettings) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં એડમિન સેટિંગ્સ બદલી શકાતા નથી.');
-      return;
-    }
     setAdminSettings(settings);
-    await saveAdminSettingsToCloud(settings);
+    if (!isGuest) {
+      await saveAdminSettingsToCloud(settings);
+    }
   };
 
   const handleAssignTraineesToUnit = async (
@@ -340,26 +395,33 @@ export default function App() {
     batch: string,
     unit: string
   ) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં યુનિટ ફાળવણી બદલી શકાતી નથી.');
-      return;
-    }
+    const allowedTraineeIds = isSuperAdmin || isGuest
+      ? traineeIds
+      : traineeIds.filter((tid) => {
+          const t = trainees.find((item) => item.id === tid);
+          return t && t.instructor_id === currentInstructorId;
+        });
+
+    if (allowedTraineeIds.length === 0) return;
+
     const updated = trainees.map((t) => {
-      if (traineeIds.includes(t.id)) {
+      if (allowedTraineeIds.includes(t.id)) {
         return {
           ...t,
           trade,
           batch,
           unit,
-          instructor_id: currentInstructorId || t.instructor_id,
+          instructor_id: isSuperAdmin ? t.instructor_id : currentInstructorId,
         };
       }
       return t;
     });
     setTrainees(updated);
-    for (const tid of traineeIds) {
-      const t = updated.find((item) => item.id === tid);
-      if (t) await saveTraineeToCloud(t);
+    if (!isGuest) {
+      for (const tid of allowedTraineeIds) {
+        const t = updated.find((item) => item.id === tid);
+        if (t) await saveTraineeToCloud(t);
+      }
     }
   };
 
@@ -367,13 +429,9 @@ export default function App() {
     newTrainees: Trainee[],
     newAttendance: AttendanceRecord[]
   ) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં એક્સેલ ફાઈલ ઈમ્પોર્ટ અક્ષમ છે (Excel Import is disabled in Demo Mode).');
-      return;
-    }
-    // Automatically tag imported students to current instructor profile and active trade/batch/unit if missing
-    const taggedTrainees = newTrainees.map((t) => ({
+    const taggedTrainees = newTrainees.map((t, idx) => ({
       ...t,
+      id: isGuest && !t.id.startsWith('demo-') ? `demo-tr-imp-${Date.now()}-${idx}` : t.id,
       instructor_id: currentInstructorId || t.instructor_id,
       trade: t.trade || currentInstructor.trade,
       batch: t.batch || currentInstructor.batch,
@@ -387,24 +445,25 @@ export default function App() {
         instructor_id: currentInstructorId || a.instructor_id,
       }));
       setAttendanceRecords((prev) => [...taggedAttendance, ...prev]);
-      await saveBatchTraineesToCloud(taggedTrainees, taggedAttendance);
-    } else {
+      if (!isGuest) {
+        await saveBatchTraineesToCloud(taggedTrainees, taggedAttendance);
+      }
+    } else if (!isGuest) {
       await saveBatchTraineesToCloud(taggedTrainees, []);
     }
   };
 
   // 2. Attendance Handlers
   const handleUpdateAttendance = (records: AttendanceRecord[]) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં હાજરી રેકોર્ડ ડેટાબેઝમાં સાચવી શકાતો નથી (Saving attendance is disabled in Demo Mode).');
-      return;
-    }
     setAttendanceRecords((prev) => {
       const recordMap = new Map<string, AttendanceRecord>();
-      prev.forEach((r) => recordMap.set(r.id, r));
-      records.forEach((r) => recordMap.set(r.id, r));
+      prev.forEach((r) => recordMap.set(`${r.trainee_id}_${(r.month_year || '').trim().toLowerCase()}`, r));
+      records.forEach((r) => recordMap.set(`${r.trainee_id}_${(r.month_year || '').trim().toLowerCase()}`, r));
       return Array.from(recordMap.values());
     });
+    if (!isGuest) {
+      saveBatchAttendanceToCloud(records, currentInstructorId).catch(console.warn);
+    }
   };
 
   const handleDraftNotice = (trainee: Trainee, record: AttendanceRecord) => {
@@ -418,76 +477,62 @@ export default function App() {
 
   // 3. Dispatch Handlers
   const handleLogDispatch = async (newLog: Omit<DispatchLog, 'id' | 'created_at'>) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં જાવક રજિસ્ટરમાં નવી નોંધ ઉમેરી શકાતી નથી (Adding dispatch logs is disabled in Demo Mode).');
-      return;
-    }
     const created: DispatchLog = {
       ...newLog,
-      id: `disp-${Date.now()}`,
+      id: isGuest ? `disp-demo-${Date.now()}` : `disp-${Date.now()}`,
       created_at: new Date().toISOString(),
     };
     setDispatchLogs((prev) => [created, ...prev]);
-    // Persist to Cloud Firestore
-    await saveDispatchLogToCloud(created);
+    if (!isGuest) {
+      await saveDispatchLogToCloud(created);
+    }
   };
 
   const handleBatchLogDispatch = async (logs: Omit<DispatchLog, 'id' | 'created_at'>[]) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં જાવક રજિસ્ટરમાં બેચ નોંધ ઉમેરી શકાતી નથી (Batch dispatch logs disabled in Demo Mode).');
-      return;
-    }
     const createdLogs: DispatchLog[] = logs.map((l, idx) => ({
       ...l,
-      id: `disp-batch-${Date.now()}-${idx}`,
+      id: isGuest ? `disp-demo-batch-${Date.now()}-${idx}` : `disp-batch-${Date.now()}-${idx}`,
       created_at: new Date().toISOString(),
     }));
     setDispatchLogs((prev) => [...createdLogs, ...prev]);
-    // Persist batch to Cloud Firestore
-    await saveBatchDispatchLogsToCloud(createdLogs);
+    if (!isGuest) {
+      await saveBatchDispatchLogsToCloud(createdLogs);
+    }
   };
 
   const handleUpdateDispatchStatus = async (logId: string, newStatus: DispatchLog['status']) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં રવાનગી સ્ટેટસ બદલી શકાતું નથી (Updating dispatch status is disabled in Demo Mode).');
-      return;
-    }
     setDispatchLogs((prev) =>
       prev.map((l) => (l.id === logId ? { ...l, status: newStatus } : l))
     );
-    const existing = dispatchLogs.find((l) => l.id === logId);
-    if (existing) {
-      await saveDispatchLogToCloud({ ...existing, status: newStatus });
+    if (!isGuest) {
+      const existing = dispatchLogs.find((l) => l.id === logId);
+      if (existing) {
+        await saveDispatchLogToCloud({ ...existing, status: newStatus });
+      }
     }
   };
 
   const handleUpdateDispatchLog = async (updatedLog: DispatchLog) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં જાવક નોંધ સુધારી શકાતી નથી (Editing dispatch logs is disabled in Demo Mode).');
-      return;
-    }
     setDispatchLogs((prev) =>
       prev.map((l) => (l.id === updatedLog.id ? updatedLog : l))
     );
-    await saveDispatchLogToCloud(updatedLog);
+    if (!isGuest) {
+      await saveDispatchLogToCloud(updatedLog);
+    }
   };
 
   const handleDeleteDispatchLog = async (logId: string) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં જાવક નોંધ ડિલીટ કરી શકાતી નથી (Deleting dispatch logs is disabled in Demo Mode).');
-      return;
-    }
     setDispatchLogs((prev) => prev.filter((l) => l.id !== logId));
-    await deleteDispatchLogFromCloud(logId);
+    if (!isGuest) {
+      await deleteDispatchLogFromCloud(logId);
+    }
   };
 
   const handleBatchDeleteDispatchLogs = async (logIds: string[]) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં જાવક નોંધ ડિલીટ કરી શકાતી નથી (Deleting dispatch logs is disabled in Demo Mode).');
-      return;
-    }
     setDispatchLogs((prev) => prev.filter((l) => !logIds.includes(l.id)));
-    await deleteBatchDispatchLogsFromCloud(logIds);
+    if (!isGuest) {
+      await deleteBatchDispatchLogsFromCloud(logIds);
+    }
   };
 
   const handleCreateDispatchLog = async (newLog: Omit<DispatchLog, 'id' | 'created_at'>) => {
@@ -496,10 +541,6 @@ export default function App() {
 
   // 4. Template Handlers
   const handleSaveTemplate = async (updated: LetterTemplate) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં ટેમ્પલેટ સેવ કરી શકાતી નથી (Saving templates is disabled in Demo Mode).');
-      return;
-    }
     setTemplates((prev) => {
       const exists = prev.some((t) => t.id === updated.id);
       if (exists) {
@@ -507,23 +548,19 @@ export default function App() {
       }
       return [updated, ...prev];
     });
-    await saveTemplateToCloud(updated);
+    if (!isGuest) {
+      await saveTemplateToCloud(updated);
+    }
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં ટેમ્પલેટ ડિલીટ કરી શકાતી નથી (Deleting templates is disabled in Demo Mode).');
-      return;
-    }
     setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-    await deleteTemplateFromCloud(templateId);
+    if (!isGuest) {
+      await deleteTemplateFromCloud(templateId);
+    }
   };
 
   const handleUpdateInstructorHeader = async (headerConfig: HeaderConfig) => {
-    if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં લેટરહેડ સેટિંગ્સ સાચવી શકાતા નથી (Updating letterhead is disabled in Demo Mode).');
-      return;
-    }
     const updated: Instructor = {
       ...currentInstructor,
       header_config: headerConfig,
@@ -785,34 +822,7 @@ export default function App() {
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
       />
 
-      {/* Read-Only Guest Mode Banner */}
-      {isGuest && (
-        <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-[#1b381e] text-white px-3 sm:px-6 py-2.5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs border-b border-amber-400/40">
-          <div className="flex items-center gap-2.5">
-            <span className="px-2.5 py-0.5 rounded-md bg-white/20 font-black text-[11px] tracking-wide flex items-center gap-1.5 uppercase shadow-2xs">
-              <Eye className="w-3.5 h-3.5 text-amber-200" /> ગેસ્ટ ડેમો મોડ (View-Only)
-            </span>
-            <span className="text-[11px] sm:text-xs text-amber-50">
-              આપ અતિથિ તરીકે પોર્ટલની સુવિધાઓ નિહાળી રહ્યા છો. ડેટા સુરક્ષા માટે રેકોર્ડ્સ એડિટ, ડિલીટ કે અપડેટ અક્ષમ છે.
-            </span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-            <button
-              onClick={handleInstructorLogout}
-              className="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-xs font-black shadow-xs transition-transform active:scale-95 flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3 text-slate-900" />
-              <span>ખાતું રજીસ્ટર કરો (Register)</span>
-            </button>
-            <button
-              onClick={handleInstructorLogout}
-              className="px-2.5 py-1 bg-black/30 hover:bg-black/40 text-white rounded-lg text-xs font-semibold"
-            >
-              બહાર નીકળો (Logout)
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Main Content Area */}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 py-3 sm:py-6 pb-24 md:pb-6 overflow-x-hidden">
@@ -827,6 +837,7 @@ export default function App() {
             onAddInstructor={handleAddInstructor}
             onUpdateInstructor={handleUpdateInstructor}
             onDeleteInstructor={handleDeleteInstructor}
+            onUpdateTrainee={handleUpdateTrainee}
             onDeleteTrainee={handleDeleteTrainee}
             onBatchDeleteTrainees={handleBatchDeleteTrainees}
             onUpdateAdminSettings={handleUpdateAdminSettings}
@@ -961,50 +972,6 @@ export default function App() {
           dispatchLogs={dispatchLogs}
           onBatchLogDispatch={handleBatchLogDispatch}
         />
-      )}
-
-      {/* Guest Mode Action Blocked Modal Dialog */}
-      {guestActionBlockedNotice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-amber-200 relative animate-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-3 shadow-inner">
-              <ShieldAlert className="w-6 h-6 text-amber-600" />
-            </div>
-            <h3 className="text-base font-black text-slate-900 text-center">
-              ડેમો મોડ પ્રતિબંધિત (View-Only Demo Restriction)
-            </h3>
-            <p className="text-xs text-slate-600 text-center mt-2 leading-relaxed">
-              {guestActionBlockedNotice}
-            </p>
-            <div className="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 space-y-1">
-              <div className="font-bold flex items-center gap-1 text-amber-950">
-                <span>✨ ડેમો મોડમાં ઉપલબ્ધ સુવિધાઓ:</span>
-              </div>
-              <div>• તાલીમાર્થીઓની વિગતો અને બેચ/યુનિટ ફિલ્ટર ચકાસવા</div>
-              <div>• માસિક હાજરી ટ્રેકર અને ઓછી હાજરી (&lt;૮૦%) ચેતવણીઓ</div>
-              <div>• નોટિસ/અહેવાલ જનરેટર અને A4 પ્રિન્ટ / PDF ડાઉનલોડ પ્રિવ્યૂ</div>
-              <div>• જાવક રજિસ્ટર (આઉટવર્ડ બુક) અને રવાનગી વિગતો</div>
-            </div>
-            <div className="mt-5 flex items-center justify-center gap-2">
-              <button
-                onClick={() => setGuestActionBlockedNotice(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors"
-              >
-                સમજાઈ ગયું (Close)
-              </button>
-              <button
-                onClick={() => {
-                  setGuestActionBlockedNotice(null);
-                  handleInstructorLogout();
-                }}
-                className="px-4 py-2 bg-[#346739] hover:bg-[#2b552f] text-[#f2edc2] font-bold rounded-xl text-xs shadow-xs transition-colors flex items-center gap-1"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>નવું ખાતું બનાવો (Register)</span>
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

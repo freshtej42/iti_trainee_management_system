@@ -7,17 +7,13 @@ import {
   FileText,
   Sparkles,
   RotateCcw,
-  Save,
   Check,
   ChevronDown,
-  Info,
-  Maximize2,
-  Trash2,
-  HelpCircle,
+  Edit3,
+  Eye,
   FileSpreadsheet,
   Upload,
-  Eye,
-  Edit3,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Instructor, LetterTemplate, HeaderConfig } from '../types';
 import {
@@ -30,11 +26,11 @@ export interface LetterheadEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   instructor: Instructor;
-  currentTemplate?: LetterTemplate | null;
   initialHtml?: string;
+  currentTemplate?: LetterTemplate | null;
   isTemplateSpecific?: boolean;
   onSaveLetterhead?: (html: string, isTemplateSpecific: boolean) => void;
-  onSaveHeaderConfig?: (newConfig: HeaderConfig) => void;
+  onSaveHeaderConfig?: (headerConfig: HeaderConfig) => void;
   onSaveAsGlobalDefault?: (html: string) => void;
 }
 
@@ -42,8 +38,8 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
   isOpen,
   onClose,
   instructor,
-  currentTemplate,
   initialHtml,
+  currentTemplate,
   isTemplateSpecific: initialIsTemplateSpecific = false,
   onSaveLetterhead,
   onSaveHeaderConfig,
@@ -52,8 +48,6 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
   const editorRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Compute effective initial HTML:
-  // If the user hasn't created a letterhead yet, start with a blank canvas for complete freedom
   const defaultHtml =
     initialHtml ||
     currentTemplate?.letterhead_html ||
@@ -69,7 +63,6 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
   const [activeViewTab, setActiveViewTab] = useState<'editor' | 'preview'>('editor');
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Sync state whenever modal is opened
   useEffect(() => {
     if (isOpen) {
       const incomingHtml =
@@ -89,16 +82,15 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Insert standard starter preset if user desires
   const handleApplyPreset = (preset: LetterheadPreset) => {
     const headerConfig = instructor.header_config;
-    const itiNameGu = headerConfig?.institute_name_gu || instructor.iti_name || 'ઔદ્યોગિક તાલીમ સંસ્થા';
-    const itiNameEn = headerConfig?.institute_name_en || 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE';
+    const itiNameGu = headerConfig?.institute_name_gu || instructor.iti_name_gu || instructor.iti_name || 'ઔદ્યોગિક તાલીમ સંસ્થા';
+    const itiNameEn = headerConfig?.institute_name_en || instructor.iti_name || 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE';
     const deptGu = headerConfig?.department_subtitle || 'શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર';
     const address = headerConfig?.address || instructor.institution_address || 'ગુજરાત રાજ્ય';
     const phone = headerConfig?.contact_info || instructor.phone || '';
     const email = instructor.email || '';
-    const refPrefix = headerConfig?.ref_prefix || instructor.outward_code_prefix || 'ઔતાસં/૨૦૨૫-૨૬';
+    const refPrefix = headerConfig?.ref_prefix || instructor.outward_code_prefix || 'Ref/2025-26';
     const logoUrl = headerConfig?.show_logo !== false ? (headerConfig?.logo_url || instructor.letterhead_header_url) : undefined;
     const rightLogoUrl = headerConfig?.show_right_logo ? headerConfig?.right_logo_url : undefined;
 
@@ -119,24 +111,23 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
       editorRef.current.setContent(html);
     }
     setShowPresetsMenu(false);
-    setFeedback(`✓ "${preset.name}" લેઆઉટ TinyMCE માં દાખલ કરાયું.`);
+    setFeedback(`✓ "${preset.name}" preset applied to letterhead.`);
     setTimeout(() => setFeedback(null), 3000);
   };
 
-  // Start with completely blank canvas
   const handleStartBlank = () => {
     setContent('');
     if (editorRef.current) {
       editorRef.current.setContent('');
     }
-    setFeedback('✓ નવો કોરો TinyMCE કેન્વાસ તૈયાર છે. તમે સીધું લખાણ, લોગો કે કોષ્ટક બનાવી શકો છો.');
+    setFeedback('✓ Blank canvas ready. You can type freely, add tables, or upload logos.');
     setTimeout(() => setFeedback(null), 3500);
   };
 
-  // Upload image/logo directly and insert into TinyMCE at caret position
+  // Upload image/logo directly from user's device and insert into TinyMCE at caret position
   const handleImageUpload = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('કૃપા કરીને માત્ર ફોટો ફાઇલ (JPG, PNG, WebP, SVG) પસંદ કરો.');
+      alert('Please select a valid image file (JPG, PNG, WebP, SVG, GIF).');
       return;
     }
     const reader = new FileReader();
@@ -144,34 +135,33 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
       const dataUrl = e.target?.result as string;
       if (editorRef.current) {
         editorRef.current.insertContent(
-          `<img src="${dataUrl}" alt="Logo" style="max-height: 65px; max-width: 140px; object-fit: contain; vertical-align: middle; margin: 4px;" />`
+          `<img src="${dataUrl}" alt="${file.name}" style="max-height: 70px; max-width: 160px; object-fit: contain; vertical-align: middle; margin: 4px;" />`
         );
       } else {
-        setContent((prev) => `${prev}<p><img src="${dataUrl}" alt="Logo" style="max-height: 65px; object-fit: contain;" /></p>`);
+        setContent((prev) => `${prev}<p><img src="${dataUrl}" alt="${file.name}" style="max-height: 70px; max-width: 160px; object-fit: contain;" /></p>`);
       }
-      setFeedback('✓ લોગો ઇમેજ લેટરહેડમાં સફળતાપૂર્વક ઉમેરાઈ.');
+      setFeedback('✓ Image successfully uploaded from device and inserted into letterhead.');
       setTimeout(() => setFeedback(null), 3000);
     };
     reader.readAsDataURL(file);
   };
 
-  // Quick 3-column table inserter for classic ITI layout
   const handleInsert3ColTable = () => {
     const tableHtml = `
 <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 6px;">
   <tbody>
     <tr>
       <td style="width: 15%; text-align: left; vertical-align: middle; border: none; padding: 4px;">
-        <div style="font-size: 11px; font-weight: bold; color: #1e3a8a; border: 1.5px dashed #93c5fd; padding: 12px 6px; text-align: center; border-radius: 8px;">[ડાબો લોગો]</div>
+        <div style="font-size: 11px; font-weight: bold; color: #1e3a8a; border: 1.5px dashed #93c5fd; padding: 12px 6px; text-align: center; border-radius: 8px;">[Left Logo]</div>
       </td>
       <td style="width: 70%; text-align: center; vertical-align: middle; border: none; padding: 4px;">
-        <div style="font-size: 11px; color: #475569; font-weight: 600;">શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર</div>
-        <h2 style="font-size: 18px; font-weight: 900; margin: 3px 0; color: #0f172a;">${instructor.iti_name || 'ઔદ્યોગિક તાલીમ સંસ્થા'}</h2>
-        <div style="font-size: 12px; font-weight: bold; color: #1e293b; text-transform: uppercase;">GOVERNMENT INDUSTRIAL TRAINING INSTITUTE</div>
-        <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${instructor.institution_address || 'સરનામું અને સંપર્ક નંબર'}</div>
+        <div style="font-size: 11px; color: #475569; font-weight: 600;">${instructor.header_config?.department_subtitle || 'DIRECTORATE OF EMPLOYMENT & TRAINING, GUJARAT'}</div>
+        <h2 style="font-size: 18px; font-weight: 900; margin: 3px 0; color: #0f172a;">${instructor.iti_name_gu || instructor.iti_name || 'ઔદ્યોગિક તાલીમ સંસ્થા'}</h2>
+        <div style="font-size: 12px; font-weight: bold; color: #1e293b; text-transform: uppercase;">${instructor.header_config?.institute_name_en || instructor.iti_name || 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE'}</div>
+        <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${instructor.institution_address || 'Address & Contact Details'}</div>
       </td>
       <td style="width: 15%; text-align: right; vertical-align: middle; border: none; padding: 4px;">
-        <div style="font-size: 11px; font-weight: bold; color: #64748b; border: 1.5px dashed #cbd5e1; padding: 12px 6px; text-align: center; border-radius: 8px;">[જમણો લોગો]</div>
+        <div style="font-size: 11px; font-weight: bold; color: #64748b; border: 1.5px dashed #cbd5e1; padding: 12px 6px; text-align: center; border-radius: 8px;">[Right Logo]</div>
       </td>
     </tr>
   </tbody>
@@ -179,8 +169,8 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
 <table style="width: 100%; border-collapse: collapse; border-top: 1.5px solid #0f172a; margin-top: 4px; padding-top: 4px;">
   <tbody>
     <tr>
-      <td style="text-align: left; font-size: 11px; font-weight: bold; border: none; padding: 4px 0 0 0;">જાવક ક્રમાંક: {{Ref_No}}</td>
-      <td style="text-align: right; font-size: 11px; font-weight: bold; border: none; padding: 4px 0 0 0;">તારીખ: {{Current_Date}}</td>
+      <td style="text-align: left; font-size: 11px; font-weight: bold; border: none; padding: 4px 0 0 0;">Outward No: {{Ref_No}}</td>
+      <td style="text-align: right; font-size: 11px; font-weight: bold; border: none; padding: 4px 0 0 0;">Date: {{Current_Date}}</td>
     </tr>
   </tbody>
 </table>
@@ -191,17 +181,15 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
     } else {
       setContent(tableHtml);
     }
-    setFeedback('✓ ૩-કોલમ સત્તાવાર કોષ્ટક ઉમેરાયું.');
+    setFeedback('✓ 3-Column official table layout inserted.');
     setTimeout(() => setFeedback(null), 3000);
   };
 
   const handleSaveAndApply = () => {
-    // 1. Notify via onSaveLetterhead if available
     if (onSaveLetterhead) {
       onSaveLetterhead(content, isSpecific);
     }
 
-    // 2. Also construct and update HeaderConfig to ensure seamless compatibility across the app
     const updatedHeaderConfig: HeaderConfig = {
       ...(instructor.header_config || {}),
       letterhead_mode: 'tinymce_canvas',
@@ -212,12 +200,11 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
       onSaveHeaderConfig(updatedHeaderConfig);
     }
 
-    // 3. If saving as global default
     if (!isSpecific && onSaveAsGlobalDefault) {
       onSaveAsGlobalDefault(content);
     }
 
-    setFeedback('✓ સંસ્થા લેટરહેડ TinyMCE દ્વારા સફળતાપૂર્વક સાચવવામાં આવ્યું!');
+    setFeedback('✓ Letterhead saved successfully.');
     setTimeout(() => {
       onClose();
     }, 400);
@@ -226,7 +213,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[96vh] flex flex-col overflow-hidden">
-        {/* Hidden file input for logo uploads */}
+        {/* Hidden file input for logo uploads from device */}
         <input
           ref={fileInputRef}
           type="file"
@@ -248,14 +235,14 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
-                  સંસ્થા લેટરહેડ TinyMCE એડિટર (Rich-Text Letterhead Designer)
+                  Institute Letterhead Designer (TinyMCE)
                 </h2>
                 <span className="text-[10px] font-bold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  ૧૦૦% મુક્ત ફોર્મેટ (No Fixed Form)
+                  Rich-Text WYSIWYG
                 </span>
               </div>
               <p className="text-xs text-blue-200 truncate mt-0.5">
-                નિશ્ચિત ફોર્મના બંધન વિના TinyMCE દ્વારા તમારી જરૂરિયાત મુજબનું લેટરહેડ તૈયાર કરો
+                Design custom letterhead headers freely with fonts, tables, alignment, and device images
               </p>
             </div>
           </div>
@@ -264,7 +251,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
             type="button"
             onClick={onClose}
             className="p-1.5 text-blue-200 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-            title="બંધ કરો (Close)"
+            title="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -274,7 +261,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
         <div className="bg-slate-50 border-b border-slate-200 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
           {/* Scope Selector: Global vs Template-Specific */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-slate-700 text-xs">લાગુ કરવાની મર્યાદા:</span>
+            <span className="font-bold text-slate-700 text-xs">Scope:</span>
             <div className="inline-flex rounded-lg bg-white p-0.5 border border-slate-300 shadow-2xs">
               <button
                 type="button"
@@ -284,10 +271,10 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
-                title="તમામ ટેમ્પલેટ્સ માટે સમાન ગ્લોબલ લેટરહેડ વાપરો"
+                title="Use this letterhead globally across all templates"
               >
                 <Globe className="w-3.5 h-3.5" />
-                <span>ગ્લોબલ ડિફોલ્ટ (Global)</span>
+                <span>Global Default</span>
               </button>
 
               <button
@@ -298,17 +285,17 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                     ? 'bg-amber-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
-                title="આ ચોક્કસ ટેમ્પલેટ માટે જ અલગ લેટરહેડ બનાવો"
+                title="Apply this letterhead only to the current template"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>આ ટેમ્પલેટ ખાસ (Template-Specific)</span>
+                <span>Template Specific</span>
               </button>
             </div>
 
             <span className="text-[11px] text-slate-500 italic">
               {isSpecific
-                ? `(માત્ર "${currentTemplate?.template_name || 'આ ટેમ્પલેટ'}" માં લાગુ થશે)`
-                : '(સંસ્થાના તમામ પત્રો અને નોટિસો માટે ડિફોલ્ટ રહેશે)'}
+                ? `(Applied to "${currentTemplate?.template_name || 'Current Template'}")`
+                : '(Applied as default for all notices and templates)'}
             </span>
           </div>
 
@@ -325,7 +312,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                 }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                <span>એડિટર (Editor)</span>
+                <span>Editor</span>
               </button>
               <button
                 type="button"
@@ -337,13 +324,13 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>લાઈવ A4 પ્રિવ્યુ (Live Preview)</span>
+                <span>Live A4 Preview</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Quick Toolbar: Blank, Preset, Upload Logo, Insert Tags */}
+        {/* Quick Toolbar: Blank, Preset, Upload Image from Device, Insert Tags */}
         <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-1.5 flex-wrap">
             {/* Start Blank Button */}
@@ -351,10 +338,10 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
               type="button"
               onClick={handleStartBlank}
               className="flex items-center gap-1 px-2.5 py-1 text-slate-700 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-              title="કોરા કેન્વાસથી શરૂ કરો (Blank Canvas)"
+              title="Start with a blank letterhead canvas"
             >
               <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-              <span>કોરો કેન્વાસ (Start Blank)</span>
+              <span>Start Blank</span>
             </button>
 
             {/* Insert 3-Column Table */}
@@ -362,21 +349,22 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
               type="button"
               onClick={handleInsert3ColTable}
               className="flex items-center gap-1 px-2.5 py-1 text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-              title="ડાબો લોગો, મધ્ય લખાણ અને જમણો લોગો ધરાવતું કોષ્ટક ઉમેરો"
+              title="Insert 3-column table with Left Logo, Center Heading, and Right Logo"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
-              <span>૩-કોલમ ટેબલ ઉમેરો</span>
+              <span>Insert 3-Col Layout</span>
             </button>
 
-            {/* Upload Logo Image Button */}
+            {/* Upload Image from Device Button (Requirement 2) */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1 px-2.5 py-1 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-md font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-              title="કમ્પ્યુટરમાંથી લોગો કે બેનર ઇમેજ ઉમેરો"
+              className="flex items-center gap-1.5 px-3 py-1 text-blue-900 bg-blue-100 hover:bg-blue-200 border border-blue-300 rounded-md font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+              title="Upload image or logo directly from your computer / phone"
             >
-              <Upload className="w-3.5 h-3.5 text-emerald-600" />
-              <span>લોગો / ફોટો ઉમેરો</span>
+              <Upload className="w-3.5 h-3.5 text-blue-700" />
+              <ImageIcon className="w-3.5 h-3.5 text-blue-700" />
+              <span>Upload Image from Device</span>
             </button>
 
             {/* Preset Selector Dropdown */}
@@ -385,17 +373,17 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                 type="button"
                 onClick={() => setShowPresetsMenu(!showPresetsMenu)}
                 className="flex items-center gap-1 px-2.5 py-1 text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-md font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-                title="સરકારી ITI પ્રમાણિત લેટરહેડ પ્રીસેટ્સ જુઓ"
+                title="View starter official letterhead templates"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>રેડીમેડ પ્રીસેટ્સ</span>
+                <span>Presets</span>
                 <ChevronDown className="w-3 h-3 text-amber-700" />
               </button>
 
               {showPresetsMenu && (
                 <div className="absolute left-0 top-full mt-1 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95">
                   <div className="px-2 py-1 text-slate-400 font-bold text-[10px] uppercase tracking-wider border-b border-slate-100 mb-1">
-                    રેડીમેડ સત્તાવાર ITI લેટરહેડ પસંદ કરો:
+                    Select Official Starter Layout:
                   </div>
                   <div className="space-y-1">
                     {LETTERHEAD_PRESETS.map((preset) => (
@@ -421,7 +409,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
 
           {/* Quick Dynamic Tag Buttons */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-500">ઓટો ટેગ્સ:</span>
+            <span className="text-[11px] font-bold text-slate-500">Auto Tags:</span>
             <button
               type="button"
               onClick={() => {
@@ -432,9 +420,9 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                 }
               }}
               className="px-2 py-0.5 bg-slate-100 hover:bg-blue-50 text-blue-700 border border-slate-300 hover:border-blue-300 rounded font-mono text-[11px] font-bold cursor-pointer"
-              title="જાવક નંબર ઓટો-મર્જ ટેગ ઉમેરો"
+              title="Insert Outward Reference Number tag"
             >
-              +&#123;&#123;Ref_No&#125;&#125;
+              +{`{{Ref_No}}`}
             </button>
             <button
               type="button"
@@ -446,9 +434,9 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                 }
               }}
               className="px-2 py-0.5 bg-slate-100 hover:bg-blue-50 text-blue-700 border border-slate-300 hover:border-blue-300 rounded font-mono text-[11px] font-bold cursor-pointer"
-              title="આજની તારીખ ઓટો-મર્જ ટેગ ઉમેરો"
+              title="Insert Notice Date tag"
             >
-              +&#123;&#123;Current_Date&#125;&#125;
+              +{`{{Current_Date}}`}
             </button>
           </div>
         </div>
@@ -469,10 +457,10 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
               <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600 font-semibold">
                 <span className="flex items-center gap-1.5">
                   <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
-                  <span>TinyMCE લેટરહેડ કેન્વાસ (WYSIWYG)</span>
+                  <span>TinyMCE Letterhead Canvas (WYSIWYG)</span>
                 </span>
                 <span className="text-[11px] text-slate-400">
-                  ફોન્ટ, સાઇઝ, કલર, ટેબલ અને લોગો તમારી ઇચ્છા મુજબ ગોઠવો
+                  Click inside to format text, add tables, or drag/upload logos
                 </span>
               </div>
 
@@ -508,6 +496,32 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                       'undo redo | fontfamily fontsize | bold italic underline forecolor backcolor | ' +
                       'alignleft aligncenter alignright alignjustify | table image | removeformat code',
                     toolbar_mode: 'sliding',
+                    paste_data_images: true,
+                    automatic_uploads: true,
+                    file_picker_types: 'image',
+                    images_upload_handler: (blobInfo: any) => {
+                      return new Promise((resolve) => {
+                        resolve('data:' + blobInfo.blob().type + ';base64,' + blobInfo.base64());
+                      });
+                    },
+                    file_picker_callback: (callback: any, _value: any, meta: any) => {
+                      if (meta.filetype === 'image') {
+                        const input = document.createElement('input');
+                        input.setAttribute('type', 'file');
+                        input.setAttribute('accept', 'image/*');
+                        input.onchange = function () {
+                          const file = (this as HTMLInputElement).files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function () {
+                              callback(reader.result as string, { title: file.name, alt: file.name });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        };
+                        input.click();
+                      }
+                    },
                     font_family_formats:
                       'Noto Sans Gujarati=Noto Sans Gujarati, sans-serif;' +
                       'Shruti=Shruti, Noto Sans Gujarati, sans-serif;' +
@@ -550,11 +564,11 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
             </div>
           ) : (
             /* Live Rendered A4 Preview Mode */
-            <div className="w-full max-w-[820px] bg-white rounded-xl shadow-xl border border-slate-300 p-8 sm:p-10 text-slate-900 font-gujarati space-y-4">
+            <div className="w-full max-w-[820px] bg-white rounded-xl shadow-xl border border-slate-300 p-8 sm:p-10 text-slate-900 font-sans space-y-4">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center justify-between">
-                <span>લાઈવ A4 પ્રિવ્યુ (A4 Simulation with Merged Data)</span>
+                <span>Live A4 Preview (Letterhead simulation with sample data)</span>
                 <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  નમૂના જાવક નંબર &amp; આજની તારીખ
+                  Sample Outward No &amp; Date
                 </span>
               </div>
 
@@ -563,14 +577,14 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                   className="iti-rendered-letterhead select-none"
                   dangerouslySetInnerHTML={{
                     __html: renderLetterheadHtml(content, {
-                      refNumber: `${instructor.outward_code_prefix || 'ઔતાસં/૨૦૨૫-૨૬'}/૧૦૧`,
-                      issueDate: new Date().toLocaleDateString('gu-IN'),
+                      refNumber: `${instructor.outward_code_prefix || 'Ref/2025-26'}/101`,
+                      issueDate: new Date().toLocaleDateString('en-GB'),
                     }),
                   }}
                 />
               ) : (
                 <div className="p-8 text-center text-slate-400 border border-dashed border-slate-300 rounded-xl">
-                  [કોરો લેટરહેડ - એડિટર ટેબમાં જઈને લખાણ અથવા કોષ્ટક ઉમેરો]
+                  [Blank letterhead - switch to the Editor tab to add content or upload logos]
                 </div>
               )}
 
@@ -580,7 +594,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                 <div className="h-3 bg-slate-100 rounded w-full"></div>
                 <div className="h-3 bg-slate-100 rounded w-5/6"></div>
                 <div className="text-[11px] text-slate-400 italic pt-2">
-                  [ઉપરનો લેટરહેડ આપના તમામ પત્રો અને રિપોર્ટમાં આ રીતે A4 કાગળના શીર્ષ સ્થાને પ્રિન્ટ થશે]
+                  [Notice content and attendance tables will appear below this letterhead on A4 paper]
                 </div>
               </div>
             </div>
@@ -590,7 +604,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
         {/* Footer Actions */}
         <div className="bg-white border-t border-slate-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="font-semibold text-slate-700">સાચવવાની મર્યાદા:</span>
+            <span className="font-semibold text-slate-700">Scope:</span>
             <span
               className={`font-bold px-2 py-0.5 rounded-md ${
                 isSpecific
@@ -598,7 +612,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
                   : 'bg-blue-100 text-blue-900'
               }`}
             >
-              {isSpecific ? 'આ ટેમ્પલેટ પૂરતો સીમિત' : 'તમામ ટેમ્પલેટ્સ માટે ગ્લોબલ'}
+              {isSpecific ? 'Template Specific' : 'Global Default'}
             </span>
           </div>
 
@@ -608,7 +622,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
             >
-              રદ કરો (Cancel)
+              Cancel
             </button>
 
             <button
@@ -617,7 +631,7 @@ export const LetterheadEditorModal: React.FC<LetterheadEditorModalProps> = ({
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 shadow-md transition-all cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>સાચવો અને લાગુ કરો (Save & Apply)</span>
+              <span>Save &amp; Apply</span>
             </button>
           </div>
         </div>

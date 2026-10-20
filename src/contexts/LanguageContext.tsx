@@ -534,11 +534,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('portal_language') as Language;
-    if (saved && (saved === 'gu' || saved === 'hi' || saved === 'en')) {
-      return saved;
-    }
-    return 'gu'; // Default to Gujarati
+    return 'en'; // Portal UI is English only as per user request
   });
 
   const setLanguage = (newLang: Language) => {
@@ -547,23 +543,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const activeLanguageOption = useMemo(() => {
-    return LANGUAGE_OPTIONS.find((opt) => opt.code === language) || LANGUAGE_OPTIONS[0];
+    return LANGUAGE_OPTIONS.find((opt) => opt.code === language) || LANGUAGE_OPTIONS[2];
   }, [language]);
 
   const imeLanguageName: 'Gujarati' | 'Hindi' | 'English' = useMemo(() => {
-    if (language === 'hi') return 'Hindi';
-    if (language === 'en') return 'English';
-    return 'Gujarati';
-  }, [language]);
+    return 'English';
+  }, []);
 
   const t = (key: keyof TranslationDictionary, fallback?: string): string => {
-    const dict = TRANSLATIONS[language] || TRANSLATIONS.en;
-    return dict[key] || fallback || TRANSLATIONS.en[key] || String(key);
+    return TRANSLATIONS.en[key] || fallback || String(key);
   };
 
-  const tText = (gu: string, hi: string, en: string): string => {
-    if (language === 'gu') return gu;
-    if (language === 'hi') return hi;
+  const tText = (_gu: string, _hi: string, en: string): string => {
     return en;
   };
 

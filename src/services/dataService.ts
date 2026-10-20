@@ -18,6 +18,13 @@ import {
   INITIAL_TEMPLATES,
   INITIAL_DISPATCH_LOGS,
 } from '../data/initialData';
+import {
+  DEMO_GUEST_INSTRUCTOR,
+  DEMO_SAMPLE_TRAINEES,
+  DEMO_SAMPLE_ATTENDANCE,
+  DEMO_SAMPLE_TEMPLATES,
+  DEMO_SAMPLE_DISPATCH_LOGS,
+} from '../data/demoData';
 import { ensureInstructorValidity } from '../utils/validityHelper';
 import { DEFAULT_ADMIN_QR_IMAGE_URL } from '../utils/imageCompressor';
 
@@ -293,79 +300,188 @@ export async function fetchInstructors(): Promise<Instructor[]> {
 }
 
 /**
- * Fetch all trainees from Firestore
+ * Fetch trainees from Firestore or isolated demo store based on active identity.
+ * - If demo guest: strictly returns isolated DEMO_SAMPLE_TRAINEES.
+ * - If regular instructor: strictly returns trainees assigned to this instructor.
+ * - If admin / global: returns all production trainees.
  */
-export async function fetchTrainees(): Promise<Trainee[]> {
+export async function fetchTrainees(instructorId?: string, isGuest?: boolean): Promise<Trainee[]> {
+  if (isGuest || instructorId === 'guest-demo-instructor') {
+    return [...DEMO_SAMPLE_TRAINEES];
+  }
+
+  const cacheKey = instructorId ? `${CACHE_KEYS.TRAINEES}_${instructorId}` : CACHE_KEYS.TRAINEES;
+
   try {
     const snap = await runWithTimeout(getDocs(collection(db, COLLECTION_TRAINEES)), 3000);
     if (!snap.empty) {
-      const docs = snap.docs.map((d) => d.data() as Trainee);
-      setLocalCache(CACHE_KEYS.TRAINEES, docs);
-      return docs;
+      const allDocs = snap.docs
+        .map((d) => d.data() as Trainee)
+        .filter((t) => !t.id.startsWith('demo-') && t.instructor_id !== 'guest-demo-instructor');
+
+      if (instructorId) {
+        const scoped = allDocs.filter((t) => t.instructor_id === instructorId);
+        setLocalCache(cacheKey, scoped);
+        return scoped;
+      }
+
+      setLocalCache(cacheKey, allDocs);
+      return allDocs;
     }
-    return getLocalCache(CACHE_KEYS.TRAINEES, INITIAL_TRAINEES);
   } catch {
-    return getLocalCache(CACHE_KEYS.TRAINEES, INITIAL_TRAINEES);
+    // Offline fallback
   }
+
+  const cached = getLocalCache<Trainee[]>(cacheKey, INITIAL_TRAINEES);
+  const cleanCached = cached.filter((t) => !t.id.startsWith('demo-') && t.instructor_id !== 'guest-demo-instructor');
+  if (instructorId) {
+    return cleanCached.filter((t) => t.instructor_id === instructorId);
+  }
+  return cleanCached;
+}
+
+function deduplicateAttendanceRecords(records: AttendanceRecord[]): AttendanceRecord[] {
+  const map = new Map<string, AttendanceRecord>();
+  for (const rec of records || []) {
+    if (!rec.trainee_id || !rec.month_year) continue;
+    const key = `${rec.trainee_id}_${rec.month_year.trim().toLowerCase()}`;
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, rec);
+    } else {
+      const tNew = rec.updated_at ? new Date(rec.updated_at).getTime() : 0;
+      const tOld = existing.updated_at ? new Date(existing.updated_at).getTime() : 0;
+      if (tNew >= tOld) {
+        map.set(key, rec);
+      }
+    }
+  }
+  return Array.from(map.values());
 }
 
 /**
- * Fetch all attendance records from Firestore
+ * Fetch attendance records from Firestore or isolated demo store.
  */
-export async function fetchAttendance(): Promise<AttendanceRecord[]> {
+export async function fetchAttendance(instructorId?: string, isGuest?: boolean): Promise<AttendanceRecord[]> {
+  if (isGuest || instructorId === 'guest-demo-instructor') {
+    return [...DEMO_SAMPLE_ATTENDANCE];
+  }
+
+  const cacheKey = instructorId ? `${CACHE_KEYS.ATTENDANCE}_${instructorId}` : CACHE_KEYS.ATTENDANCE;
+
   try {
     const snap = await runWithTimeout(getDocs(collection(db, COLLECTION_ATTENDANCE)), 3000);
     if (!snap.empty) {
-      const docs = snap.docs.map((d) => d.data() as AttendanceRecord);
-      const migratedDocs = migrateAttendanceRecordsTo2026(docs);
-      setLocalCache(CACHE_KEYS.ATTENDANCE, migratedDocs);
+      const docs = snap.docs
+        .map((d) => d.data() as AttendanceRecord)
+        .filter((a) => !a.id.startsWith('demo-') && !a.id.startsWith('att-demo-') && a.instructor_id !== 'guest-demo-instructor');
+      const migratedDocs = deduplicateAttendanceRecords(migrateAttendanceRecordsTo2026(docs));
+
+      if (instructorId) {
+        const scoped = migratedDocs.filter((a) => a.instructor_id === instructorId);
+        setLocalCache(cacheKey, scoped);
+        return scoped;
+      }
+
+      setLocalCache(cacheKey, migratedDocs);
       return migratedDocs;
     }
-    return getLocalCache(CACHE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
   } catch {
-    return getLocalCache(CACHE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
+    // Offline fallback
   }
+
+  const cached = getLocalCache<AttendanceRecord[]>(cacheKey, INITIAL_ATTENDANCE);
+  const cleanCached = deduplicateAttendanceRecords(
+    cached.filter((a) => !a.id.startsWith('demo-') && !a.id.startsWith('att-demo-') && a.instructor_id !== 'guest-demo-instructor')
+  );
+  if (instructorId) {
+    return cleanCached.filter((a) => a.instructor_id === instructorId);
+  }
+  return cleanCached;
 }
 
 /**
- * Fetch all templates from Firestore
+ * Fetch templates from Firestore or isolated demo store.
  */
-export async function fetchTemplates(): Promise<LetterTemplate[]> {
+export async function fetchTemplates(instructorId?: string, isGuest?: boolean): Promise<LetterTemplate[]> {
+  if (isGuest || instructorId === 'guest-demo-instructor') {
+    return [...DEMO_SAMPLE_TEMPLATES];
+  }
+
   try {
     const snap = await runWithTimeout(getDocs(collection(db, COLLECTION_TEMPLATES)), 3000);
     if (!snap.empty) {
-      const docs = snap.docs.map((d) => d.data() as LetterTemplate);
+      const docs = snap.docs
+        .map((d) => d.data() as LetterTemplate)
+        .filter((t) => !t.id.startsWith('demo-') && t.instructor_id !== 'guest-demo-instructor');
+
+      if (instructorId) {
+        const scoped = docs.filter((t) => t.instructor_id === 'global' || t.instructor_id === instructorId);
+        setLocalCache(CACHE_KEYS.TEMPLATES, scoped);
+        return scoped;
+      }
+
       setLocalCache(CACHE_KEYS.TEMPLATES, docs);
       return docs;
     }
-    return getLocalCache(CACHE_KEYS.TEMPLATES, INITIAL_TEMPLATES);
   } catch {
-    return getLocalCache(CACHE_KEYS.TEMPLATES, INITIAL_TEMPLATES);
+    // Offline fallback
   }
+
+  const cached = getLocalCache<LetterTemplate[]>(CACHE_KEYS.TEMPLATES, INITIAL_TEMPLATES);
+  const cleanCached = cached.filter((t) => !t.id.startsWith('demo-') && t.instructor_id !== 'guest-demo-instructor');
+  if (instructorId) {
+    return cleanCached.filter((t) => t.instructor_id === 'global' || t.instructor_id === instructorId);
+  }
+  return cleanCached;
 }
 
 /**
- * Fetch all dispatch logs from Firestore
+ * Fetch dispatch logs from Firestore or isolated demo store.
  */
-export async function fetchDispatchLogs(): Promise<DispatchLog[]> {
+export async function fetchDispatchLogs(instructorId?: string, isGuest?: boolean): Promise<DispatchLog[]> {
+  if (isGuest || instructorId === 'guest-demo-instructor') {
+    return [...DEMO_SAMPLE_DISPATCH_LOGS];
+  }
+
+  const cacheKey = instructorId ? `${CACHE_KEYS.DISPATCH}_${instructorId}` : CACHE_KEYS.DISPATCH;
+
   try {
     const snap = await runWithTimeout(getDocs(collection(db, COLLECTION_DISPATCH)), 3000);
     if (!snap.empty) {
-      const docs = snap.docs.map((d) => d.data() as DispatchLog);
+      const docs = snap.docs
+        .map((d) => d.data() as DispatchLog)
+        .filter((d) => !d.id.startsWith('disp-demo-') && d.instructor_id !== 'guest-demo-instructor');
       const migratedDocs = migrateDispatchLogsTo2026(docs);
-      setLocalCache(CACHE_KEYS.DISPATCH, migratedDocs);
+
+      if (instructorId) {
+        const scoped = migratedDocs.filter((d) => d.instructor_id === instructorId);
+        setLocalCache(cacheKey, scoped);
+        return scoped;
+      }
+
+      setLocalCache(cacheKey, migratedDocs);
       return migratedDocs;
     }
-    return getLocalCache(CACHE_KEYS.DISPATCH, INITIAL_DISPATCH_LOGS);
   } catch {
-    return getLocalCache(CACHE_KEYS.DISPATCH, INITIAL_DISPATCH_LOGS);
+    // Offline fallback
   }
+
+  const cached = getLocalCache<DispatchLog[]>(cacheKey, INITIAL_DISPATCH_LOGS);
+  const cleanCached = cached.filter((d) => !d.id.startsWith('disp-demo-') && d.instructor_id !== 'guest-demo-instructor');
+  if (instructorId) {
+    return cleanCached.filter((d) => d.instructor_id === instructorId);
+  }
+  return cleanCached;
 }
 
 /**
  * Save or update a single template in Firestore and local cache
  */
 export async function saveTemplateToCloud(template: LetterTemplate): Promise<void> {
+  if (template.instructor_id === 'guest-demo-instructor' || template.id.startsWith('preset-')) {
+    return; // Do not overwrite demo or preset templates in cloud
+  }
   // Update local cache first
   const current = getLocalCache<LetterTemplate[]>(CACHE_KEYS.TEMPLATES, INITIAL_TEMPLATES);
   const updated = current.some((t) => t.id === template.id)
@@ -385,6 +501,9 @@ export async function saveTemplateToCloud(template: LetterTemplate): Promise<voi
  * Save or record a dispatch log to Firestore and local cache
  */
 export async function saveDispatchLogToCloud(log: DispatchLog): Promise<void> {
+  if (log.id.startsWith('disp-demo-') || log.instructor_id === 'guest-demo-instructor') {
+    return; // Strictly read-only for demo dispatches
+  }
   const current = getLocalCache<DispatchLog[]>(CACHE_KEYS.DISPATCH, INITIAL_DISPATCH_LOGS);
   const updated = [log, ...current.filter((l) => l.id !== log.id)];
   setLocalCache(CACHE_KEYS.DISPATCH, updated);
@@ -401,14 +520,18 @@ export async function saveDispatchLogToCloud(log: DispatchLog): Promise<void> {
  * Save batch dispatch logs to Firestore and local cache
  */
 export async function saveBatchDispatchLogsToCloud(logs: DispatchLog[]): Promise<void> {
+  const safeLogs = logs.filter(
+    (l) => !l.id.startsWith('disp-demo-') && l.instructor_id !== 'guest-demo-instructor'
+  );
+  if (safeLogs.length === 0) return;
   const current = getLocalCache<DispatchLog[]>(CACHE_KEYS.DISPATCH, INITIAL_DISPATCH_LOGS);
   const logMap = new Map(current.map((l) => [l.id, l]));
-  logs.forEach((l) => logMap.set(l.id, l));
+  safeLogs.forEach((l) => logMap.set(l.id, l));
   setLocalCache(CACHE_KEYS.DISPATCH, Array.from(logMap.values()));
 
   try {
     const batch = writeBatch(db);
-    for (const log of logs) {
+    for (const log of safeLogs) {
       const ref = doc(db, COLLECTION_DISPATCH, log.id);
       batch.set(ref, log, { merge: true });
     }
@@ -580,15 +703,45 @@ export async function deleteTemplateFromCloud(templateId: string): Promise<void>
  * Save single attendance record to Firestore and local cache
  */
 export async function saveAttendanceToCloud(record: AttendanceRecord): Promise<void> {
-  const current = getLocalCache<AttendanceRecord[]>(CACHE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
-  const updated = current.some((a) => a.id === record.id)
-    ? current.map((a) => (a.id === record.id ? record : a))
-    : [...current, record];
-  setLocalCache(CACHE_KEYS.ATTENDANCE, updated);
+  if (record.id.startsWith('att-demo-') || record.instructor_id === 'guest-demo-instructor') {
+    return; // Strictly read-only for demo records
+  }
+  await saveBatchAttendanceToCloud([record], record.instructor_id);
+}
+
+/**
+ * Save a batch of attendance records to Firestore and local cache, deduplicating by trainee_id + month_year
+ */
+export async function saveBatchAttendanceToCloud(
+  records: AttendanceRecord[],
+  instructorId?: string
+): Promise<void> {
+  const safeRecords = (records || []).filter(
+    (r) => !r.id.startsWith('demo-') && !r.id.startsWith('att-demo-') && r.instructor_id !== 'guest-demo-instructor'
+  );
+  if (safeRecords.length === 0) return;
+
+  const currentGlobal = getLocalCache<AttendanceRecord[]>(CACHE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
+  const mergedGlobal = deduplicateAttendanceRecords([...currentGlobal, ...safeRecords]);
+  setLocalCache(CACHE_KEYS.ATTENDANCE, mergedGlobal);
+
+  const effInstId = instructorId || safeRecords[0]?.instructor_id;
+  if (effInstId) {
+    const scopedKey = `${CACHE_KEYS.ATTENDANCE}_${effInstId}`;
+    const currentScoped = getLocalCache<AttendanceRecord[]>(scopedKey, []);
+    const mergedScoped = deduplicateAttendanceRecords([...currentScoped, ...safeRecords]).filter(
+      (a) => a.instructor_id === effInstId
+    );
+    setLocalCache(scopedKey, mergedScoped);
+  }
 
   try {
-    const ref = doc(db, COLLECTION_ATTENDANCE, record.id);
-    await setDoc(ref, record, { merge: true });
+    const batch = writeBatch(db);
+    for (const rec of safeRecords) {
+      const ref = doc(db, COLLECTION_ATTENDANCE, rec.id);
+      batch.set(ref, rec, { merge: true });
+    }
+    await batch.commit();
   } catch {
     // Handled locally
   }
@@ -601,26 +754,34 @@ export async function saveBatchTraineesToCloud(
   trainees: Trainee[],
   attendanceList?: AttendanceRecord[]
 ): Promise<void> {
+  const safeTrainees = trainees.filter(
+    (t) => !t.id.startsWith('demo-') && t.instructor_id !== 'guest-demo-instructor'
+  );
+  if (safeTrainees.length === 0) return;
+
   const currentTrainees = getLocalCache<Trainee[]>(CACHE_KEYS.TRAINEES, INITIAL_TRAINEES);
   const traineeMap = new Map(currentTrainees.map((t) => [t.id, t]));
-  trainees.forEach((t) => traineeMap.set(t.id, t));
+  safeTrainees.forEach((t) => traineeMap.set(t.id, t));
   setLocalCache(CACHE_KEYS.TRAINEES, Array.from(traineeMap.values()));
 
-  if (attendanceList && attendanceList.length > 0) {
+  const safeAttendance = (attendanceList || []).filter(
+    (a) => !a.id.startsWith('att-demo-') && a.instructor_id !== 'guest-demo-instructor'
+  );
+  if (safeAttendance.length > 0) {
     const currentAtt = getLocalCache<AttendanceRecord[]>(CACHE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
     const attMap = new Map(currentAtt.map((a) => [a.id, a]));
-    attendanceList.forEach((a) => attMap.set(a.id, a));
+    safeAttendance.forEach((a) => attMap.set(a.id, a));
     setLocalCache(CACHE_KEYS.ATTENDANCE, Array.from(attMap.values()));
   }
 
   try {
     const batch = writeBatch(db);
-    for (const t of trainees) {
+    for (const t of safeTrainees) {
       const tRef = doc(db, COLLECTION_TRAINEES, t.id);
       batch.set(tRef, t, { merge: true });
     }
-    if (attendanceList && attendanceList.length > 0) {
-      for (const a of attendanceList) {
+    if (safeAttendance.length > 0) {
+      for (const a of safeAttendance) {
         const aRef = doc(db, COLLECTION_ATTENDANCE, a.id);
         batch.set(aRef, a, { merge: true });
       }
@@ -635,13 +796,15 @@ export async function saveBatchTraineesToCloud(
  * Delete a batch of trainees from Firestore and local cache
  */
 export async function deleteBatchTraineesFromCloud(traineeIds: string[]): Promise<void> {
+  const safeIds = traineeIds.filter((id) => !id.startsWith('demo-'));
+  if (safeIds.length === 0) return;
   const current = getLocalCache<Trainee[]>(CACHE_KEYS.TRAINEES, INITIAL_TRAINEES);
-  const updated = current.filter((t) => !traineeIds.includes(t.id));
+  const updated = current.filter((t) => !safeIds.includes(t.id));
   setLocalCache(CACHE_KEYS.TRAINEES, updated);
 
   try {
     const batch = writeBatch(db);
-    for (const id of traineeIds) {
+    for (const id of safeIds) {
       const ref = doc(db, COLLECTION_TRAINEES, id);
       batch.delete(ref);
     }

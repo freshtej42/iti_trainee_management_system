@@ -7,20 +7,16 @@ import {
   FileText,
   Sparkles,
   RotateCcw,
-  Save,
   Check,
   ChevronDown,
-  Info,
-  Maximize2,
-  Trash2,
-  HelpCircle,
   FileSpreadsheet,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
-import { Instructor, LetterTemplate, HeaderConfig } from '../../types';
+import { Instructor, LetterTemplate } from '../../types';
 import {
   LETTERHEAD_PRESETS,
   LetterheadPreset,
-  generateDefaultLetterheadHtml,
 } from '../../utils/letterheadPresets';
 
 export interface TinyMceLetterheadModalProps {
@@ -45,6 +41,7 @@ export default function TinyMceLetterheadModal({
   onSaveAsGlobalDefault,
 }: TinyMceLetterheadModalProps) {
   const editorRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState<string>(initialHtml);
   const [isSpecific, setIsSpecific] = useState<boolean>(initialIsTemplateSpecific);
   const [showPresetsMenu, setShowPresetsMenu] = useState<boolean>(false);
@@ -61,15 +58,37 @@ export default function TinyMceLetterheadModal({
 
   if (!isOpen) return null;
 
+  // Upload image/logo directly from device and insert into TinyMCE at caret position
+  const handleImageUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (PNG, JPG, SVG, WebP).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (editorRef.current) {
+        editorRef.current.insertContent(
+          `<img src="${dataUrl}" alt="${file.name}" style="max-height: 80px; width: auto; object-fit: contain; vertical-align: middle; margin: 4px;" />`
+        );
+      } else {
+        setContent((prev) => `${prev} <img src="${dataUrl}" alt="${file.name}" style="max-height: 80px; width: auto; margin: 4px;" />`);
+      }
+      setFeedback(`✓ Image "${file.name}" inserted successfully.`);
+      setTimeout(() => setFeedback(null), 3000);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleApplyPreset = (preset: LetterheadPreset) => {
     const headerConfig = instructor.header_config;
-    const itiNameGu = headerConfig?.institute_name_gu || instructor.iti_name || 'ઔદ્યોગિક તાલીમ સંસ્થા';
-    const itiNameEn = headerConfig?.institute_name_en || 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE';
+    const itiNameGu = headerConfig?.institute_name_gu || instructor.iti_name_gu || instructor.iti_name || 'ઔદ્યોગિક તાલીમ સંસ્થા';
+    const itiNameEn = headerConfig?.institute_name_en || instructor.iti_name || 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE';
     const deptGu = headerConfig?.department_subtitle || 'શ્રમ, કૌશલ્ય વિકાસ અને રોજગાર વિભાગ, ગુજરાત સરકાર';
-    const address = headerConfig?.address || instructor.institution_address || 'ગુજરાત રાજ્ય';
+    const address = headerConfig?.address || instructor.institution_address_gu || instructor.institution_address || 'ગુજરાત રાજ્ય';
     const phone = headerConfig?.contact_info || instructor.phone || '';
     const email = instructor.email || '';
-    const refPrefix = headerConfig?.ref_prefix || instructor.outward_code_prefix || 'ઔતાસં/૨૦૨૫-૨૬';
+    const refPrefix = headerConfig?.ref_prefix || instructor.outward_code_prefix || 'ITI/2026';
     const logoUrl = headerConfig?.show_logo !== false ? (headerConfig?.logo_url || instructor.letterhead_header_url) : undefined;
     const rightLogoUrl = headerConfig?.show_right_logo ? headerConfig?.right_logo_url : undefined;
 
@@ -90,7 +109,7 @@ export default function TinyMceLetterheadModal({
       editorRef.current.setContent(html);
     }
     setShowPresetsMenu(false);
-    setFeedback(`✓ "${preset.name}" પ્રીસેટ લાગુ કરવામાં આવ્યું.`);
+    setFeedback(`✓ "${preset.name}" preset applied.`);
     setTimeout(() => setFeedback(null), 3000);
   };
 
@@ -102,25 +121,25 @@ export default function TinyMceLetterheadModal({
       <tr>
         <td style="width: 70px; vertical-align: middle; text-align: left; border: none;">
           <div style="width: 56px; height: 56px; border-radius: 50%; border: 1.5px solid #1e3a8a; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #1e3a8a;">
-            લોગો
+            LOGO
           </div>
         </td>
         <td style="vertical-align: middle; text-align: center; border: none; padding: 0 10px;">
-          <h2 style="font-size: 18px; font-weight: bold; margin: 0; color: #0f172a;">અહીં સંસ્થાનું નામ લખો</h2>
-          <div style="font-size: 12px; font-weight: bold; color: #334155; text-transform: uppercase;">INSTITUTE NAME IN ENGLISH</div>
-          <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;">સરનામું અને સંપર્ક નંબર અહીં લખો</div>
+          <h2 style="font-size: 18px; font-weight: bold; margin: 0; color: #0f172a;">${instructor.iti_name || 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE'}</h2>
+          <div style="font-size: 12px; font-weight: bold; color: #334155; text-transform: uppercase;">DIRECTORATE OF EMPLOYMENT &amp; TRAINING, GOVT. OF GUJARAT</div>
+          <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;">${instructor.institution_address || 'Gujarat'} ${instructor.phone ? `• Phone: ${instructor.phone}` : ''}</div>
         </td>
         <td style="width: 70px; vertical-align: middle; text-align: right; border: none;">
           <div style="width: 56px; height: 56px; border-radius: 50%; border: 1.5px solid #cbd5e1; background: #f8fafc; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #64748b; margin-left: auto;">
-            એમ્બલેમ
+            EMBLEM
           </div>
         </td>
       </tr>
     </tbody>
   </table>
   <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #cbd5e1; margin-top: 6px; padding-top: 4px; font-size: 11px; font-weight: bold;">
-    <div>જાવક નં.: {{Ref_No}}</div>
-    <div>તારીખ: {{Current_Date}}</div>
+    <div>Ref No.: {{Ref_No}}</div>
+    <div>Date: {{Current_Date}}</div>
   </div>
 </div>
     `.trim();
@@ -129,7 +148,7 @@ export default function TinyMceLetterheadModal({
     if (editorRef.current) {
       editorRef.current.setContent(blankHtml);
     }
-    setFeedback('✓ નવો કોરો લેટરહેડ તૈયાર છે. તમે સીધું લખાણ, લોગો કે ટેબલ બદલી શકો છો.');
+    setFeedback('✓ Blank letterhead canvas ready. You can edit text, logos, and tables freely.');
     setTimeout(() => setFeedback(null), 3000);
   };
 
@@ -137,7 +156,7 @@ export default function TinyMceLetterheadModal({
     if (onSaveAsGlobalDefault) {
       onSaveAsGlobalDefault(content);
       setIsSpecific(false);
-      setFeedback('✓ તમામ ટેમ્પલેટ્સ માટે ગ્લોબલ ડિફોલ્ટ લેટરહેડ તરીકે સાચવાયો!');
+      setFeedback('✓ Saved as Global Default letterhead for all templates!');
       setTimeout(() => setFeedback(null), 3500);
     }
   };
@@ -152,6 +171,19 @@ export default function TinyMceLetterheadModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-150">
+      {/* Hidden file input for device image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleImageUpload(file);
+          e.target.value = '';
+        }}
+      />
+
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
         {/* Top Header Bar */}
         <div className="bg-slate-900 text-white px-4 sm:px-6 py-3 flex items-center justify-between gap-3 shrink-0 border-b border-slate-800">
@@ -161,13 +193,13 @@ export default function TinyMceLetterheadModal({
             </div>
             <div className="min-w-0">
               <h2 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2 truncate">
-                <span>સંસ્થા લેટરહેડ ડિઝાઇનર (TinyMCE Letterhead)</span>
+                <span>Institute Letterhead Designer (TinyMCE)</span>
                 <span className="text-[10px] font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">
-                  ૧૦૦% મુક્ત ફોર્મેટ
+                  Flexible Format
                 </span>
               </h2>
               <p className="text-[11px] text-slate-400 truncate">
-                કોઈપણ નિયત ફોર્મ વિના સીધું TinyMCE માં લોગો, સરનામું, ટેબલ અને ટાઈપોગ્રાફી કસ્ટમાઇઝ કરો
+                Customize institute logo, emblem, typography, tables, and outward number format without fixed constraints
               </p>
             </div>
           </div>
@@ -176,7 +208,7 @@ export default function TinyMceLetterheadModal({
             type="button"
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-            title="બંધ કરો (Close)"
+            title="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -186,7 +218,7 @@ export default function TinyMceLetterheadModal({
         <div className="bg-slate-50 border-b border-slate-200 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
           {/* Scope Toggle: Global Default vs Template Specific */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-slate-700 text-xs">લાગુ કરવાની મર્યાદા:</span>
+            <span className="font-bold text-slate-700 text-xs">Apply Scope:</span>
             <div className="inline-flex rounded-lg bg-white p-0.5 border border-slate-300 shadow-2xs">
               <button
                 type="button"
@@ -196,10 +228,10 @@ export default function TinyMceLetterheadModal({
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
-                title="તમામ ટેમ્પલેટ્સ માટે સમાન ગ્લોબલ લેટરહેડ વાપરો"
+                title="Use this letterhead as default for all notices and templates"
               >
                 <Globe className="w-3.5 h-3.5" />
-                <span>ગ્લોબલ ડિફોલ્ટ (Global)</span>
+                <span>Global Default</span>
               </button>
 
               <button
@@ -210,31 +242,42 @@ export default function TinyMceLetterheadModal({
                     ? 'bg-amber-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
-                title="આ ચોક્કસ ટેમ્પલેટ માટે જ અલગ લેટરહેડ બનાવો"
+                title="Customize letterhead specifically for this template"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>આ ટેમ્પલેટ ખાસ (Template-Specific)</span>
+                <span>Template-Specific</span>
               </button>
             </div>
 
             <span className="text-[11px] text-slate-500 italic">
               {isSpecific
-                ? '(માત્ર પસંદ કરેલ નોટિસ ટેમ્પલેટમાં લાગુ થશે)'
-                : '(સંસ્થાના તમામ પત્રો અને નોટિસોમાં ડિફોલ્ટ રહેશે)'}
+                ? '(Applies only to this specific template)'
+                : '(Default across all institute notices)'}
             </span>
           </div>
 
-          {/* Quick Preset / Blank / Tag Actions */}
+          {/* Quick Preset / Blank / Tag / Upload Actions */}
           <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Upload Image from Device Button (Requirement 2) */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1 px-2.5 py-1 text-blue-900 bg-blue-100 hover:bg-blue-200 border border-blue-300 rounded-md font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+              title="Upload image or logo directly from your computer / phone"
+            >
+              <Upload className="w-3.5 h-3.5 text-blue-700" />
+              <span>Upload Image from Device</span>
+            </button>
+
             {/* Blank Canvas Button */}
             <button
               type="button"
               onClick={handleStartBlank}
               className="flex items-center gap-1 px-2.5 py-1 text-slate-700 hover:text-slate-950 bg-white border border-slate-300 hover:border-slate-400 rounded-md font-semibold text-xs shadow-2xs transition-colors cursor-pointer"
-              title="કોરા લેટરહેડથી શરૂઆત કરો"
+              title="Start with a blank letterhead canvas"
             >
               <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-              <span>કોરો લેટરહેડ (Start Blank)</span>
+              <span>Start Blank</span>
             </button>
 
             {/* Preset Selector Dropdown */}
@@ -243,17 +286,17 @@ export default function TinyMceLetterheadModal({
                 type="button"
                 onClick={() => setShowPresetsMenu(!showPresetsMenu)}
                 className="flex items-center gap-1 px-2.5 py-1 text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-md font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-                title="સરકારી ITI પ્રમાણિત લેટરહેડ પ્રીસેટ્સ"
+                title="Pre-formatted official ITI letterhead templates"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>રેડીમેડ પ્રીસેટ્સ</span>
+                <span>Presets</span>
                 <ChevronDown className="w-3 h-3 text-amber-700" />
               </button>
 
               {showPresetsMenu && (
                 <div className="absolute right-0 top-full mt-1 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95">
                   <div className="px-2 py-1 text-slate-400 font-bold text-[10px] uppercase tracking-wider border-b border-slate-100 mb-1">
-                    રેડીમેડ સત્તાવાર ITI લેટરહેડ પસંદ કરો:
+                    Select Official ITI Letterhead Preset:
                   </div>
                   <div className="space-y-1">
                     {LETTERHEAD_PRESETS.map((preset) => (
@@ -282,10 +325,12 @@ export default function TinyMceLetterheadModal({
               onClick={() => {
                 if (editorRef.current) {
                   editorRef.current.insertContent('{{Ref_No}}');
+                } else {
+                  setContent((prev) => `${prev} {{Ref_No}}`);
                 }
               }}
               className="px-2 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded font-mono text-[11px] cursor-pointer"
-              title="જાવક નંબર ઓટો-મર્જ ટૅગ"
+              title="Outward Reference Number Tag"
             >
               +&#123;&#123;Ref_No&#125;&#125;
             </button>
@@ -294,10 +339,12 @@ export default function TinyMceLetterheadModal({
               onClick={() => {
                 if (editorRef.current) {
                   editorRef.current.insertContent('{{Current_Date}}');
+                } else {
+                  setContent((prev) => `${prev} {{Current_Date}}`);
                 }
               }}
               className="px-2 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded font-mono text-[11px] cursor-pointer"
-              title="આજની તારીખ ઓટો-મર્જ ટૅગ"
+              title="Current Date Tag"
             >
               +&#123;&#123;Current_Date&#125;&#125;
             </button>
@@ -318,10 +365,10 @@ export default function TinyMceLetterheadModal({
             <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600 font-semibold">
               <span className="flex items-center gap-1.5">
                 <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
-                <span>A4 લેટરહેડ કન્ટેન્ટ એરિયા (TinyMCE WYSIWYG)</span>
+                <span>A4 Letterhead Content Canvas (TinyMCE WYSIWYG)</span>
               </span>
               <span className="text-[11px] text-slate-400">
-                લખાણ, કોષ્ટક, લોગો અને કલર્સ મુક્તપણે બદલો
+                Full freedom to edit text, tables, logos, colors, and margins
               </span>
             </div>
 
@@ -394,6 +441,28 @@ export default function TinyMceLetterheadModal({
                   `,
                   branding: false,
                   promotion: false,
+                  // Enable device image picking from TinyMCE image popup
+                  file_picker_types: 'image',
+                  file_picker_callback: (callback, _value, _meta) => {
+                    const input = document.createElement('input');
+                    input.setAttribute('type', 'file');
+                    input.setAttribute('accept', 'image/*');
+                    input.onchange = function () {
+                      const file = (input.files as FileList)[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function () {
+                          callback(reader.result as string, { title: file.name, alt: file.name });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    };
+                    input.click();
+                  },
+                  images_upload_handler: (blobInfo) => {
+                    return Promise.resolve(`data:${blobInfo.blob().type};base64,${blobInfo.base64()}`);
+                  },
+                  paste_data_images: true,
                 }}
               />
             </div>
@@ -403,7 +472,7 @@ export default function TinyMceLetterheadModal({
         {/* Footer Actions */}
         <div className="bg-white border-t border-slate-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="font-semibold text-slate-700">સાચવવાનો પ્રકાર:</span>
+            <span className="font-semibold text-slate-700">Save Scope:</span>
             <span
               className={`font-bold px-2 py-0.5 rounded-md ${
                 isSpecific
@@ -411,7 +480,7 @@ export default function TinyMceLetterheadModal({
                   : 'bg-blue-100 text-blue-900'
               }`}
             >
-              {isSpecific ? 'આ ટેમ્પ્લેટ પૂરતો સીમિત' : 'તમામ ટેમ્પલેટ્સ માટે ગ્લોબલ'}
+              {isSpecific ? 'Template-Specific Only' : 'Global Default for All Templates'}
             </span>
           </div>
 
@@ -421,9 +490,9 @@ export default function TinyMceLetterheadModal({
                 type="button"
                 onClick={handleSaveGlobalOnly}
                 className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-colors cursor-pointer"
-                title="આ લેટરહેડને તમામ નોટિસો માટે ગ્લોબલ ડિફોલ્ટ તરીકે સાચવો"
+                title="Save this letterhead as global default for all notices"
               >
-                ગ્લોબલ સાચવો
+                Save as Global
               </button>
             )}
 
@@ -432,7 +501,7 @@ export default function TinyMceLetterheadModal({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
             >
-              રદ કરો
+              Cancel
             </button>
 
             <button
@@ -441,7 +510,7 @@ export default function TinyMceLetterheadModal({
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 shadow-md transition-all cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>સાચવો અને લાગુ કરો (Save & Apply)</span>
+              <span>Save &amp; Apply</span>
             </button>
           </div>
         </div>

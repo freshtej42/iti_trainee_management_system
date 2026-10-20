@@ -21,6 +21,9 @@ export interface MergeContext {
   presentDays?: number;
   absentDays?: number;
   attendancePercentage?: number;
+  progressiveAttendancePercentage?: number;
+  progressiveRecordedMonths?: number;
+  progressiveStatus?: string;
   absentFromDate?: string;
   absentToDate?: string;
   continuousAbsentSince?: string;
@@ -73,6 +76,9 @@ export const AVAILABLE_MERGE_TAGS = [
   { tag: '{{Present_Days}}', label: 'Present Days (હાજર દિવસો)', category: 'Attendance' },
   { tag: '{{Absent_Days}}', label: 'Absent Days (ગેરહાજર દિવસો)', category: 'Attendance' },
   { tag: '{{Attendance_Percentage}}', label: 'Attendance % (હાજરીની ટકાવારી)', category: 'Attendance' },
+  { tag: '{{Progressive_Attendance_Percentage}}', label: 'Progressive Attendance % (પ્રગતિશીલ હાજરી ટકાવારી)', category: 'Attendance' },
+  { tag: '{{Progressive_Recorded_Months}}', label: 'Progressive Recorded Months (નોંધાયેલ માસ સંખ્યા)', category: 'Attendance' },
+  { tag: '{{Progressive_Status}}', label: 'Progressive Status (પ્રગતિશીલ સ્થિતિ: સુરક્ષિત / નિયમિત)', category: 'Attendance' },
   { tag: '{{Absent_From_Date}}', label: 'Absent From Date (તારીખથી ગેરહાજર)', category: 'Attendance' },
   { tag: '{{Absent_To_Date}}', label: 'Absent To Date (તારીખ સુધી ગેરહાજર)', category: 'Attendance' },
   { tag: '{{Continuous_Absent_Since}}', label: 'Continuous Absent Since (કઈ તારીખથી સતત ગેરહાજર)', category: 'Attendance' },
@@ -171,17 +177,18 @@ export function generateTraineeAttendanceTable(
     return `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px;" border="1" cellpadding="6">
       <thead>
         <tr style="background-color: #f1f5f9; text-align: center; font-weight: bold;">
-          <th style="width: 8%; border: 1px solid #333; padding: 6px;">ક્રમ</th>
-          <th style="width: 44%; border: 1px solid #333; padding: 6px;">તાલીમાર્થીનું નામ અને સરનામું</th>
-          <th style="width: 20%; border: 1px solid #333; padding: 6px;">કઈ તારીખથી સતત ગેરહાજર છે?</th>
-          <th style="width: 14%; border: 1px solid #333; padding: 6px;">માસ અંતિત હાજરીના ટકા</th>
+          <th style="width: 6%; border: 1px solid #333; padding: 6px;">ક્રમ</th>
+          <th style="width: 38%; border: 1px solid #333; padding: 6px;">તાલીમાર્થીનું નામ અને સરનામું</th>
+          <th style="width: 18%; border: 1px solid #333; padding: 6px;">કઈ તારીખથી સતત ગેરહાજર?</th>
+          <th style="width: 12%; border: 1px solid #333; padding: 6px;">માસિક %</th>
+          <th style="width: 12%; border: 1px solid #333; padding: 6px;">સંચિત %</th>
           <th style="width: 14%; border: 1px solid #333; padding: 6px;">નોંધ</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td colspan="5" style="border: 1px solid #333; padding: 12px; text-align: center; color: #64748b; font-style: italic;">
-            આ માસ માટે ૮૦% થી ઓછી હાજરી વાળો કોઈ તાલીમાર્થી નથી.
+          <td colspan="6" style="border: 1px solid #333; padding: 12px; text-align: center; color: #64748b; font-style: italic;">
+            આ માસ માટે ૮૦% થી ઓછી સંચિત હાજરી વાળો કોઈ તાલીમાર્થી નથી (તમામ તાલીમાર્થીઓ નિયમ અનુસાર છે).
           </td>
         </tr>
       </tbody>
@@ -195,7 +202,8 @@ export function generateTraineeAttendanceTable(
       const fullName = formatFullName(tr);
       const fullAddress = formatFullAddress(tr);
       const absentSince = att?.continuous_absent_since || att?.absent_from_date || '-';
-      const pct = att?.attendance_percentage !== undefined ? `${att.attendance_percentage.toFixed(2)}%` : '-';
+      const pct = att?.attendance_percentage !== undefined ? `${att.attendance_percentage.toFixed(1)}%` : '-';
+      const progPct = att?.progressive_attendance_percentage !== undefined ? `${att.progressive_attendance_percentage.toFixed(1)}%` : pct;
       const remarks = att?.remarks || 'વાલીને રૂબરૂ બોલાવવા અંગે';
 
       return `<tr>
@@ -206,18 +214,20 @@ export function generateTraineeAttendanceTable(
         </td>
         <td style="border: 1px solid #333; text-align: center; vertical-align: top; padding: 6px;">${absentSince}</td>
         <td style="border: 1px solid #333; text-align: center; font-weight: bold; vertical-align: top; padding: 6px; color: #b91c1c;">${pct}</td>
+        <td style="border: 1px solid #333; text-align: center; font-weight: bold; vertical-align: top; padding: 6px; color: #0369a1;">${progPct}</td>
         <td style="border: 1px solid #333; vertical-align: top; padding: 6px;">${remarks}</td>
       </tr>`;
     })
-    .join('\\n');
+    .join('\n');
 
   return `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px;" border="1" cellpadding="6">
     <thead>
       <tr style="background-color: #f1f5f9; text-align: center; font-weight: bold;">
-        <th style="width: 8%; border: 1px solid #333; padding: 6px;">ક્રમ</th>
-        <th style="width: 44%; border: 1px solid #333; padding: 6px;">તાલીમાર્થીનું નામ અને સરનામું</th>
-        <th style="width: 20%; border: 1px solid #333; padding: 6px;">કઈ તારીખથી સતત ગેરહાજર છે?</th>
-        <th style="width: 14%; border: 1px solid #333; padding: 6px;">માસ અંતિત હાજરીના ટકા</th>
+        <th style="width: 6%; border: 1px solid #333; padding: 6px;">ક્રમ</th>
+        <th style="width: 38%; border: 1px solid #333; padding: 6px;">તાલીમાર્થીનું નામ અને સરનામું</th>
+        <th style="width: 18%; border: 1px solid #333; padding: 6px;">કઈ તારીખથી સતત ગેરહાજર?</th>
+        <th style="width: 12%; border: 1px solid #333; padding: 6px;">માસિક %</th>
+        <th style="width: 12%; border: 1px solid #333; padding: 6px;">સંચિત %</th>
         <th style="width: 14%; border: 1px solid #333; padding: 6px;">નોંધ</th>
       </tr>
     </thead>
@@ -366,6 +376,14 @@ export function mergeTemplateTags(templateHtml: string, context: MergeContext): 
     : workingDays > 0 ? ((presentDays / workingDays) * 100).toFixed(2) : '0.00';
   const monthYear = context.monthYear ?? attendance?.month_year ?? 'Current Month';
 
+  const progPercentage = context.progressiveAttendancePercentage !== undefined
+    ? context.progressiveAttendancePercentage.toFixed(2)
+    : attendance?.progressive_attendance_percentage !== undefined
+    ? attendance.progressive_attendance_percentage.toFixed(2)
+    : percentage;
+  const progMonths = context.progressiveRecordedMonths ?? attendance?.progressive_recorded_months ?? 1;
+  const progStatus = context.progressiveStatus || (Number(progPercentage) >= 80 ? 'પ્રગતિશીલ સુરક્ષિત (≥૮૦%)' : 'ચેતવણીપાત્ર (<૮૦%)');
+
   const absentFrom = context.absentFromDate || attendance?.absent_from_date || '૦૧/૦૯/૨૦૨૫';
   const absentTo = context.absentToDate || attendance?.absent_to_date || resolvedIssueDate;
   const contAbsent = context.continuousAbsentSince || attendance?.continuous_absent_since || absentFrom;
@@ -428,6 +446,13 @@ export function mergeTemplateTags(templateHtml: string, context: MergeContext): 
     '{{Absent_Days}}': String(absentDays),
     '{{Attendance_Percentage}}%': String(percentage) + '%',
     '{{Attendance_Percentage}}': String(percentage) + '%',
+    '{{Progressive_Attendance_Percentage}}%': String(progPercentage) + '%',
+    '{{Progressive_Attendance_Percentage}}': String(progPercentage) + '%',
+    '{{progressive_attendance_percentage}}': String(progPercentage) + '%',
+    '{{Progressive_Recorded_Months}}': String(progMonths),
+    '{{progressive_recorded_months}}': String(progMonths),
+    '{{Progressive_Status}}': progStatus,
+    '{{progressive_status}}': progStatus,
     '{{Absent_From_Date}}': absentFrom,
     '{{Absent_To_Date}}': absentTo,
     '{{Continuous_Absent_Since}}': contAbsent,

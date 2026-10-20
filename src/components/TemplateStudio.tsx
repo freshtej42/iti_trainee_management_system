@@ -337,6 +337,12 @@ export default function TemplateStudio({
   onUpdateInstructorHeader,
   onUseTemplateForReport,
 }: TemplateStudioProps) {
+  const isGuest = Boolean(
+    instructor.role === 'guest' ||
+    instructor.is_guest ||
+    instructor.id === 'guest-demo-instructor'
+  );
+
   // Main view mode: 'gallery' (Template Manager Cards) or 'editor' (TinyMCE A4 Canvas)
   const [viewMode, setViewMode] = useState<'gallery' | 'editor'>('gallery');
 
@@ -423,6 +429,29 @@ export default function TemplateStudio({
   const [isTemplateSpecificHeader, setIsTemplateSpecificHeader] = useState<boolean>(() =>
     Boolean(currentTemplate.use_custom_letterhead || currentTemplate.letterhead_html)
   );
+
+  const templateImageInputRef = useRef<HTMLInputElement>(null);
+
+  // Upload image from device directly into template body
+  const handleInsertImageIntoTemplate = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (JPG, PNG, WebP, SVG, GIF).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const imgHtml = `<p><img src="${dataUrl}" alt="${file.name}" style="max-width: 100%; height: auto; object-fit: contain; margin: 8px 0;" /></p>`;
+      const activeEditor = (window as any).tinymce?.activeEditor;
+      if (activeEditor) {
+        activeEditor.insertContent(imgHtml);
+      } else {
+        setContentHtml((prev) => `${prev}\n${imgHtml}`);
+      }
+      showToast('✓ Image successfully inserted from device!');
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Toast Helper
   const showToast = (msg: string) => {
@@ -528,6 +557,10 @@ export default function TemplateStudio({
 
   // Save letterhead HTML as Global Default across all templates
   const handleSaveAsGlobalDefault = (html: string) => {
+    if (isGuest) {
+      showToast('Letterhead modifications are disabled in Demo Mode.');
+      return;
+    }
     setLetterheadHtml(html);
     setIsTemplateSpecificHeader(false);
     const updatedHeader: HeaderConfig = {
@@ -542,6 +575,7 @@ export default function TemplateStudio({
 
   // Reset letterhead to official ITI preset
   const handleResetLetterhead = () => {
+    if (isGuest) return;
     const defaultHtml = generateDefaultLetterheadHtml(instructor);
     setLetterheadHtml(defaultHtml);
     showToast('લેટરહેડ મૂળભૂત સરકારી ITI ફોર્મેટમાં રીસેટ થયું.');
@@ -549,6 +583,10 @@ export default function TemplateStudio({
 
   // Save current template to Cloud Firestore and local state
   const handleSaveCurrentTemplate = () => {
+    if (isGuest) {
+      showToast('Saving templates is disabled in Demo Mode.');
+      return;
+    }
     const updatedHeaderConfig: HeaderConfig = {
       ...headerConfig,
       letterhead_html: letterheadHtml,
@@ -559,8 +597,8 @@ export default function TemplateStudio({
       ...currentTemplate,
       id: currentTemplate.id,
       instructor_id: instructor.id,
-      template_name: templateName.trim() || 'અનામી ટેમ્પલેટ',
-      name: templateName.trim() || 'અનામી ટેમ્પલેટ',
+      template_name: templateName.trim() || 'Untitled Template',
+      name: templateName.trim() || 'Untitled Template',
       notice_type: noticeType as any,
       category: category as any,
       subject,
@@ -577,11 +615,15 @@ export default function TemplateStudio({
     if (!isTemplateSpecificHeader) {
       onUpdateInstructorHeader(updatedHeaderConfig);
     }
-    showToast(`'${updated.template_name}' ટેમ્પલેટ ક્લાઉડમાં સુરક્ષિત સેવ થયું!`);
+    showToast(`Template '${updated.template_name}' saved successfully!`);
   };
 
   // Save as new / Duplicate template
   const handleSaveAsNew = () => {
+    if (isGuest) {
+      showToast('Saving templates is disabled in Demo Mode.');
+      return;
+    }
     if (!saveAsName.trim()) return;
     const newId = `tmpl-custom-${Date.now()}`;
     const updatedHeaderConfig: HeaderConfig = {
@@ -613,12 +655,16 @@ export default function TemplateStudio({
     setTemplateName(saveAsName.trim());
     setIsSaveAsModalOpen(false);
     setSaveAsName('');
-    showToast(`નવું ટેમ્પલેટ '${newTemplate.template_name}' તૈયાર થયું!`);
+    showToast(`Template '${newTemplate.template_name}' created successfully!`);
   };
 
   // Duplicate a template directly from gallery card
   const handleDuplicateFromGallery = (tmpl: LetterTemplate) => {
-    const cloneName = `${tmpl.template_name || tmpl.name} (નકલ)`;
+    if (isGuest) {
+      showToast('Duplicating templates is disabled in Demo Mode.');
+      return;
+    }
+    const cloneName = `${tmpl.template_name || tmpl.name} (Copy)`;
     const newId = `tmpl-custom-${Date.now()}`;
     const duplicated: LetterTemplate = {
       ...tmpl,
@@ -631,11 +677,15 @@ export default function TemplateStudio({
       updated_at: new Date().toISOString(),
     };
     onSaveTemplate(duplicated);
-    showToast(`'${cloneName}' સફળતાપૂર્વક તૈયાર થયું!`);
+    showToast(`'${cloneName}' duplicated successfully!`);
   };
 
   // Create new template from starter preset
   const handleLoadStarter = (preset: typeof STARTER_PRESETS[0]) => {
+    if (isGuest) {
+      showToast('Creating templates is disabled in Demo Mode.');
+      return;
+    }
     const newId = `tmpl-custom-${Date.now()}`;
     const newTmpl: LetterTemplate = {
       id: newId,
@@ -655,17 +705,21 @@ export default function TemplateStudio({
     onSaveTemplate(newTmpl);
     handleOpenInEditor(newTmpl);
     setIsStartersModalOpen(false);
-    showToast(`'${preset.name}' નવું ટેમ્પલેટ શરૂ થયું!`);
+    showToast(`Template '${preset.name}' started!`);
   };
 
   // Delete template
   const handleDeleteTemplatePrompt = (tmpl: LetterTemplate) => {
-    if (templates.length <= 1) {
-      alert('ઓછામાં ઓછું એક ટેમ્પ્લેટ રહેવું જરૂરી છે.');
+    if (isGuest) {
+      showToast('Deleting templates is disabled in Demo Mode.');
       return;
     }
-    const name = tmpl.template_name || tmpl.name || 'આ ટેમ્પલેટ';
-    if (confirm(`શું આપ ખરેખર '${name}' ટેમ્પ્લેટ ડિલીટ કરવા માંગો છો?`)) {
+    if (templates.length <= 1) {
+      alert('At least one template must remain in the portal.');
+      return;
+    }
+    const name = tmpl.template_name || tmpl.name || 'this template';
+    if (confirm(`Are you sure you want to delete template '${name}'?`)) {
       onDeleteTemplate(tmpl.id);
       if (activeTemplateId === tmpl.id) {
         const remaining = templates.filter((t) => t.id !== tmpl.id);
@@ -673,7 +727,7 @@ export default function TemplateStudio({
           handleOpenInEditor(remaining[0]);
         }
       }
-      showToast('ટેમ્પલેટ સફળતાપૂર્વક કાઢી નાખવામાં આવ્યું.');
+      showToast('Template deleted successfully.');
     }
   };
 
@@ -697,7 +751,7 @@ export default function TemplateStudio({
         filename: `${templateName.replace(/\s+/g, '_')}.pdf`,
         scale: 2.2,
       });
-      showToast('PDF સફળતાપૂર્વક ડાઉનલોડ થયું!');
+      showToast('PDF downloaded successfully!');
     } catch (err) {
       console.error(err);
       showToast('PDF export error');
@@ -768,6 +822,23 @@ export default function TemplateStudio({
       {/* ========================================================================= */}
       {viewMode === 'gallery' && (
         <div className="flex-1 flex flex-col p-4 sm:p-6 space-y-5">
+          {/* Guest Mode View-Only Banner */}
+          {isGuest && (
+            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-950 text-xs flex items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2">
+                <span className="p-1 px-2 bg-amber-200 text-amber-900 rounded-md font-bold text-[11px] shrink-0">
+                  👁️ View-Only
+                </span>
+                <span className="font-medium">
+                  Guest Demo Mode: Template Studio is protected. Creating, duplicating, saving, or deleting templates is disabled.
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 shrink-0">
+                Templates Locked
+              </span>
+            </div>
+          )}
+
           {/* Top Banner: Title, Subtitle, Actions */}
           <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-5 rounded-2xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
@@ -777,10 +848,10 @@ export default function TemplateStudio({
                 </div>
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-                    ટેમ્પલેટ્સ મેનેજર (Letter & Report Templates)
+                    Template Studio (Letters & Notices)
                   </h1>
                   <p className="text-xs text-blue-200 mt-0.5">
-                    સત્તાવાર અનિયમિતતા ચેતવણી પત્રો, વાલી નોટિસ અને આચાર્યશ્રી અહેવાલ ફોર્મેટ્સ
+                    Design and manage official attendance warning letters, parent notices, and principal reports
                   </p>
                 </div>
               </div>
@@ -793,16 +864,25 @@ export default function TemplateStudio({
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition-colors shadow-2xs"
               >
                 <Building2 className="w-4 h-4 text-amber-300" />
-                <span>લેટરહેડ હેડર સેટિંગ્સ</span>
+                <span>Letterhead Settings</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setIsStartersModalOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md hover:shadow-lg cursor-pointer"
+                onClick={() => {
+                  if (isGuest) return;
+                  setIsStartersModalOpen(true);
+                }}
+                disabled={isGuest}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-md ${
+                  isGuest
+                    ? 'bg-slate-500 opacity-60 cursor-not-allowed'
+                    : 'bg-emerald-600 hover:bg-emerald-500 cursor-pointer hover:shadow-lg'
+                }`}
+                title={isGuest ? 'Disabled in Demo Mode' : undefined}
               >
                 <Plus className="w-4 h-4" />
-                <span>+ નવો ટેમ્પલેટ બનાવો</span>
+                <span>+ Create New Template</span>
               </button>
             </div>
           </div>
@@ -812,10 +892,10 @@ export default function TemplateStudio({
             {/* Filter Tabs */}
             <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
               {[
-                { id: 'all', label: 'બધા ટેમ્પલેટ્સ', count: templates.length },
+                { id: 'all', label: 'All Templates', count: templates.length },
                 {
                   id: 'warning',
-                  label: 'નોટિસ પત્રો (Warnings)',
+                  label: 'Attendance Warnings',
                   count: templates.filter(
                     (t) =>
                       t.category === 'attendance_warning' ||
@@ -826,7 +906,7 @@ export default function TemplateStudio({
                 },
                 {
                   id: 'principal',
-                  label: 'આચાર્યશ્રી અહેવાલ (Principal Reports)',
+                  label: 'Principal Reports',
                   count: templates.filter(
                     (t) =>
                       t.category === 'principal_report' ||
@@ -836,7 +916,7 @@ export default function TemplateStudio({
                 },
                 {
                   id: 'general',
-                  label: 'સામાન્ય / વાલી પત્રો',
+                  label: 'General & Parent Notices',
                   count: templates.filter(
                     (t) =>
                       t.category === 'general_notice' ||
@@ -846,7 +926,7 @@ export default function TemplateStudio({
                 },
                 {
                   id: 'custom',
-                  label: 'મારા કસ્ટમ પત્રો',
+                  label: 'My Custom Templates',
                   count: templates.filter((t) => t.instructor_id !== 'global').length,
                 },
               ].map((tab) => (
@@ -881,7 +961,7 @@ export default function TemplateStudio({
                 type="text"
                 value={gallerySearch}
                 onChange={(e) => setGallerySearch(e.target.value)}
-                placeholder="ટેમ્પલેટ શોધો (Search)..."
+                placeholder="Search templates..."
                 className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:bg-white focus:ring-1 focus:ring-blue-500"
               />
               {gallerySearch && (
@@ -930,24 +1010,24 @@ export default function TemplateStudio({
 
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                         {tmpl.show_letterhead !== false ? (
-                          <span className="flex items-center gap-1 text-blue-800 text-[10px] font-semibold bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-200" title="આ ટેમ્પલેટમાં સંસ્થાનું લેટરહેડ સક્રિય છે">
+                          <span className="flex items-center gap-1 text-blue-800 text-[10px] font-semibold bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-200" title="Letterhead is active for this template">
                             <Building2 className="w-3 h-3 text-blue-600" />
-                            <span>લેટરહેડ સહિત</span>
+                            <span>With Letterhead</span>
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 text-slate-600 text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" title="આ ટેમ્પલેટ પ્રી-પ્રિન્ટેડ અથવા સાદા કાગળ માટે છે (લેટરહેડ વગર)">
-                            <span>📄 પ્રી-પ્રિન્ટેડ કાગળ</span>
+                          <span className="flex items-center gap-1 text-slate-600 text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" title="Pre-printed paper mode (letterhead disabled)">
+                            <span>📄 Pre-printed Paper</span>
                           </span>
                         )}
                         {isSystem ? (
                           <span className="flex items-center gap-1 text-slate-500 text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded">
                             <ShieldCheck className="w-3 h-3 text-blue-600" />
-                            <span>સિસ્ટમ ફોર્મેટ</span>
+                            <span>Official Format</span>
                           </span>
                         ) : (
                           <span className="flex items-center gap-1 text-emerald-700 text-[10px] font-medium bg-emerald-50 px-1.5 py-0.5 rounded">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>કસ્ટમ પત્ર</span>
+                            <span>Custom Template</span>
                           </span>
                         )}
                       </div>
@@ -959,7 +1039,7 @@ export default function TemplateStudio({
 
                     {tmpl.subject && (
                       <p className="text-xs text-slate-500 line-clamp-1 italic">
-                        વિષય: {tmpl.subject}
+                        Subject: {tmpl.subject}
                       </p>
                     )}
                   </div>
@@ -976,17 +1056,17 @@ export default function TemplateStudio({
                         type="button"
                         onClick={() => handleOpenInEditor(tmpl)}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition-colors cursor-pointer"
-                        title="TinyMCE એડિટરમાં ખોલો"
+                        title="Open in TinyMCE Editor"
                       >
                         <FileText className="w-3.5 h-3.5 text-blue-600" />
-                        <span>TinyMCE એડિટ</span>
+                        <span>Edit Template</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleDuplicateFromGallery(tmpl)}
                         className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                        title="આ ફોર્મેટની નકલ બનાવો (Duplicate)"
+                        title="Duplicate template"
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </button>
@@ -995,7 +1075,7 @@ export default function TemplateStudio({
                         type="button"
                         onClick={() => setPreviewModalTemplate(tmpl)}
                         className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                        title="ઝડપી પૂર્વાવલોકન (Preview)"
+                        title="Quick Preview"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>
@@ -1005,7 +1085,7 @@ export default function TemplateStudio({
                           type="button"
                           onClick={() => handleDeleteTemplatePrompt(tmpl)}
                           className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                          title="ટેમ્પલેટ કાઢી નાખો (Delete)"
+                          title="Delete template"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1016,9 +1096,9 @@ export default function TemplateStudio({
                       type="button"
                       onClick={() => onUseTemplateForReport(tmpl)}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-colors shadow-2xs shrink-0 cursor-pointer"
-                      title="આ ટેમ્પલેટ પસંદ કરીને રિપોર્ટ જનરેટરમાં જાવ"
+                      title="Use this template in Report Generator"
                     >
-                      <span>વાપરો</span>
+                      <span>Generate</span>
                       <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
@@ -1031,7 +1111,7 @@ export default function TemplateStudio({
             <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 space-y-3">
               <AlertCircle className="w-8 h-8 text-slate-400 mx-auto" />
               <div className="font-semibold text-slate-700 text-sm">
-                કોઈ ટેમ્પલેટ મળ્યો નથી (No templates matched your query)
+                No templates found matching your search
               </div>
               <button
                 type="button"
@@ -1041,7 +1121,7 @@ export default function TemplateStudio({
                 }}
                 className="text-xs text-blue-600 hover:underline font-bold"
               >
-                બધા ફિલ્ટર રીસેટ કરો
+                Reset All Filters
               </button>
             </div>
           )}
@@ -1053,6 +1133,19 @@ export default function TemplateStudio({
       {/* ========================================================================= */}
       {viewMode === 'editor' && (
         <div className="flex-1 flex flex-col">
+          {/* Hidden file input for uploading images from device into template body */}
+          <input
+            ref={templateImageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleInsertImageIntoTemplate(file);
+              e.target.value = '';
+            }}
+          />
+
           {/* Top Bar: Back to gallery, Template Name, Category, Save, Duplicate */}
           <div className="bg-[#185abd] text-white px-3 sm:px-5 py-2.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 shadow-md">
             {/* Left: Back button + Name & Type Input */}
@@ -1061,19 +1154,19 @@ export default function TemplateStudio({
                 type="button"
                 onClick={() => setViewMode('gallery')}
                 className="flex items-center gap-1 bg-[#104899] hover:bg-blue-800 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg border border-blue-400/30 transition-colors shrink-0 cursor-pointer"
-                title="પાછા ટેમ્પલેટ્સ લિસ્ટ પર જાવ"
+                title="Back to Templates Gallery"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>ટેમ્પલેટ્સ</span>
+                <span>Templates</span>
               </button>
 
               <div className="flex items-center gap-1.5 grow sm:grow-0 min-w-0">
-                <span className="text-xs font-bold text-blue-200 whitespace-nowrap">નામ:</span>
+                <span className="text-xs font-bold text-blue-200 whitespace-nowrap">Name:</span>
                 <input
                   type="text"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
-                  placeholder="ટેમ્પલેટનું નામ લખો..."
+                  placeholder="Enter template name..."
                   className="bg-[#104899] text-white text-xs font-bold px-2.5 py-1.5 rounded-lg border border-blue-400/40 focus:outline-hidden focus:ring-2 focus:ring-white min-w-[160px] sm:min-w-[240px] truncate"
                 />
               </div>
@@ -1083,12 +1176,12 @@ export default function TemplateStudio({
                 onChange={(e) => setNoticeType(e.target.value)}
                 className="bg-[#104899] text-white text-xs font-semibold px-2 py-1.5 rounded-lg border border-blue-400/40 focus:outline-hidden shrink-0 cursor-pointer"
               >
-                <option value="1st Warning" className="text-slate-900 bg-white">૧લી નોટિસ (1st Warning)</option>
-                <option value="2nd Warning" className="text-slate-900 bg-white">૨જી નોટિસ (2nd Warning)</option>
-                <option value="Final Notice" className="text-slate-900 bg-white">આખરી નોટિસ (Final Notice)</option>
-                <option value="Parent Notice" className="text-slate-900 bg-white">વાલી પત્ર (Parent Notice)</option>
-                <option value="General Notice" className="text-slate-900 bg-white">સામાન્ય નોટિસ (General)</option>
-                <option value="Report" className="text-slate-900 bg-white">આચાર્યશ્રી અહેવાલ (Report)</option>
+                <option value="1st Warning" className="text-slate-900 bg-white">1st Warning</option>
+                <option value="2nd Warning" className="text-slate-900 bg-white">2nd Warning</option>
+                <option value="Final Notice" className="text-slate-900 bg-white">Final Notice</option>
+                <option value="Parent Notice" className="text-slate-900 bg-white">Parent Notice</option>
+                <option value="General Notice" className="text-slate-900 bg-white">General Notice</option>
+                <option value="Report" className="text-slate-900 bg-white">Principal Report</option>
               </select>
 
               {/* Per-Template Letterhead Toggle Button */}
@@ -1100,14 +1193,14 @@ export default function TemplateStudio({
                     ? 'bg-blue-950/70 border-blue-300 text-white shadow-2xs'
                     : 'bg-[#104899] border-blue-400/40 text-blue-200 hover:text-white'
                 }`}
-                title="લેટરહેડ સુવિધા: સંસ્થાનું હેડર બેનર રાખવું કે પ્રી-પ્રિન્ટેડ કાગળ માટે છુપાવવું"
+                title="Toggle Letterhead: show official header or hide for pre-printed stationery"
               >
                 <Building2 className={`w-3.5 h-3.5 ${showLetterhead ? 'text-amber-300' : 'text-blue-300'}`} />
-                <span>લેટરહેડ: {showLetterhead ? 'હા (On)' : 'ના (Off)'}</span>
+                <span>Letterhead: {showLetterhead ? 'On' : 'Off'}</span>
               </button>
             </div>
 
-            {/* Right: Actions (Save, Save As, Generator, Print, PDF) */}
+            {/* Right: Actions (Save, Save As, Generator, Print, PDF, Upload Image) */}
             <div className="flex items-center justify-between sm:justify-end gap-1.5 shrink-0">
               <button
                 type="button"
@@ -1116,30 +1209,41 @@ export default function TemplateStudio({
                 title="Save changes to this template"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>સાચવો (Save)</span>
+                <span>Save</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setSaveAsName(`${templateName} (નવી નકલ)`);
+                  setSaveAsName(`${templateName} (Copy)`);
                   setIsSaveAsModalOpen(true);
                 }}
                 className="flex items-center gap-1 bg-[#104899] hover:bg-blue-800 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-blue-400/30 transition-colors shadow-xs shrink-0 cursor-pointer"
-                title="નવા નામે સેવ કરો"
+                title="Save as new template"
               >
                 <Copy className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">નવા નામે</span>
+                <span className="hidden sm:inline">Save Copy</span>
+              </button>
+
+              {/* Upload Image from Device into Template */}
+              <button
+                type="button"
+                onClick={() => templateImageInputRef.current?.click()}
+                className="flex items-center gap-1 bg-[#104899] hover:bg-blue-800 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-blue-400/30 transition-colors shadow-xs shrink-0 cursor-pointer"
+                title="Upload image or stamp from your device into the template"
+              >
+                <Upload className="w-3.5 h-3.5 text-blue-200" />
+                <span className="hidden sm:inline">Upload Image</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => onUseTemplateForReport(currentTemplate)}
                 className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black px-2.5 py-1.5 rounded-lg transition-colors shadow-xs shrink-0 cursor-pointer"
-                title="રિપોર્ટ જનરેટરમાં ઉપયોગ કરો"
+                title="Use in Report Generator"
               >
                 <ArrowRight className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">રિપોર્ટ જનરેટર</span>
+                <span className="hidden sm:inline">Report Generator</span>
               </button>
 
               {/* Prominent Edit Letterhead Facility Button */}
@@ -1147,10 +1251,10 @@ export default function TemplateStudio({
                 type="button"
                 onClick={() => setIsHeaderModalOpen(true)}
                 className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black px-3 py-1.5 rounded-lg transition-all shadow-md active:scale-95 shrink-0 cursor-pointer border border-amber-300"
-                title="સંસ્થા લેટરહેડ / કસ્ટમ બેનર ઇમેજ એડિટ કરો"
+                title="Edit institute letterhead and logos"
               >
                 <Building2 className="w-3.5 h-3.5 text-slate-950" />
-                <span>લેટરહેડ એડિટ કરો</span>
+                <span>Edit Letterhead</span>
               </button>
 
               <div className="flex items-center gap-0.5 bg-[#104899] p-1 rounded-lg border border-blue-400/40 shrink-0">
@@ -1158,7 +1262,7 @@ export default function TemplateStudio({
                   type="button"
                   onClick={handlePrint}
                   className="p-1 rounded hover:bg-blue-700 text-white"
-                  title="A4 પ્રિન્ટ કરો"
+                  title="Print Clean A4"
                 >
                   <Printer className="w-3.5 h-3.5" />
                 </button>
@@ -1168,7 +1272,7 @@ export default function TemplateStudio({
                   onClick={handleExportPdf}
                   disabled={isExportingPdf}
                   className="p-1 rounded hover:bg-blue-700 text-white disabled:opacity-50"
-                  title="PDF ડાઉનલોડ કરો"
+                  title="Export PDF"
                 >
                   <Download className="w-3.5 h-3.5" />
                 </button>
@@ -1179,12 +1283,12 @@ export default function TemplateStudio({
           {/* Sub-bar: Subject Input & Live Trainee Preview Switcher */}
           <div className="bg-[#f3f6f9] border-b border-slate-300 px-3 sm:px-4 py-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2 flex-grow min-w-0">
-              <span className="font-bold text-slate-600 whitespace-nowrap shrink-0">વિષય:</span>
+              <span className="font-bold text-slate-600 whitespace-nowrap shrink-0">Subject:</span>
               <input
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="પત્રનો સત્તાવાર વિષય દાખલ કરો..."
+                placeholder="Enter official notice subject..."
                 className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-medium text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-blue-600 min-w-0 flex-1"
               />
             </div>
@@ -1199,7 +1303,7 @@ export default function TemplateStudio({
                   className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
                 <Eye className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span className="whitespace-nowrap">લાઈવ ડેટા પ્રિવ્યુ (Live Trainee Data)</span>
+                <span className="whitespace-nowrap">Live Trainee Preview</span>
               </label>
 
               {previewMerged && trainees.length > 0 && (
@@ -1210,7 +1314,7 @@ export default function TemplateStudio({
                 >
                   {trainees.map((tr) => (
                     <option key={tr.id} value={tr.id}>
-                      રોલ {tr.roll_no} - {tr.student_name}
+                      Roll {tr.roll_no} - {tr.student_name_en || tr.student_name}
                     </option>
                   ))}
                 </select>
@@ -1254,6 +1358,7 @@ export default function TemplateStudio({
                     onChange={(html) => setLetterheadHtml(html)}
                     instructor={instructor}
                     template={currentTemplate}
+                    disabled={isGuest}
                     isTemplateSpecific={isTemplateSpecificHeader}
                     onToggleScope={(isSpecific) => setIsTemplateSpecificHeader(isSpecific)}
                     onSaveAsGlobalDefault={handleSaveAsGlobalDefault}
@@ -1265,10 +1370,10 @@ export default function TemplateStudio({
                 <div
                   onClick={() => setShowLetterhead(true)}
                   className="border border-dashed border-slate-300 hover:border-amber-400 bg-slate-50/70 hover:bg-amber-50/50 text-slate-500 hover:text-amber-800 py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all mb-4 select-none group"
-                  title="ક્લિક કરીને લેટરહેડ ચાલુ કરો"
+                  title="Click to enable letterhead on canvas"
                 >
                   <Building2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
-                  <span>લેટરહેડ બંધ છે • A4 કેન્વાસ પર લેટરહેડ ઉમેરવા અહીં ક્લિક કરો (Enable Letterhead)</span>
+                  <span>Letterhead disabled • Click here to enable letterhead on A4 canvas</span>
                 </div>
               )}
 
@@ -1285,6 +1390,7 @@ export default function TemplateStudio({
                   <TinyMceEditor
                     value={contentHtml}
                     onChange={setContentHtml}
+                    disabled={isGuest}
                     minHeight={560}
                   />
                 )}
@@ -1297,12 +1403,12 @@ export default function TemplateStudio({
             <div className="flex items-center gap-3">
               <span className="text-emerald-700 font-bold flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>TinyMCE એડિટર સક્રિય</span>
+                <span>TinyMCE Canvas Active</span>
               </span>
               <span>•</span>
-              <span>ભાષા: ગુજરાતી / English</span>
+              <span>Language: English & Gujarati</span>
               <span>•</span>
-              <span>કુલ અક્ષરો: {contentHtml.length}</span>
+              <span>Characters: {contentHtml.length}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -1311,7 +1417,7 @@ export default function TemplateStudio({
                 onClick={() => setShowLetterhead(!showLetterhead)}
                 className="hover:text-blue-700 underline cursor-pointer font-semibold"
               >
-                {showLetterhead ? 'લેટરહેડ છુપાવો (Hide Header)' : 'લેટરહેડ ઉમેરો (Show Header)'}
+                {showLetterhead ? 'Hide Letterhead' : 'Show Letterhead'}
               </button>
             </div>
           </div>
@@ -1331,10 +1437,10 @@ export default function TemplateStudio({
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">
-                    નવું ટેમ્પલેટ શરૂ કરો (Choose Template Starter)
+                    Choose Template Starter
                   </h3>
                   <p className="text-xs text-slate-500">
-                    ગુજરાત ITI માટે પ્રમાણિત ફોર્મેટ પસંદ કરો અથવા કોરો દસ્તાવેજ ખોલો
+                    Select an official format or open a template
                   </p>
                 </div>
               </div>
@@ -1372,7 +1478,7 @@ export default function TemplateStudio({
                     type="button"
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 group-hover:bg-emerald-700 text-white text-xs font-bold shrink-0 transition-colors cursor-pointer"
                   >
-                    પસંદ કરો
+                    Use Template
                   </button>
                 </div>
               ))}
@@ -1389,7 +1495,7 @@ export default function TemplateStudio({
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-sm">
-                નવા નામે સેવ કરો (Save Template As)
+                Save Template Copy
               </h3>
               <button
                 type="button"
@@ -1401,17 +1507,17 @@ export default function TemplateStudio({
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700">ટેમ્પલેટનું નામ:</label>
+              <label className="text-xs font-bold text-slate-700">Template Name:</label>
               <input
                 type="text"
                 value={saveAsName}
                 onChange={(e) => setSaveAsName(e.target.value)}
-                placeholder="દા.ત. આચાર્યશ્રી અહેવાલ - ફેબ્રુઆરી ૨૦૨૬"
+                placeholder="e.g. 1st Warning Attendance Notice - Copy"
                 className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-semibold"
                 autoFocus
               />
               <p className="text-[11px] text-slate-500">
-                આ ટેમ્પલેટ આપના એકાઉન્ટમાં સેવ થશે અને રિપોર્ટ જનરેટરમાં ઉપયોગ માટે ઉપલબ્ધ રહેશે.
+                This template will be saved to your account and available for report dispatch.
               </p>
             </div>
 
@@ -1421,7 +1527,7 @@ export default function TemplateStudio({
                 onClick={() => setIsSaveAsModalOpen(false)}
                 className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50"
               >
-                રદ કરો
+                Cancel
               </button>
               <button
                 type="button"
@@ -1429,7 +1535,7 @@ export default function TemplateStudio({
                 disabled={!saveAsName.trim()}
                 className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold cursor-pointer"
               >
-                સેવ કરો
+                Save Copy
               </button>
             </div>
           </div>
@@ -1472,13 +1578,13 @@ export default function TemplateStudio({
               handleSaveAsGlobalDefault(html);
             }
             setIsHeaderModalOpen(false);
-            showToast('સંસ્થા લેટરહેડ TinyMCE દ્વારા સફળતાપૂર્વક સાચવવામાં આવ્યું!');
+            showToast('Letterhead saved successfully!');
           }}
           onSaveHeaderConfig={(newConfig) => {
             setHeaderConfig(newConfig);
             onUpdateInstructorHeader(newConfig);
             setIsHeaderModalOpen(false);
-            showToast('સંસ્થા લેટરહેડ સફળતાપૂર્વક સાચવવામાં આવ્યું!');
+            showToast('Letterhead saved successfully!');
           }}
           onSaveAsGlobalDefault={handleSaveAsGlobalDefault}
         />
@@ -1522,7 +1628,7 @@ export default function TemplateStudio({
                 onClick={() => setPreviewModalTemplate(null)}
                 className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50"
               >
-                બંધ કરો
+                Close
               </button>
 
               <div className="flex items-center gap-2">
@@ -1535,7 +1641,7 @@ export default function TemplateStudio({
                   }}
                   className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer"
                 >
-                  TinyMCE માં એડિટ કરો
+                  Edit in TinyMCE
                 </button>
 
                 <button
@@ -1547,7 +1653,7 @@ export default function TemplateStudio({
                   }}
                   className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black cursor-pointer"
                 >
-                  રિપોર્ટ જનરેટરમાં વાપરો
+                  Use in Report Generator
                 </button>
               </div>
             </div>

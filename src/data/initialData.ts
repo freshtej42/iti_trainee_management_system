@@ -1,5 +1,20 @@
 import { Instructor, Trainee, AttendanceRecord, LetterTemplate, DispatchLog } from '../types';
 import { SAMPLE_UPI_RECEIPT_DATA_URL } from '../utils/imageCompressor';
+import {
+  DEMO_GUEST_INSTRUCTOR,
+  DEMO_SAMPLE_TRAINEES,
+  DEMO_SAMPLE_ATTENDANCE,
+  DEMO_SAMPLE_TEMPLATES,
+  DEMO_SAMPLE_DISPATCH_LOGS,
+} from './demoData';
+
+export {
+  DEMO_GUEST_INSTRUCTOR,
+  DEMO_SAMPLE_TRAINEES,
+  DEMO_SAMPLE_ATTENDANCE,
+  DEMO_SAMPLE_TEMPLATES,
+  DEMO_SAMPLE_DISPATCH_LOGS,
+};
 
 export const INITIAL_INSTRUCTORS: Instructor[] = [
   {
@@ -205,72 +220,8 @@ export const INITIAL_INSTRUCTORS: Instructor[] = [
     payment_submitted_at: '2026-10-10T09:30:00Z',
     created_at: '2026-10-10T09:25:00Z',
   },
-  {
-    id: 'guest-demo-instructor',
-    user_id: 'iti.guest.demo',
-    username: 'guest_demo',
-    name: 'અતિથિ મુલાકાતી (ગેસ્ટ ડેમો મોડ)',
-    name_gu: 'અતિથિ મુલાકાતી (ગેસ્ટ ડેમો મોડ)',
-    email: 'guest@itidemo.gov.in',
-    email_verified: true,
-    mobile_verified: true,
-    password: 'Guest@Demo2026!',
-    role: 'guest',
-    is_guest: true,
-    status: 'approved',
-    iti_name: 'ઔદ્યોગિક તાલીમ સંસ્થા, ગાંધીનગર (ડેમો કેમ્પસ)',
-    trade: 'કોપા (COPA)',
-    trades: ['કોપા (COPA)', 'ઇલેક્ટ્રિશિયન (Electrician)', 'ફિટર (Fitter)'],
-    batch: '૨૦૨૫–૨૦૨૬',
-    batches: ['૨૦૨૫–૨૦૨૬', '૨૦૨૪–૨૦૨૬'],
-    unit: 'Unit A',
-    units: ['Unit A', 'Unit B'],
-    academic_hierarchy: [
-      {
-        id: 'trade-demo-copa',
-        name: 'કોપા (COPA)',
-        batches: [
-          {
-            id: 'batch-demo-copa-25',
-            name: '૨૦૨૫–૨૦૨૬',
-            units: [
-              { id: 'unit-demo-copa-a', name: 'Unit A' },
-              { id: 'unit-demo-copa-b', name: 'Unit B' },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'trade-demo-elec',
-        name: 'ઇલેક્ટ્રિશિયન (Electrician)',
-        batches: [
-          {
-            id: 'batch-demo-elec-25',
-            name: '૨૦૨૫–૨૦૨૬',
-            units: [{ id: 'unit-demo-elec-a', name: 'Unit A' }],
-          },
-        ],
-      },
-    ],
-    designation: 'ડેમો સુપરવાઇઝર ઇન્સ્ટ્રક્ટર (નિરીક્ષણ મોડ)',
-    phone: '9999900000',
-    institution_address: 'સેક્ટર-૧૫, જી.ઈ.સી. કેમ્પસ પાસે, ગાંધીનગર-૩૮૨૦૧૬',
-    outward_code_prefix: 'ઔતાસં/ગાંધીનગર/ડેમો',
-    header_config: {
-      show_logo: true,
-      institute_name_gu: 'ઔદ્યોગિક તાલીમ સંસ્થા, ગાંધીનગર (ડેમો કેમ્પસ)',
-      institute_name_en: 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE, GANDHINAGAR (DEMO)',
-      department_subtitle: 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત રાજ્ય',
-      address: 'સેક્ટર-૧૫, જી.ઈ.સી. કેમ્પસ પાસે, ગાંધીનગર-૩૮૨૦૧૬',
-      ref_prefix: 'ઔતાસં/ગાંધીનગર/ડેમો/૨૦૨૫',
-    },
-    approved_at: '2026-01-01T10:00:00Z',
-    valid_until: '2099-12-31T23:59:59Z',
-    created_at: '2026-01-01T10:00:00Z',
-  },
+  DEMO_GUEST_INSTRUCTOR,
 ];
-
-export const DEMO_GUEST_INSTRUCTOR = INITIAL_INSTRUCTORS.find((i) => i.id === 'guest-demo-instructor')!;
 
 export const INITIAL_TRAINEES: Trainee[] = [
   // --- Guest Demo Account Trainees (Gandhinagar COPA 2025-2026) ---
@@ -848,7 +799,7 @@ export const INITIAL_TRAINEES: Trainee[] = [
     pincode: '380008',
     created_at: '2025-08-01T10:00:00Z',
   },
-];
+].filter((t) => !t.id.startsWith('demo-') && t.instructor_id !== 'guest-demo-instructor');
 
 export const INITIAL_ATTENDANCE: AttendanceRecord[] = [
   // --- Guest Demo Account Attendance Records (Gandhinagar August 2026, 24 Working Days) ---
@@ -1110,6 +1061,101 @@ export const INITIAL_ATTENDANCE: AttendanceRecord[] = [
     remarks: 'ઓછી હાજરીની વાલીને જાણ કરવી',
     updated_at: '2026-08-31T17:00:00Z',
   },
+  // ITI Shankheshwar (Mahila) September 2026 (Total Working Days: 25)
+  {
+    id: 'att-skh-1-sep',
+    trainee_id: 'tr-skh-1',
+    instructor_id: 'inst-shankheshwar',
+    month_year: 'September 2026',
+    total_working_days: 25,
+    present_days: 14,
+    absent_days: 11,
+    attendance_percentage: 56.00,
+    flagged_low: true,
+    continuous_absent_since: '૧૫/૦૯/૨૦૨૬',
+    absent_from_date: '૧૫/૦૯/૨૦૨૬',
+    absent_to_date: '૩૦/૦૯/૨૦૨૬',
+    remarks: 'સતત ગેરહાજર (સંચિત ૫૫.૧% - લાલ ફ્લેગ)',
+    updated_at: '2026-09-30T17:00:00Z',
+  },
+  {
+    id: 'att-skh-2-sep',
+    trainee_id: 'tr-skh-2',
+    instructor_id: 'inst-shankheshwar',
+    month_year: 'September 2026',
+    total_working_days: 25,
+    present_days: 15,
+    absent_days: 10,
+    attendance_percentage: 60.00,
+    flagged_low: true,
+    remarks: 'સંચિત ૬૧.૨% - લાલ ફ્લેગ',
+    updated_at: '2026-09-30T17:00:00Z',
+  },
+  {
+    id: 'att-skh-3-sep',
+    trainee_id: 'tr-skh-3',
+    instructor_id: 'inst-shankheshwar',
+    month_year: 'September 2026',
+    total_working_days: 25,
+    present_days: 13,
+    absent_days: 12,
+    attendance_percentage: 52.00,
+    flagged_low: true,
+    remarks: 'સંચિત ૫૧.૦% - લાલ ફ્લેગ',
+    updated_at: '2026-09-30T17:00:00Z',
+  },
+  {
+    id: 'att-skh-4-sep',
+    trainee_id: 'tr-skh-4',
+    instructor_id: 'inst-shankheshwar',
+    month_year: 'September 2026',
+    total_working_days: 25,
+    present_days: 24,
+    absent_days: 1,
+    attendance_percentage: 96.00,
+    flagged_low: false,
+    remarks: 'સપ્ટેમ્બરમાં સુધારો (સંચિત ૮૧.૬% - સંચિત સુરક્ષિત)',
+    updated_at: '2026-09-30T17:00:00Z',
+  },
+  {
+    id: 'att-skh-5-sep',
+    trainee_id: 'tr-skh-5',
+    instructor_id: 'inst-shankheshwar',
+    month_year: 'September 2026',
+    total_working_days: 25,
+    present_days: 16,
+    absent_days: 9,
+    attendance_percentage: 64.00,
+    flagged_low: true,
+    remarks: 'સંચિત ૬૧.૨% - લાલ ફ્લેગ',
+    updated_at: '2026-09-30T17:00:00Z',
+  },
+  {
+    id: 'att-skh-6-sep',
+    trainee_id: 'tr-skh-6',
+    instructor_id: 'inst-shankheshwar',
+    month_year: 'September 2026',
+    total_working_days: 25,
+    present_days: 12,
+    absent_days: 13,
+    attendance_percentage: 48.00,
+    flagged_low: true,
+    remarks: 'સંચિત ૪૬.૯% - લાલ ફ્લેગ',
+    updated_at: '2026-09-30T17:00:00Z',
+  },
+  {
+    id: 'att-skh-7-sep',
+    trainee_id: 'tr-skh-7',
+    instructor_id: 'inst-shankheshwar',
+    month_year: 'September 2026',
+    total_working_days: 25,
+    present_days: 23,
+    absent_days: 2,
+    attendance_percentage: 92.00,
+    flagged_low: false,
+    remarks: 'સપ્ટેમ્બરમાં નિયમિત (સંચિત ૮૧.૬% - સંચિત સુરક્ષિત)',
+    updated_at: '2026-09-30T17:00:00Z',
+  },
   // August 2026 (Total Working Days: 24)
   {
     id: 'att-101-aug',
@@ -1269,9 +1315,9 @@ export const INITIAL_ATTENDANCE: AttendanceRecord[] = [
     flagged_low: true,
     updated_at: '2026-08-31T17:00:00Z',
   },
-];
+].filter((a) => !a.id.startsWith('demo-') && !a.id.startsWith('att-demo-') && a.instructor_id !== 'guest-demo-instructor');
 
-export const INITIAL_DISPATCH_LOGS: DispatchLog[] = [
+export const INITIAL_DISPATCH_LOGS: DispatchLog[] = ([
   // --- Guest Demo Account Outward / Dispatch Records ---
   {
     id: 'disp-demo-001',
@@ -1348,7 +1394,7 @@ export const INITIAL_DISPATCH_LOGS: DispatchLog[] = [
     notes: 'પિતાશ્રીએ ટેલિફોન પર સંપર્ક કર્યો હતો.',
     created_at: '2026-08-14T11:35:00Z',
   },
-];
+] as DispatchLog[]).filter((d) => !d.id.startsWith('disp-demo-') && d.instructor_id !== 'guest-demo-instructor');
 
 export const DEFAULT_TEMPLATES: LetterTemplate[] = [
   {
@@ -1404,7 +1450,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
 
     <div style="display: flex; gap: 8px;">
       <span style="font-weight: bold; min-width: 28px;">(૩)</span>
-      <div>તેઓની સંસ્થામાં હાજરી ઘણી ઓછી અને અનિયમિત છે. તેઓ વારંવાર સંસ્થામાં ગેરહાજર રહે છે. જો તેઓની હાજરી પરીક્ષા સમયે ૮૦ ટકા કરતાં ઓછી થશે તો તેમને ટ્રેડ ટેસ્ટમાં બેસવા દેવામાં આવશે નહી તેની નોંધ લેવી. આજદિન સુધી તેની હાજરી <strong>{{Attendance_Percentage}}%</strong> ટકા છે જે નિયમ કરતાં ઓછી છે.</div>
+      <div>તેઓની સંસ્થામાં હાજરી ઘણી ઓછી અને અનિયમિત છે. તેઓ વારંવાર સંસ્થામાં ગેરહાજર રહે છે. જો તેઓની હાજરી પરીક્ષા સમયે ૮૦ ટકા કરતાં ઓછી થશે તો તેમને ટ્રેડ ટેસ્ટમાં બેસવા દેવામાં આવશે નહી તેની નોંધ લેવી. આજદિન સુધી માસિક હાજરી <strong>{{Attendance_Percentage}}%</strong> તેમજ સંચિત/પ્રગતિશીલ હાજરી <strong>{{Progressive_Attendance_Percentage}}%</strong> છે જે નિયમ કરતાં ઓછી છે.</div>
     </div>
 
     <div style="display: flex; gap: 8px;">
@@ -1524,7 +1570,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
   </p>
 
   <p style="text-indent: 32px; margin-bottom: 12px; text-align: justify;">
-    માહે <strong>{{Month_Year}}</strong> દરમિયાન સંસ્થાના કુલ કામકાજના <strong>{{Working_Days}}</strong> દિવસો પૈકી આપનો પાલ્ય માત્ર <strong>{{Present_Days}}</strong> દિવસ હાજર રહેલ છે અને <strong>{{Absent_Days}}</strong> દિવસ સંસ્થાની પૂર્વ મંજૂરી વગર ગેરહાજર રહેલ છે. જેથી તાલીમાર્થીની માસિક હાજરી માત્ર <strong>{{Attendance_Percentage}}%</strong> થયેલ છે. અગાઉ આપેલ નોટિસ તારીખ: <strong>{{Last_Notice_Date}}</strong> છે.
+    માહે <strong>{{Month_Year}}</strong> દરમિયાન સંસ્થાના કુલ કામકાજના <strong>{{Working_Days}}</strong> દિવસો પૈકી આપનો પાલ્ય માત્ર <strong>{{Present_Days}}</strong> દિવસ હાજર રહેલ છે અને <strong>{{Absent_Days}}</strong> દિવસ સંસ્થાની પૂર્વ મંજૂરી વગર ગેરહાજર રહેલ છે. જેથી તાલીમાર્થીની માસિક હાજરી <strong>{{Attendance_Percentage}}%</strong> અને સંચિત પ્રગતિશીલ હાજરી <strong>{{Progressive_Attendance_Percentage}}%</strong> નોંધાયેલ છે (સ્થિતિ: <strong>{{Progressive_Status}}</strong>). અગાઉ આપેલ નોટિસ તારીખ: <strong>{{Last_Notice_Date}}</strong> છે.
   </p>
 
   <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 16px; margin: 16px 0;">
@@ -1581,7 +1627,7 @@ export const DEFAULT_TEMPLATES: LetterTemplate[] = [
   </p>
 
   <p style="text-indent: 32px; margin-bottom: 12px; text-align: justify;">
-    કુલ કામકાજના <strong>{{Working_Days}}</strong> દિવસો પૈકી માત્ર <strong>{{Present_Days}}</strong> દિવસ હાજર રહેલ છે અને <strong>{{Absent_Days}}</strong> દિવસ ગેરહાજર રહેલ છે (માસિક હાજરી: <strong>{{Attendance_Percentage}}%</strong>).
+    કુલ કામકાજના <strong>{{Working_Days}}</strong> દિવસો પૈકી માત્ર <strong>{{Present_Days}}</strong> દિવસ હાજર રહેલ છે અને <strong>{{Absent_Days}}</strong> દિવસ ગેરહાજર રહેલ છે (માસિક હાજરી: <strong>{{Attendance_Percentage}}%</strong>, સંચિત પ્રગતિશીલ હાજરી: <strong>{{Progressive_Attendance_Percentage}}%</strong>).
   </p>
 
   <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px 16px; margin: 16px 0;">

@@ -50,8 +50,8 @@ export interface Instructor {
   id: string;
   user_id?: string; // Official User ID / Employee Code (e.g. iti.shankheshwar)
   username?: string; // Optional handle
-  name: string;
-  name_gu?: string;
+  name: string; // Name in English
+  name_gu?: string; // Name in Gujarati
   email: string;
   phone: string; // Official Mobile Number (10 digits) - used as Login ID along with Email
   role?: UserRole; // 'super_admin' or 'instructor' or 'guest'
@@ -60,16 +60,20 @@ export interface Instructor {
   email_verified?: boolean; // Whether instructor email has been verified
   mobile_verified?: boolean;
   password?: string;
-  iti_name: string;
-  trade: string; // Primary active trade
+  iti_name: string; // ITI Name in English
+  iti_name_gu?: string; // ITI Name in Gujarati
+  trade: string; // Primary active trade in English
+  trade_gu?: string; // Trade in Gujarati
   trades?: string[]; // All configured trades
   batch: string; // Primary active batch
   batches?: string[]; // Configured batches
   unit: string; // Primary active unit
   units?: string[]; // Configured units e.g. ['Unit A', 'Unit B']
   academic_hierarchy?: AcademicTrade[]; // Strict Trade -> Batch -> Unit hierarchy tree
-  designation: string;
-  institution_address?: string;
+  designation: string; // Designation in English
+  designation_gu?: string; // Designation in Gujarati
+  institution_address?: string; // Address in English
+  institution_address_gu?: string; // Address in Gujarati
   outward_code_prefix?: string;
   letterhead_header_url?: string;
   letterhead_html?: string; // Global default TinyMCE rich-text letterhead HTML
@@ -106,7 +110,7 @@ export interface Trainee {
   trade: string; // Foreign key / name to AcademicTrade
   batch: string; // Foreign key / name to AcademicBatch
   unit: string; // Foreign key / name to AcademicUnit
-  // Regional script fields (Gujarati or Hindi)
+  // Regional script fields (Gujarati)
   surname: string;
   student_name: string;
   father_name: string;
@@ -124,11 +128,15 @@ export interface Trainee {
   gender?: string;
   category?: string; // General, SEBC, SC, ST, EWS
   dob?: string;
-  // Address fields
-  address: string;
-  village: string;
-  taluka: string;
-  district: string;
+  // Address fields in English & Gujarati
+  address: string; // English Address
+  address_gu?: string; // Gujarati Address
+  village: string; // English Village / City
+  village_gu?: string; // Gujarati Village / City
+  taluka: string; // English Taluka
+  taluka_gu?: string; // Gujarati Taluka
+  district: string; // English District
+  district_gu?: string; // Gujarati District
   pincode: string;
   created_at: string;
   updated_at?: string;
@@ -144,6 +152,11 @@ export interface AttendanceRecord {
   absent_days: number;
   attendance_percentage: number;
   flagged_low: boolean; // percentage < 80%
+  // Progressive Attendance fields
+  progressive_attendance_percentage?: number; // Average of recorded monthly percentages
+  progressive_recorded_months?: number; // Total months recorded in session
+  progressive_safe?: boolean; // Monthly < 80% but Progressive >= 80% (Exempt from notice)
+  requires_notice?: boolean; // Progressive < 80%
   continuous_absent_since?: string; // e.g. "12/08/2026" or "૧૨/૦૮/૨૦૨૬"
   absent_from_date?: string;
   absent_to_date?: string;

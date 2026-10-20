@@ -122,75 +122,57 @@ export function doesUnitMatch(traineeUnit?: string, targetUnit?: string): boolea
 
 /**
  * Checks if a trainee belongs to the specified instructor.
- * Matching rules:
+ * Strict Tenancy & Isolation Rules:
  * 1. Super Admin can view all students across all trades and institutes.
- * 2. If student has instructor_id that explicitly matches instructor.id, student belongs to instructor.
- * 3. Match by Trade, Batch, and Unit assigned to the instructor (checking active trade/batch/unit
- *    as well as any trade/batch/unit in the instructor's academic_hierarchy, trades, batches, units arrays).
+ * 2. Demo Guest Account (guest-demo-instructor) is strictly isolated to demo sample students only.
+ * 3. Regular Instructors are strictly prevented from viewing demo records or other instructors' records.
+ * 4. Regular Instructors must satisfy BOTH instructor ID ownership (trainee.instructor_id === instructor.id)
+ *    AND matching assigned academic Unit.
  */
 export function isStudentAssignedToInstructor(trainee: Trainee, instructor: Instructor): boolean {
-  if (!instructor) return false;
-  if (instructor.role === 'super_admin') return true;
+  if (!instructor || !trainee) return false;
 
-  // Direct foreign key match
-  if (trainee.instructor_id && trainee.instructor_id === instructor.id) {
+  // 1. Super Admin universal access
+  if (instructor.role === 'super_admin') {
     return true;
   }
 
-  // Check matching by trade, batch, and unit assigned to instructor
-  // Collect all acceptable trades for this instructor
-  const validTrades = new Set<string>();
-  if (instructor.trade) validTrades.add(instructor.trade);
-  if (instructor.trades) instructor.trades.forEach((t) => validTrades.add(t));
-  if (instructor.academic_hierarchy) {
-    instructor.academic_hierarchy.forEach((h) => validTrades.add(h.name));
+  const isGuest =
+    instructor.id === 'guest-demo-instructor' ||
+    instructor.role === 'guest' ||
+    Boolean(instructor.is_guest);
+  const isDemoTrainee =
+    trainee.instructor_id === 'guest-demo-instructor' ||
+    trainee.id.startsWith('demo-');
+
+  // 2. Guest demo account: strictly confined to demo sample data
+  if (isGuest) {
+    return isDemoTrainee;
   }
 
-  // Check if trainee trade matches any instructor trade
-  let tradeMatched = false;
-  let matchingTradeObj = instructor.academic_hierarchy?.find((h) => doesTradeMatch(trainee.trade, h.name));
-  for (const vt of validTrades) {
-    if (doesTradeMatch(trainee.trade, vt)) {
-      tradeMatched = true;
-      break;
-    }
-  }
-
-  if (!tradeMatched) {
+  // 3. Regular instructors: strictly blocked from accessing demo records
+  if (isDemoTrainee) {
     return false;
   }
 
-  // Collect valid batches for this trade / instructor
-  const validBatches = new Set<string>();
-  if (instructor.batch) validBatches.add(instructor.batch);
-  if (instructor.batches) instructor.batches.forEach((b) => validBatches.add(b));
-  if (matchingTradeObj?.batches) {
-    matchingTradeObj.batches.forEach((b) => validBatches.add(b.name));
-  }
-
-  let batchMatched = false;
-  let matchingBatchObj = matchingTradeObj?.batches?.find((b) => doesBatchMatch(trainee.batch, b.name));
-  for (const vb of validBatches) {
-    if (doesBatchMatch(trainee.batch, vb)) {
-      batchMatched = true;
-      break;
-    }
-  }
-
-  if (!batchMatched) {
+  // 4. Regular instructors: MUST be the assigned owner (trainee.instructor_id === instructor.id)
+  if (!trainee.instructor_id || trainee.instructor_id !== instructor.id) {
     return false;
   }
 
-  // Collect valid units for this batch / instructor
+  // 5. AND must match assigned Unit (academic hierarchy check)
   const validUnits = new Set<string>();
   if (instructor.unit) validUnits.add(instructor.unit);
   if (instructor.units) instructor.units.forEach((u) => validUnits.add(u));
-  if (matchingBatchObj?.units) {
-    matchingBatchObj.units.forEach((u) => validUnits.add(u.name));
+  if (instructor.academic_hierarchy) {
+    instructor.academic_hierarchy.forEach((h) => {
+      h.batches?.forEach((b) => {
+        b.units?.forEach((u) => validUnits.add(u.name));
+      });
+    });
   }
 
-  // If instructor configured units, verify unit match
-  if (validUnits.size > 0) {
+  if (validUnits.size > 0 && trainee.unit) {
     let unitMatched = false;
     for (const vu of validUnits) {
       if (doesUnitMatch(trainee.unit, vu)) {

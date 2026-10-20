@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
-import { Instructor } from '../types';
 import {
   Layers,
+  X,
   Plus,
   Trash2,
   Check,
-  CheckCircle2,
-  X,
-  BookOpen,
-  Building,
   Save,
+  CheckCircle2,
+  BookOpen,
 } from 'lucide-react';
+import { Instructor } from '../types';
 
-interface BatchUnitManagerModalProps {
+export interface BatchUnitManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
   instructor: Instructor;
-  onUpdateInstructor: (updated: Instructor) => void;
+  onUpdateHierarchy?: (updatedInstructor: Partial<Instructor>) => void;
+  onUpdateInstructor?: (updatedInstructor: Instructor) => void;
 }
 
 const DEFAULT_UNITS = ['Unit A', 'Unit B', 'Unit C'];
@@ -25,37 +25,64 @@ export default function BatchUnitManagerModal({
   isOpen,
   onClose,
   instructor,
+  onUpdateHierarchy,
   onUpdateInstructor,
 }: BatchUnitManagerModalProps) {
   if (!isOpen) return null;
 
-  const currentBatches = instructor.batches && instructor.batches.length > 0
-    ? instructor.batches
-    : [instructor.batch || '૨૦૨૫–૨૦૨૬'];
+  const isGuest = Boolean(
+    instructor.role === 'guest' ||
+    instructor.is_guest ||
+    instructor.id === 'guest-demo-instructor'
+  );
 
-  const currentUnits = instructor.units && instructor.units.length > 0
-    ? instructor.units
-    : DEFAULT_UNITS;
+  // Batches list state
+  const [batches, setBatches] = useState<string[]>(() => {
+    return instructor.batches && instructor.batches.length > 0
+      ? [...instructor.batches]
+      : [instructor.batch || '84'];
+  });
+  const [activeBatch, setActiveBatch] = useState<string>(
+    instructor.batch || (batches[0] ?? '84')
+  );
+  const [newBatchInput, setNewBatchInput] = useState('');
 
-  const [batches, setBatches] = useState<string[]>(currentBatches);
-  const [units, setUnits] = useState<string[]>(currentUnits);
-  const [activeBatch, setActiveBatch] = useState<string>(instructor.batch || currentBatches[0]);
-  const [activeUnit, setActiveUnit] = useState<string>(instructor.unit || currentUnits[0]);
+  // Units list state
+  const [units, setUnits] = useState<string[]>(() => {
+    return instructor.units && instructor.units.length > 0
+      ? [...instructor.units]
+      : DEFAULT_UNITS;
+  });
+  const [activeUnit, setActiveUnit] = useState<string>(
+    instructor.unit || (units[0] ?? 'Unit A')
+  );
+  const [newUnitInput, setNewUnitInput] = useState('');
 
-  const [newBatchInput, setNewBatchInput] = useState<string>('');
-  const [newUnitInput, setNewUnitInput] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Add new batch
-  const handleAddBatch = (batchToAdd: string) => {
-    const trimmed = batchToAdd.trim();
-    if (!trimmed || batches.includes(trimmed)) return;
-    setBatches([...batches, trimmed]);
+  // Add Batch
+  const handleAddBatch = (rawBatch: string) => {
+    if (isGuest) return;
+    const trimmed = rawBatch.trim();
+    if (!trimmed) return;
+    if (batches.includes(trimmed)) {
+      setToastMessage(`Batch "${trimmed}" already exists.`);
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+    const updated = [...batches, trimmed];
+    setBatches(updated);
+    setActiveBatch(trimmed);
     setNewBatchInput('');
   };
 
-  // Remove batch
+  // Remove Batch
   const handleRemoveBatch = (bToRemove: string) => {
-    if (batches.length <= 1) return; // Keep at least one
+    if (isGuest) return;
+    if (batches.length <= 1) {
+      alert('At least one batch must remain.');
+      return;
+    }
     const updated = batches.filter((b) => b !== bToRemove);
     setBatches(updated);
     if (activeBatch === bToRemove) {
@@ -63,31 +90,49 @@ export default function BatchUnitManagerModal({
     }
   };
 
-  // Toggle unit from defaults
+  // Toggle Standard Unit
   const handleToggleDefaultUnit = (uName: string) => {
+    if (isGuest) return;
     if (units.includes(uName)) {
-      if (units.length <= 1) return; // Keep at least one
+      if (units.length <= 1) {
+        alert('At least one unit must remain.');
+        return;
+      }
       const updated = units.filter((u) => u !== uName);
       setUnits(updated);
       if (activeUnit === uName) {
         setActiveUnit(updated[0]);
       }
     } else {
-      setUnits([...units, uName]);
+      const updated = [...units, uName];
+      setUnits(updated);
+      setActiveUnit(uName);
     }
   };
 
-  // Add custom unit
+  // Add Custom Unit
   const handleAddCustomUnit = () => {
+    if (isGuest) return;
     const trimmed = newUnitInput.trim();
-    if (!trimmed || units.includes(trimmed)) return;
-    setUnits([...units, trimmed]);
+    if (!trimmed) return;
+    if (units.includes(trimmed)) {
+      setToastMessage(`Unit "${trimmed}" already exists.`);
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+    const updated = [...units, trimmed];
+    setUnits(updated);
+    setActiveUnit(trimmed);
     setNewUnitInput('');
   };
 
-  // Remove unit
+  // Remove Unit
   const handleRemoveUnit = (uToRemove: string) => {
-    if (units.length <= 1) return;
+    if (isGuest) return;
+    if (units.length <= 1) {
+      alert('At least one unit must remain.');
+      return;
+    }
     const updated = units.filter((u) => u !== uToRemove);
     setUnits(updated);
     if (activeUnit === uToRemove) {
@@ -97,13 +142,24 @@ export default function BatchUnitManagerModal({
 
   // Save changes
   const handleSave = () => {
-    onUpdateInstructor({
-      ...instructor,
+    if (isGuest) {
+      onClose();
+      return;
+    }
+    const changes = {
       batch: activeBatch,
       batches: batches,
       unit: activeUnit,
       units: units,
-    });
+    };
+    if (onUpdateInstructor) {
+      onUpdateInstructor({
+        ...instructor,
+        ...changes,
+      });
+    } else if (onUpdateHierarchy) {
+      onUpdateHierarchy(changes);
+    }
     onClose();
   };
 
@@ -118,7 +174,7 @@ export default function BatchUnitManagerModal({
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900">
-                બેચ અને યુનિટ વ્યવસ્થાપન (Batch & Unit Management)
+                Batch &amp; Unit Management
               </h3>
               <p className="text-xs text-slate-500">
                 {instructor.name} • {instructor.trade}
@@ -127,22 +183,38 @@ export default function BatchUnitManagerModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 overflow-y-auto space-y-6">
+          {/* Guest Mode View-Only Banner */}
+          {isGuest && (
+            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-950 text-xs flex items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2">
+                <span className="p-1 px-2 bg-amber-200 text-amber-900 rounded-md font-bold text-[11px] shrink-0">
+                  👁️ View-Only
+                </span>
+                <span className="font-medium">
+                  Guest Demo Mode: Batches and units configuration is protected. Modifications are disabled.
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 shrink-0">
+                Locked
+              </span>
+            </div>
+          )}
           {/* Section 1: Batches Management */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                 <BookOpen className="w-4 h-4 text-blue-700" />
-                <span>સક્રિય બેચ યાદી (Configured Batches)</span>
+                <span>Configured Batches</span>
               </label>
               <span className="text-[11px] text-slate-500">
-                ક્લિક કરીને પ્રાથમિક બેચ પસંદ કરો
+                Click to select active primary batch
               </span>
             </div>
 
@@ -182,7 +254,7 @@ export default function BatchUnitManagerModal({
                           e.stopPropagation();
                           handleRemoveBatch(b);
                         }}
-                        className="text-slate-400 hover:text-rose-600 p-1"
+                        className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
                         title="Remove batch"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -200,7 +272,7 @@ export default function BatchUnitManagerModal({
                   type="text"
                   value={newBatchInput}
                   onChange={(e) => setNewBatchInput(e.target.value)}
-                  placeholder="નવી બેચ લખો (e.g. 2025–2027, 2026–2028)..."
+                  placeholder="Enter new batch (e.g. 84, 85, 86)..."
                   className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -212,22 +284,22 @@ export default function BatchUnitManagerModal({
                 <button
                   type="button"
                   onClick={() => handleAddBatch(newBatchInput)}
-                  className="px-3 py-2 text-xs font-bold rounded-lg bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1 shadow-xs"
+                  className="px-3 py-2 text-xs font-bold rounded-lg bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1 shadow-xs cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>ઉમેરો (Add)</span>
+                  <span>Add</span>
                 </button>
               </div>
 
               {/* Quick Presets */}
               <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[11px] text-slate-500">
-                <span className="font-semibold">ઝડપી બેચ પસંદગી:</span>
-                {['૨૦૨૬–૨૦૨૭', '2026–2028', '૨૦૨૫–૨૦૨૬', '2025–2027'].map((preset) => (
+                <span className="font-semibold">Quick batch presets:</span>
+                {['84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '94', '95'].map((preset) => (
                   <button
                     type="button"
                     key={preset}
                     onClick={() => handleAddBatch(preset)}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer"
                   >
                     + {preset}
                   </button>
@@ -241,16 +313,16 @@ export default function BatchUnitManagerModal({
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-emerald-700" />
-                <span>યુનિટ વ્યવસ્થાપન (Unit A / B / C Management)</span>
+                <span>Unit Management (Unit A / B / C)</span>
               </label>
               <span className="text-[11px] text-slate-500">
-                ક્લિક કરીને પ્રાથમિક યુનિટ પસંદ કરો
+                Click to select active primary unit
               </span>
             </div>
 
             {/* Standard Units Quick Toggle */}
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
-              <span className="text-[11px] font-bold text-slate-700">સ્ટાન્ડર્ડ યુનિટ્સ (Standard Units):</span>
+              <span className="text-[11px] font-bold text-slate-700">Standard Units:</span>
               <div className="flex items-center gap-2 flex-wrap">
                 {DEFAULT_UNITS.map((uName) => {
                   const isConfigured = units.includes(uName);
@@ -266,7 +338,7 @@ export default function BatchUnitManagerModal({
                           setActiveUnit(uName);
                         }
                       }}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
                         isPrimary
                           ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
                           : isConfigured
@@ -329,7 +401,7 @@ export default function BatchUnitManagerModal({
                           e.stopPropagation();
                           handleRemoveUnit(u);
                         }}
-                        className="text-slate-400 hover:text-rose-600 p-1"
+                        className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
                         title="Remove unit"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -346,7 +418,7 @@ export default function BatchUnitManagerModal({
                 type="text"
                 value={newUnitInput}
                 onChange={(e) => setNewUnitInput(e.target.value)}
-                placeholder="કસ્ટમ યુનિટ ઉમેરો (દા.ત. Unit D, Shift 1)..."
+                placeholder="Enter custom unit (e.g. Unit D, Shift 1)..."
                 className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -358,10 +430,10 @@ export default function BatchUnitManagerModal({
               <button
                 type="button"
                 onClick={handleAddCustomUnit}
-                className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1 shadow-xs"
+                className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1 shadow-xs cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>ઉમેરો (Add)</span>
+                <span>Add</span>
               </button>
             </div>
           </div>
@@ -370,23 +442,29 @@ export default function BatchUnitManagerModal({
         {/* Footer Actions */}
         <div className="bg-slate-50 border-t border-slate-200 px-6 py-3.5 flex items-center justify-between">
           <div className="text-xs text-slate-600 font-medium">
-            સક્રિય: <strong className="text-blue-800">{activeBatch}</strong> • <strong className="text-emerald-800">{activeUnit}</strong>
+            Active: <strong className="text-blue-800">{activeBatch}</strong> • <strong className="text-emerald-800">{activeUnit}</strong>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300"
+              className="px-4 py-2 text-xs font-semibold rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 cursor-pointer"
             >
-              રદ કરો (Cancel)
+              Cancel
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-5 py-2 text-xs font-bold rounded-lg bg-blue-700 hover:bg-blue-800 text-white shadow-xs flex items-center gap-1.5"
+              disabled={isGuest}
+              title={isGuest ? 'Modifications disabled in Demo Mode' : undefined}
+              className={`px-5 py-2 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 ${
+                isGuest
+                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                  : 'bg-blue-700 hover:bg-blue-800 text-white cursor-pointer'
+              }`}
             >
               <Save className="w-3.5 h-3.5" />
-              <span>સાચવો (Save Changes)</span>
+              <span>Save Changes</span>
             </button>
           </div>
         </div>

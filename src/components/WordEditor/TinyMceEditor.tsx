@@ -1,14 +1,13 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { Editor } from '@tinymce/tinymce-react';
 import {
   Tag,
   Shapes,
-  Maximize2,
-  Minimize2,
-  Sparkles,
   Info,
   Check,
   ChevronDown,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export interface TinyMceEditorProps {
@@ -16,66 +15,65 @@ export interface TinyMceEditorProps {
   onChange: (content: string) => void;
   disabled?: boolean;
   minHeight?: number;
-  placeholder?: string;
   onInsertTag?: (tag: string) => void;
 }
 
-// Mail merge tags with Gujarati descriptions and sample data preview
+// Mail merge tags with clear English descriptions
 export const MERGE_TAG_ITEMS = [
-  { tag: '{{Trainee_Name}}', label: 'તાલીમાર્થીનું નામ (Trainee Name)', category: 'trainee' },
-  { tag: '{{Roll_No}}', label: 'રોલ નંબર (Roll No)', category: 'trainee' },
-  { tag: '{{Enrollment_No}}', label: 'નોંધણી નંબર (Enrollment No)', category: 'trainee' },
-  { tag: '{{Father_Name}}', label: 'પિતાશ્રીનું નામ (Father Name)', category: 'trainee' },
-  { tag: '{{Surname}}', label: 'અટક (Surname)', category: 'trainee' },
-  { tag: '{{Parent_Mobile}}', label: 'વાલી મોબાઈલ નંબર (Parent Mobile)', category: 'trainee' },
-  { tag: '{{Full_Address}}', label: 'સંપૂર્ણ સરનામું (Address)', category: 'trainee' },
-  { tag: '{{Trade}}', label: 'ટ્રેડ (Trade)', category: 'academic' },
-  { tag: '{{Batch}}', label: 'બેચ (Batch)', category: 'academic' },
-  { tag: '{{Unit}}', label: 'યુનિટ (Unit)', category: 'academic' },
-  { tag: '{{ITI_Name}}', label: 'સંસ્થાનું નામ (ITI Name)', category: 'academic' },
-  { tag: '{{Attendance_Percentage}}', label: 'હાજરી % (Attendance %)', category: 'attendance' },
-  { tag: '{{Total_Working_Days}}', label: 'કુલ કામકાજના દિવસ (Working Days)', category: 'attendance' },
-  { tag: '{{Present_Days}}', label: 'હાજર દિવસ (Present Days)', category: 'attendance' },
-  { tag: '{{Absent_Days}}', label: 'ગેરહાજર દિવસ (Absent Days)', category: 'attendance' },
-  { tag: '{{Month_Year}}', label: 'માસ / વર્ષ (Month Year)', category: 'attendance' },
-  { tag: '{{Ref_No}}', label: 'જાવક ક્રમાંક (Reference / Outward No)', category: 'dispatch' },
-  { tag: '{{Current_Date}}', label: 'નોટિસ તારીખ (Issue Date)', category: 'dispatch' },
-  { tag: '{{Previous_Notice_Dates}}', label: 'અગાઉની નોટિસ તારીખો (Previous Notice Dates / -)', category: 'dispatch' },
-  { tag: '{{Prior_Notice_Count}}', label: 'અગાઉ આપેલી નોટિસ સંખ્યા (Prior Notice Count)', category: 'dispatch' },
-  { tag: '{{Trainee_Attendance_Table}}', label: 'આચાર્યશ્રી રિપોર્ટ: તમામ તાલીમાર્થીઓનું કોષ્ટક (Attendance Table)', category: 'report' },
-  { tag: '{{Instructor_Name}}', label: 'ઇન્સ્ટ્રક્ટરનું નામ (Instructor Name)', category: 'institution' },
-  { tag: '{{Designation}}', label: 'હોદ્દો (Designation)', category: 'institution' },
-  { tag: '{{AI_Commentary}}', label: 'વાલી પરામર્શ / વિશેષ નોંધ (Guidance Commentary)', category: 'institution' },
+  { tag: '{{Trainee_Name}}', label: 'Trainee Name', category: 'trainee' },
+  { tag: '{{Roll_No}}', label: 'Roll Number', category: 'trainee' },
+  { tag: '{{Enrollment_No}}', label: 'Enrollment Number', category: 'trainee' },
+  { tag: '{{Father_Name}}', label: "Father's Name", category: 'trainee' },
+  { tag: '{{Surname}}', label: 'Surname', category: 'trainee' },
+  { tag: '{{Parent_Mobile}}', label: 'Parent Mobile', category: 'trainee' },
+  { tag: '{{Full_Address}}', label: 'Full Address', category: 'trainee' },
+  { tag: '{{Trade}}', label: 'Trade', category: 'academic' },
+  { tag: '{{Batch}}', label: 'Batch', category: 'academic' },
+  { tag: '{{Unit}}', label: 'Unit', category: 'academic' },
+  { tag: '{{ITI_Name}}', label: 'ITI Name', category: 'academic' },
+  { tag: '{{Attendance_Percentage}}', label: 'Attendance %', category: 'attendance' },
+  { tag: '{{Total_Working_Days}}', label: 'Total Working Days', category: 'attendance' },
+  { tag: '{{Present_Days}}', label: 'Present Days', category: 'attendance' },
+  { tag: '{{Absent_Days}}', label: 'Absent Days', category: 'attendance' },
+  { tag: '{{Month_Year}}', label: 'Month / Year', category: 'attendance' },
+  { tag: '{{Ref_No}}', label: 'Reference / Outward No', category: 'dispatch' },
+  { tag: '{{Current_Date}}', label: 'Notice Issue Date', category: 'dispatch' },
+  { tag: '{{Previous_Notice_Dates}}', label: 'Previous Notice Dates', category: 'dispatch' },
+  { tag: '{{Prior_Notice_Count}}', label: 'Prior Notice Count', category: 'dispatch' },
+  { tag: '{{Trainee_Attendance_Table}}', label: 'Attendance Table (Principal Report)', category: 'report' },
+  { tag: '{{Instructor_Name}}', label: 'Instructor Name', category: 'institution' },
+  { tag: '{{Designation}}', label: 'Designation', category: 'institution' },
+  { tag: '{{AI_Commentary}}', label: 'Guidance Commentary', category: 'institution' },
 ];
 
 export const DOCUMENT_SHAPES = [
   {
-    title: 'ચેતવણી બોક્સ (Warning Callout Box)',
+    title: 'Warning Callout Box',
     html: `<div class="doc-shape" style="background-color: #fffbeb; border-left: 5px solid #d97706; padding: 12px 16px; margin: 16px 0; border-radius: 4px; font-size: 13.5px; color: #92400e;">
-      <strong>⚠️ અગત્યની ચેતવણી:</strong> આપના પાલ્યની હાજરી નિયત ૮૦% કરતાં ઓછી હોવાથી સંસ્થાના નિયમાનુસાર આખરી નોટિસ મળ્યેથી દિન-૩ માં વાલીશ્રીએ રૂબરૂ ખુલાસો કરવો.
+      <strong>⚠️ Warning:</strong> Trainee attendance is below the required 80% threshold under NCVT/GCVT training norms. Parent consultation is urgently required within 3 working days.
     </div>`,
   },
   {
-    title: 'સત્તાવાર નોંધ બ્લોક (Official Note Block)',
+    title: 'Official Note Block',
     html: `<div class="doc-shape" style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 6px; padding: 12px 16px; margin: 16px 0; font-size: 13.5px; color: #166534;">
-      <strong>📌 નોંધ:</strong> ડી.જી.ટી. (DGT) ના સુધારેલા પરીક્ષા નિયમો મુજબ વાર્ષિક અખિલ ભારતીય વ્યવસાયિક પરીક્ષા (AITT) માં બેસવા માટે ૮૦% ન્યૂનતમ હાજરી ફરજિયાત છે.
+      <strong>📌 Note:</strong> As per DGT / GCVT guidelines, minimum 80% attendance is strictly mandatory for appearing in the All India Trade Test (AITT).
     </div>`,
   },
   {
-    title: 'સત્તાવાર મહોર / સ્ટેમ્પ બેજ (Official Stamp Seal)',
+    title: 'Official Verified Stamp',
     html: `<div class="doc-shape" style="display: inline-block; border: 2px dashed #dc2626; color: #dc2626; padding: 6px 14px; border-radius: 4px; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0;">
-      ✓ પ્રમાણિત નકલ / સત્તાવાર આદેશ
+      ✓ Certified Copy / Official Order
     </div>`,
   },
   {
-    title: 'ડબલ બોર્ડર સારાંશ ફ્રેમ (Double Border Summary Frame)',
+    title: 'Double Border Summary Frame',
     html: `<div class="doc-shape" style="border: 4px double #334155; padding: 14px 18px; margin: 18px 0; background-color: #f8fafc; font-size: 13.5px;">
-      <div style="font-weight: bold; text-align: center; margin-bottom: 6px; text-decoration: underline; font-size: 14.5px;">આચાર્યશ્રીનો અંતિમ આદેશ / નિર્ણય</div>
-      <p style="margin: 0; line-height: 1.6;">ઉપરોક્ત તાલીમાર્થી સામે ખાતાકીય નિયમાનુસાર જરૂરી કડક પગલાં લેવામાં આવ્યા છે.</p>
+      <div style="font-weight: bold; text-align: center; margin-bottom: 6px; text-decoration: underline; font-size: 14.5px;">Principal / Authority Decision</div>
+      <p style="margin: 0; line-height: 1.6;">Appropriate administrative action has been initiated under institutional training norms.</p>
     </div>`,
   },
   {
-    title: 'સુશોભિત આડી રેખા (Decorative Divider)',
+    title: 'Decorative Divider Line',
     html: `<div class="doc-shape" style="border: 0; height: 2px; background: linear-gradient(to right, #cbd5e1, #1e3a8a, #cbd5e1); margin: 20px 0;"></div>`,
   },
 ];
@@ -88,19 +86,39 @@ export default function TinyMceEditor({
   onInsertTag,
 }: TinyMceEditorProps) {
   const editorRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showTagMenu, setShowTagMenu] = useState(false);
   const [showShapeMenu, setShowShapeMenu] = useState(false);
   const [tagSearch, setTagSearch] = useState('');
   const [isEditorLoaded, setIsEditorLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [uploadToast, setUploadToast] = useState<string | null>(null);
 
   const insertContentIntoEditor = (htmlContent: string) => {
     if (editorRef.current) {
       editorRef.current.insertContent(htmlContent);
     } else {
-      // Fallback
       onChange(value + '\n' + htmlContent);
     }
+  };
+
+  const handleImageUploadFromDevice = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (JPG, PNG, WebP, GIF, SVG).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (editorRef.current) {
+        editorRef.current.insertContent(
+          `<p><img src="${dataUrl}" alt="${file.name}" style="max-width: 100%; height: auto; object-fit: contain; margin: 8px 0;" /></p>`
+        );
+        setUploadToast('✓ Image successfully inserted from device!');
+        setTimeout(() => setUploadToast(null), 3000);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleTagClick = (tag: string) => {
@@ -122,30 +140,60 @@ export default function TinyMceEditor({
 
   return (
     <div className="w-full flex flex-col bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-      {/* Top Helper Bar: Quick Insert Tags & Shapes */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs">
+      {/* Hidden file input for uploading images from device directly into document */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleImageUploadFromDevice(file);
+          e.target.value = '';
+        }}
+      />
+
+      {/* Upload Toast Feedback */}
+      {uploadToast && (
+        <div className="bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs font-semibold px-4 py-1.5 flex items-center gap-2 animate-in fade-in">
+          <Check className="w-4 h-4 text-emerald-600" />
+          <span>{uploadToast}</span>
+        </div>
+      )}
+
+      {/* Top Helper Bar: Quick Insert Tags, Upload Image from Device, & Shapes */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs select-none">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-semibold text-slate-700 flex items-center gap-1 shrink-0">
             <Tag className="w-3.5 h-3.5 text-blue-600" />
-            <span>મર્જ ટૅગ્સ:</span>
+            <span>Tags:</span>
           </span>
+
+          {/* Quick Upload Image from Device Button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-blue-900 bg-blue-100 hover:bg-blue-200 border border-blue-300 shadow-2xs transition-colors cursor-pointer"
+            title="Upload image from computer / mobile device into document"
+          >
+            <ImageIcon className="w-3.5 h-3.5 text-blue-700" />
+            <span>Upload Image from Device</span>
+          </button>
 
           {/* Frequently used quick tags */}
           {[
-            { tag: '{{Trainee_Name}}', label: 'વિદ્યાર્થી નામ' },
-            { tag: '{{Roll_No}}', label: 'રોલ નં' },
-            { tag: '{{Attendance_Percentage}}', label: 'હાજરી %' },
-            { tag: '{{Previous_Notice_Dates}}', label: 'અગાઉની નોટિસ' },
-            { tag: '{{Trainee_Attendance_Table}}', label: 'ઓછી હાજરી કોષ્ટક' },
-            { tag: '{{Current_Date}}', label: 'તારીખ' },
-            { tag: '{{Ref_No}}', label: 'જાવક નં' },
+            { tag: '{{Trainee_Name}}', label: 'Trainee Name' },
+            { tag: '{{Roll_No}}', label: 'Roll No' },
+            { tag: '{{Attendance_Percentage}}', label: 'Attendance %' },
+            { tag: '{{Current_Date}}', label: 'Date' },
+            { tag: '{{Ref_No}}', label: 'Outward No' },
           ].map((item) => (
             <button
               key={item.tag}
               type="button"
               onClick={() => handleTagClick(item.tag)}
-              title={`ઇન્સર્ટ કરો: ${item.tag}`}
-              className="px-2 py-0.5 rounded-md font-mono text-[11px] bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors whitespace-nowrap cursor-pointer"
+              title={`Insert: ${item.tag}`}
+              className="px-2 py-0.5 rounded-md font-mono text-[11px] bg-slate-100 text-slate-700 border border-slate-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors whitespace-nowrap cursor-pointer font-medium"
             >
               +{item.label}
             </button>
@@ -159,9 +207,9 @@ export default function TinyMceEditor({
                 setShowTagMenu(!showTagMenu);
                 setShowShapeMenu(false);
               }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
             >
-              <span>બધા ટૅગ્સ ({MERGE_TAG_ITEMS.length})</span>
+              <span>All Tags ({MERGE_TAG_ITEMS.length})</span>
               <ChevronDown className="w-3 h-3 text-slate-500" />
             </button>
 
@@ -172,7 +220,7 @@ export default function TinyMceEditor({
                     type="text"
                     value={tagSearch}
                     onChange={(e) => setTagSearch(e.target.value)}
-                    placeholder="ટૅગ શોધો (Search tag)..."
+                    placeholder="Search tag..."
                     className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                     autoFocus
                   />
@@ -186,16 +234,16 @@ export default function TinyMceEditor({
                       className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-blue-50 text-slate-700 hover:text-blue-900 transition-colors flex items-center justify-between text-xs cursor-pointer"
                     >
                       <div>
-                        <div className="font-medium">{item.label}</div>
+                        <div className="font-semibold text-slate-900">{item.label}</div>
                         <div className="font-mono text-[10px] text-slate-400">{item.tag}</div>
                       </div>
-                      <span className="text-[10px] text-blue-600 font-semibold px-1 py-0.5 rounded bg-blue-50">
-                        +ઉમેરો
+                      <span className="text-[10px] text-blue-600 font-bold px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200">
+                        +Insert
                       </span>
                     </button>
                   ))}
                   {filteredTags.length === 0 && (
-                    <div className="text-center py-4 text-xs text-slate-400">કોઈ ટૅગ મળ્યો નથી</div>
+                    <div className="text-center py-4 text-xs text-slate-400">No matching tags found</div>
                   )}
                 </div>
               </div>
@@ -211,17 +259,17 @@ export default function TinyMceEditor({
               setShowShapeMenu(!showShapeMenu);
               setShowTagMenu(false);
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 shadow-2xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 shadow-2xs transition-colors cursor-pointer"
           >
             <Shapes className="w-3.5 h-3.5 text-emerald-600" />
-            <span>આકારો અને બોક્સ (Shapes)</span>
+            <span>Document Shapes</span>
             <ChevronDown className="w-3 h-3 text-emerald-600" />
           </button>
 
           {showShapeMenu && (
             <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95">
-              <div className="text-[11px] font-semibold text-slate-500 uppercase px-2 py-1 border-b border-slate-100 mb-1">
-                સત્તાવાર નોટિસ આકારો
+              <div className="text-[11px] font-bold text-slate-500 uppercase px-2 py-1 border-b border-slate-100 mb-1">
+                Official Document Shapes
               </div>
               <div className="space-y-1">
                 {DOCUMENT_SHAPES.map((shape, idx) => (
@@ -232,8 +280,8 @@ export default function TinyMceEditor({
                     className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-emerald-50 text-slate-800 hover:text-emerald-900 transition-colors text-xs flex items-center justify-between cursor-pointer"
                   >
                     <span className="font-medium">{shape.title}</span>
-                    <span className="text-[10px] text-emerald-700 bg-emerald-100 px-1 py-0.5 rounded font-bold">
-                      +ઉમેરો
+                    <span className="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-bold">
+                      +Add
                     </span>
                   </button>
                 ))}
@@ -249,7 +297,7 @@ export default function TinyMceEditor({
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-50/80 backdrop-blur-2xs">
             <div className="flex items-center gap-2 text-slate-600 text-xs font-medium">
               <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <span>TinyMCE એડિટર લોડ થઈ રહ્યું છે...</span>
+              <span>Loading TinyMCE Editor...</span>
             </div>
           </div>
         )}
@@ -259,7 +307,7 @@ export default function TinyMceEditor({
           <div className="p-4 space-y-2">
             <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 p-2 rounded-lg text-xs border border-amber-200">
               <Info className="w-4 h-4 shrink-0 text-amber-600" />
-              <span>ઓફલાઇન એડિટર મોડ: આપ નીચે સીધું HTML અથવા ટેક્સ્ટ સંપાદિત કરી શકો છો.</span>
+              <span>Offline Editor Mode: You can edit HTML or text below.</span>
             </div>
             <textarea
               value={value}
@@ -304,8 +352,36 @@ export default function TinyMceEditor({
               toolbar:
                 'undo redo | blocks fontfamily fontsize | bold italic underline forecolor backcolor | ' +
                 'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | ' +
-                'table customMergeTag customShape | removeformat code fullscreen',
+                'image table customMergeTag customShape | removeformat code fullscreen',
               toolbar_mode: 'sliding',
+              image_advtab: true,
+              image_caption: true,
+              paste_data_images: true,
+              automatic_uploads: true,
+              file_picker_types: 'image',
+              images_upload_handler: (blobInfo: any) => {
+                return new Promise((resolve) => {
+                  resolve('data:' + blobInfo.blob().type + ';base64,' + blobInfo.base64());
+                });
+              },
+              file_picker_callback: (callback: any, _value: any, meta: any) => {
+                if (meta.filetype === 'image') {
+                  const input = document.createElement('input');
+                  input.setAttribute('type', 'file');
+                  input.setAttribute('accept', 'image/*');
+                  input.onchange = function () {
+                    const file = (this as HTMLInputElement).files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = function () {
+                        callback(reader.result as string, { title: file.name, alt: file.name });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  };
+                  input.click();
+                }
+              },
               font_family_formats:
                 'Noto Sans Gujarati=Noto Sans Gujarati, sans-serif;' +
                 'Shruti=Shruti, Noto Sans Gujarati, sans-serif;' +
@@ -339,6 +415,10 @@ export default function TinyMceEditor({
                   background-color: #f1f5f9;
                   font-weight: 600;
                 }
+                img {
+                  max-width: 100%;
+                  height: auto;
+                }
                 .doc-shape {
                   margin: 14px 0;
                   -webkit-print-color-adjust: exact;
@@ -353,9 +433,9 @@ export default function TinyMceEditor({
               setup: (editor) => {
                 // Register custom toolbar button for merge tags
                 editor.ui.registry.addMenuButton('customMergeTag', {
-                  text: 'મર્જ ટૅગ્સ (Merge Tags)',
+                  text: 'Merge Tags',
                   icon: 'bookmark',
-                  tooltip: 'ઇન્સર્ટ મેઇલ મર્જ ટૅગ (Insert Dynamic Field Tag)',
+                  tooltip: 'Insert Dynamic Field Tag',
                   fetch: (callback) => {
                     const menuItems = MERGE_TAG_ITEMS.map((item) => ({
                       type: 'menuitem' as const,
@@ -370,9 +450,9 @@ export default function TinyMceEditor({
 
                 // Register custom toolbar button for shapes
                 editor.ui.registry.addMenuButton('customShape', {
-                  text: 'આકાર (Shapes)',
+                  text: 'Shapes',
                   icon: 'shapes',
-                  tooltip: 'સત્તાવાર દસ્તાવેજ આકારો ઉમેરો (Insert Document Shapes)',
+                  tooltip: 'Insert Document Shapes & Boxes',
                   fetch: (callback) => {
                     const shapeItems = DOCUMENT_SHAPES.map((shape) => ({
                       type: 'menuitem' as const,
@@ -395,11 +475,11 @@ export default function TinyMceEditor({
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
           <span>
-            TinyMCE 7 રિચ એડિટર સક્રિય • A4 પ્રિન્ટ અને <strong>&#123;&#123;મર્જ ટૅગ્સ&#125;&#125;</strong> સપોર્ટેડ
+            TinyMCE 7 Rich Editor Active • Image Upload from Device &amp; <strong>&#123;&#123;Merge Tags&#125;&#125;</strong> Supported
           </span>
         </div>
         <div className="flex items-center gap-2 text-slate-400">
-          <span>આચાર્યશ્રી અહેવાલ અને તાલીમાર્થી નોટિસ બંને માટે અનુકૂળ</span>
+          <span>Formatted for official A4 printable output</span>
         </div>
       </div>
     </div>

@@ -102,7 +102,7 @@ export default function A4PrintPreviewModal({
     if (!sheetRef.current) return;
     try {
       setIsExportingPdf(true);
-      setPdfProgress('A4 PDF તૈયાર થઈ રહી છે...');
+      setPdfProgress('Generating A4 PDF...');
       setPrintFeedback(null);
 
       const safeFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
@@ -115,14 +115,14 @@ export default function A4PrintPreviewModal({
 
       setPrintFeedback({
         type: 'success',
-        msg: `PDF સફળતાપૂર્વક સાચવવામાં આવી (${safeFilename})`,
+        msg: `PDF successfully saved (${safeFilename})`,
       });
       setTimeout(() => setPrintFeedback(null), 5000);
     } catch (err) {
       console.error('Save PDF Error:', err);
       setPrintFeedback({
         type: 'warn',
-        msg: 'PDF બનાવવામાં ક્ષતિ આવી. કૃપા કરીને પ્રિન્ટ વિકલ્પ વાપરો.',
+        msg: 'Error generating PDF. Please use the Print option.',
       });
     } finally {
       setIsExportingPdf(false);
@@ -185,7 +185,7 @@ export default function A4PrintPreviewModal({
                 {title}
               </h2>
               <span className="text-[10px] sm:text-[11px] bg-blue-900/60 text-blue-300 font-semibold px-2 py-0.5 rounded border border-blue-700/50">
-                A4 {isPortrait ? 'Portrait (ઊભું)' : 'Landscape (આડું)'}
+                A4 {isPortrait ? 'Portrait' : 'Landscape'}
               </span>
             </div>
             {subtitle && (
@@ -208,7 +208,7 @@ export default function A4PrintPreviewModal({
               }`}
               title="A4 Portrait standard size (210 × 297 mm)"
             >
-              ઊભું
+              Portrait
             </button>
             <button
               type="button"
@@ -220,7 +220,7 @@ export default function A4PrintPreviewModal({
               }`}
               title="A4 Landscape wide size (297 × 210 mm)"
             >
-              આડું
+              Landscape
             </button>
           </div>
 
@@ -268,9 +268,9 @@ export default function A4PrintPreviewModal({
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
                     : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
                 }`}
-                title="સાદા A4 કાગળ માટે લેટરહેડ ચાલુ રાખો, પ્રી-પ્રિન્ટેડ કાગળ માટે બંધ કરો"
+                title="Enable letterhead for plain paper, disable for pre-printed letterhead paper"
               >
-                <span>લેટરહેડ: {isLetterheadActive ? 'હા' : 'ના'}</span>
+                <span>Letterhead: {isLetterheadActive ? 'On' : 'Off'}</span>
               </button>
             </>
           )}
@@ -294,7 +294,7 @@ export default function A4PrintPreviewModal({
             ) : (
               <>
                 <Download className="w-3.5 h-3.5 text-emerald-200" />
-                <span>સેવ PDF</span>
+                <span>Save PDF</span>
               </>
             )}
           </button>
@@ -307,7 +307,7 @@ export default function A4PrintPreviewModal({
             title="Print directly using your browser / system printer dialog"
           >
             <Printer className="w-3.5 h-3.5 text-blue-200" />
-            <span>પ્રિન્ટ</span>
+            <span>Print</span>
           </button>
 
           {/* Close Modal */}
@@ -393,7 +393,7 @@ export default function A4PrintPreviewModal({
       {/* Bottom Status Bar (Hidden during print) */}
       <div className="bg-slate-900 border-t border-slate-800 text-slate-400 px-4 py-2 text-xs flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 print:hidden select-none">
         <div className="flex items-center gap-2">
-          <span>💡 <strong>ટીપ:</strong> Android ઉપકરણો પર <strong>&quot;સેવ PDF&quot;</strong> થી ફાઇલ ડાઉનલોડ કરી સીધી પ્રિન્ટ કરી શકો છો.</span>
+          <span>💡 <strong>Tip:</strong> On mobile devices, <strong>&quot;Save PDF&quot;</strong> downloads the file directly to your device.</span>
         </div>
         <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
           <span>ISO 216: A4 ({isPortrait ? '210 × 297 mm' : '297 × 210 mm'})</span>

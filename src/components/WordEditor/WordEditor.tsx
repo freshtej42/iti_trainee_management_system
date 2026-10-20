@@ -217,13 +217,13 @@ export default function WordEditor({
       const data = await resp.json();
       if (data.commentary) {
         // Insert into editor as dynamic paragraph
-        const commentaryBlock = `<div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 10px 14px; margin: 14px 0; font-size: 12px; color: #991b1b; border-radius: 0 6px 6px 0;"><strong>વાલીશ્રી માટે વિશેષ સુચના (Special Parent Advisory):</strong><br/>${data.commentary}</div><p></p>`;
+        const commentaryBlock = `<div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 10px 14px; margin: 14px 0; font-size: 12px; color: #991b1b; border-radius: 0 6px 6px 0;"><strong>Special Parent Advisory:</strong><br/>${data.commentary}</div><p></p>`;
         document.execCommand('insertHTML', false, commentaryBlock);
-        setAiMessage('વાલી પરામર્શ નોંધ પત્રમાં સફળતાપૂર્વક ઉમેરાઈ ગઈ!');
+        setAiMessage('Parent advisory note added to notice successfully!');
       }
     } catch (err: any) {
       console.error('Commentary generation error:', err);
-      setAiMessage('સત્તાવાર પરામર્શ ઉમેરવા માટે મૂળભૂત માળખું ઉપયોગમાં લીધું.');
+      setAiMessage('Default advisory template used.');
     } finally {
       setIsAiLoading(false);
       setTimeout(() => setAiMessage(null), 4000);
@@ -246,11 +246,11 @@ export default function WordEditor({
       const data = await resp.json();
       if (data.polishedText) {
         setContentHtml(data.polishedText);
-        setAiMessage('પત્રની ભાષા અને વ્યાકરણ શુદ્ધિ સફળતાપૂર્વક પૂર્ણ થઈ!');
+        setAiMessage('Notice language and grammar polish completed!');
       }
     } catch (err: any) {
       console.error('Grammar check error:', err);
-      setAiMessage('વ્યાકરણ શુદ્ધિ પ્રક્રિયા પૂર્ણ થઈ શકી નથી.');
+      setAiMessage('Grammar polish could not be completed.');
     } finally {
       setIsAiLoading(false);
       setTimeout(() => setAiMessage(null), 4000);
@@ -356,10 +356,10 @@ export default function WordEditor({
                 ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-2xs'
                 : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
             }`}
-            title="લેટરહેડ સુવિધા: સંસ્થાનું હેડર બેનર રાખવું કે પ્રી-પ્રિન્ટેડ કાગળ માટે છુપાવવું"
+            title="Letterhead facility: Show header banner or hide for pre-printed letterhead paper"
           >
             <Building2 className={`w-3.5 h-3.5 ${showLetterhead ? 'text-blue-700' : 'text-slate-500'}`} />
-            <span>લેટરહેડ: {showLetterhead ? 'હા (On)' : 'ના (Off)'}</span>
+            <span>Letterhead: {showLetterhead ? 'On' : 'Off'}</span>
           </button>
         </div>
 
@@ -494,9 +494,9 @@ export default function WordEditor({
         <A4PrintPreviewModal
           isOpen={isPrintModalOpen}
           onClose={() => setIsPrintModalOpen(false)}
-          title={`નોટિસ પ્રિન્ટ પ્રીવ્યૂ - ${currentTrainee ? currentTrainee.student_name : 'ટેમ્પ્લેટ'}`}
+          title={`Notice Print Preview - ${currentTrainee ? (currentTrainee.student_name_en || currentTrainee.student_name) : 'Template'}`}
           subtitle={`${instructor.iti_name} • ${currentTemplate.name}`}
-          filename={`ITI_Notice_${currentTrainee ? `Roll_${currentTrainee.roll_no}_${currentTrainee.student_name.replace(/\s+/g, '_')}` : 'Notice'}`}
+          filename={`ITI_Notice_${currentTrainee ? `Roll_${currentTrainee.roll_no}_${(currentTrainee.student_name_en || currentTrainee.student_name).replace(/\s+/g, '_')}` : 'Notice'}`}
           initialOrientation="portrait"
         >
           <div
@@ -530,10 +530,10 @@ export default function WordEditor({
                       {instructor.iti_name}
                     </h1>
                     <div className="text-xs font-semibold text-slate-700 mt-0.5">
-                      Industrial Training Institute • વ્યવસાય: {instructor.trade} ({instructor.unit})
+                      Industrial Training Institute • Trade: {instructor.trade} ({instructor.unit})
                     </div>
                     <div className="text-[11px] text-slate-500 font-sans mt-0.5">
-                      ઈમેલ: {instructor.email} {instructor.phone && `• ફોન: ${instructor.phone}`}
+                      Email: {instructor.email} {instructor.phone && `• Phone: ${instructor.phone}`}
                     </div>
                   </div>
 

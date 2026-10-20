@@ -255,14 +255,49 @@ export async function seedFirestoreIfEmpty(): Promise<boolean> {
   }
 }
 
+function sanitizeInstructorDepartmentBranding(inst: Instructor): Instructor {
+  let updated = { ...inst };
+  if (
+    updated.role === 'super_admin' ||
+    updated.id === 'super-admin-tejas' ||
+    (updated.iti_name && /રોજગાર અને તાલીમ|Directorate of Employment/i.test(updated.iti_name))
+  ) {
+    if (updated.iti_name && /રોજગાર અને તાલીમ|Directorate of Employment/i.test(updated.iti_name)) {
+      updated.iti_name = 'ITI તાલીમાર્થી હાજરી અને નોટિસ પોર્ટલ (Admin Console)';
+    }
+    if (updated.designation && /Directorate/i.test(updated.designation)) {
+      updated.designation = 'સુપર એડમિનિસ્ટ્રેટર (Portal Super Admin)';
+    }
+    if (updated.unit === 'DET Gujarat') {
+      updated.unit = 'Admin Unit';
+      updated.units = ['Admin Unit'];
+    }
+  }
+  if (updated.header_config) {
+    const hc = { ...updated.header_config };
+    if (hc.institute_name_gu && /રોજગાર અને તાલીમ નિયામક/i.test(hc.institute_name_gu)) {
+      hc.institute_name_gu = 'ITI તાલીમાર્થી હાજરી અને નોટિસ પોર્ટલ';
+    }
+    if (hc.institute_name_en && /DIRECTORATE OF EMPLOYMENT/i.test(hc.institute_name_en)) {
+      hc.institute_name_en = 'ITI TRAINEE ATTENDANCE & NOTICE PORTAL';
+    }
+    if (hc.department_subtitle && /રોજગાર અને તાલીમ નિયામક|Directorate of Employment/i.test(hc.department_subtitle)) {
+      hc.department_subtitle = 'કૌશલ્ય વિકાસ અને વ્યાવસાયિક તાલીમ વિભાગ';
+    }
+    updated.header_config = hc;
+  }
+  return updated;
+}
+
 /**
  * Deduplicates an array of instructors by id, preserving the latest/updated record.
  */
 export function deduplicateInstructors(instructors: Instructor[]): Instructor[] {
   if (!Array.isArray(instructors)) return [];
   const map = new Map<string, Instructor>();
-  for (const inst of instructors) {
-    if (!inst || !inst.id) continue;
+  for (const rawInst of instructors) {
+    if (!rawInst || !rawInst.id) continue;
+    const inst = sanitizeInstructorDepartmentBranding(rawInst);
     if (!map.has(inst.id)) {
       map.set(inst.id, inst);
     } else {
@@ -827,17 +862,28 @@ export const DEFAULT_ADMIN_SETTINGS: SuperAdminSettings = {
  * Fetch Super Admin settings (UPI ID, fee amount, etc.)
  */
 export async function fetchAdminSettings(): Promise<SuperAdminSettings> {
+  const sanitizeSettings = (s: SuperAdminSettings): SuperAdminSettings => {
+    const merged = { ...DEFAULT_ADMIN_SETTINGS, ...s };
+    if (
+      merged.qr_image_url &&
+      /DIRECTORATE OF EMPLOYMENT|રોજગાર અને તાલીમ નિયામક/i.test(merged.qr_image_url)
+    ) {
+      merged.qr_image_url = DEFAULT_ADMIN_QR_IMAGE_URL;
+    }
+    return merged;
+  };
+
   try {
     const snap = await runWithTimeout(getDocs(collection(db, COLLECTION_SETTINGS)), 2500);
     if (!snap.empty) {
-      const docData = snap.docs[0].data() as SuperAdminSettings;
+      const docData = sanitizeSettings(snap.docs[0].data() as SuperAdminSettings);
       setLocalCache(CACHE_KEYS.SETTINGS, docData);
-      return { ...DEFAULT_ADMIN_SETTINGS, ...docData };
+      return docData;
     }
   } catch {
     // Fall back to local cache or defaults
   }
-  return getLocalCache<SuperAdminSettings>(CACHE_KEYS.SETTINGS, DEFAULT_ADMIN_SETTINGS);
+  return sanitizeSettings(getLocalCache<SuperAdminSettings>(CACHE_KEYS.SETTINGS, DEFAULT_ADMIN_SETTINGS));
 }
 
 /**

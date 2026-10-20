@@ -195,7 +195,7 @@ export default function GujaratiInfographicPage({
                 </div>
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-widest text-[#9fcb98]">
-                    રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી (DET) • NCVT / GCVT હાજરી ધોરણો મુજબ
+                    ITI ઇન્સ્ટ્રક્ટર ડિજિટલ ટૂલકીટ • NCVT / GCVT 80% હાજરી ધોરણો મુજબ
                   </div>
                   <h1 className="text-xl font-black text-[#f2edc2] tracking-tight leading-snug mt-0.5">
                     ITI તાલીમાર્થી હાજરી અને વાલી નોટિસ પોર્ટલ — સંક્ષિપ્ત માર્ગદર્શિકા

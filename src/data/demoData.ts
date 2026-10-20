@@ -76,7 +76,7 @@ export const DEMO_GUEST_INSTRUCTOR: Instructor = {
     show_logo: true,
     institute_name_gu: 'ઔદ્યોગિક તાલીમ સંસ્થા, ગાંધીનગર (ડેમો કેમ્પસ)',
     institute_name_en: 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE, GANDHINAGAR (DEMO)',
-    department_subtitle: 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત રાજ્ય',
+    department_subtitle: 'કૌશલ્ય વિકાસ અને વ્યાવસાયિક તાલીમ વિભાગ',
     address: 'સેક્ટર-૧૫, જી.ઈ.સી. કેમ્પસ પાસે, ગાંધીનગર-૩૮૨૦૧૬',
     ref_prefix: 'ઔતાસં/ગાંધીનગર/ડેમો/૨૦૨૬',
   },

@@ -151,8 +151,8 @@ const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   gu: {
     portalTitle: 'ITI તાલીમાર્થી હાજરી અને ગેરહાજરી નોટિસ પ્રણાલી',
     portalSubtitle: 'ગેરહાજર તાલીમાર્થી નોટિસ જનરેશન • વર્ડ ફોર્મેટ • બહુભાષી સહાય',
-    superAdminTitle: 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી - સુપર એડમિન પોર્ટલ',
-    superAdminSubtitle: 'રાજ્ય સ્તરીય ITI સંચાલન • ઇન્સ્ટ્રક્ટર વેરિફિકેશન • સિસ્ટમ ઓડિટ',
+    superAdminTitle: 'ITI હાજરી અને નોટિસ પોર્ટલ - સુપર એડમિન કન્સોલ',
+    superAdminSubtitle: 'પોર્ટલ વહીવટ • ઇન્સ્ટ્રક્ટર વેરિફિકેશન • સિસ્ટમ ઓડિટ',
     tabHierarchy: 'શૈક્ષણિક માળખું',
     tabTrainees: 'તાલીમાર્થીઓ',
     tabTemplates: 'ટેમ્પલેટ્સ',
@@ -275,8 +275,8 @@ const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   hi: {
     portalTitle: 'आईटीआई प्रशिक्षु उपस्थिति एवं अनुपस्थिति नोटिस प्रणाली',
     portalSubtitle: 'अनुपस्थित प्रशिक्षु नोटिस जनरेशन • वर्ड प्रारूप • बहुभाषी सहायता',
-    superAdminTitle: 'रोजगार एवं प्रशिक्षण निदेशालय - सुपर एडमिन पोर्टल',
-    superAdminSubtitle: 'राज्य स्तरीय आईटीआई प्रबंधन • प्रशिक्षक सत्यापन • सिस्टम ऑडिट',
+    superAdminTitle: 'आईटीआई उपस्थिति एवं नोटिस पोर्टल - सुपर एडमिन कंसोल',
+    superAdminSubtitle: 'पोर्टल प्रशासन • प्रशिक्षक सत्यापन • सिस्टम ऑडिट',
     tabHierarchy: 'शैक्षणिक संरचना',
     tabTrainees: 'प्रशिक्षु',
     tabTemplates: 'टेम्प्लेट्स',
@@ -399,8 +399,8 @@ const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   en: {
     portalTitle: 'ITI Trainee Attendance & Irregularity Notice System',
     portalSubtitle: 'Absentee Notice Generation • Word Format • Multi-language Support',
-    superAdminTitle: 'Directorate of Employment & Training - Super Admin Portal',
-    superAdminSubtitle: 'State Level ITI Administration • Instructor Verification • System Audit',
+    superAdminTitle: 'ITI Attendance & Notice Portal - Super Admin Console',
+    superAdminSubtitle: 'Portal Administration • Instructor Verification • System Audit',
     tabHierarchy: 'Academic Hierarchy',
     tabTrainees: 'Trainees',
     tabTemplates: 'Templates',

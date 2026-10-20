@@ -148,7 +148,7 @@ export default function UserGuideView({
   const handlePrintGuide = async () => {
     if (!pagesContainerRef.current) return;
     await printCleanDocument(pagesContainerRef.current, {
-      title: 'ITI Attendance & Notice Portal - Official User Guide',
+      title: 'ITI Attendance & Notice Portal - User Guide',
       orientation: 'portrait',
     });
   };
@@ -357,7 +357,7 @@ export default function UserGuideView({
                     </div>
                     <div>
                       <div className="text-[11px] font-bold uppercase tracking-widest text-[#346739]">
-                        Directorate of Employment & Training (DET) • NCVT / GCVT Norms
+                        Industrial Training Institute (ITI) Digital Toolkit • NCVT / GCVT Norms
                       </div>
                       <h1 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">
                         ITI Trainee Attendance & Notice Portal
@@ -380,7 +380,7 @@ export default function UserGuideView({
                     Executive Summary & Purpose of the Application (પોર્ટલનો મુખ્ય હેતુ)
                   </h2>
                   <p className="text-xs text-slate-700 leading-relaxed mt-1.5">
-                    The <strong>ITI Trainee Attendance & Official Notice Management Portal</strong> is a specialized multi-tenant web application engineered for Supervisor Instructors, Trade Instructors, and Principals across Industrial Training Institutes (ITIs). It automates monthly and session-wide progressive attendance calculation under the mandatory <strong>80% NCVT/GCVT examination eligibility rule</strong>, generates official Gujarati/Hindi/English parent warning notices with dynamic merge tags, produces Principal Monthly Reports, and maintains an audited Inward/Outward Dispatch Register.
+                    The <strong>ITI Trainee Attendance & Notice Management Portal</strong> is a specialized multi-tenant web application engineered for Supervisor Instructors, Trade Instructors, and Principals across Industrial Training Institutes (ITIs). It automates monthly and session-wide progressive attendance calculation under the mandatory <strong>80% NCVT/GCVT examination eligibility rule</strong>, generates Gujarati/Hindi/English parent warning notices with dynamic merge tags, produces Principal Monthly Reports, and maintains an audited Inward/Outward Dispatch Register.
                   </p>
                 </div>
 
@@ -567,7 +567,7 @@ export default function UserGuideView({
 
               {/* Page Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
-                <span>ITI Trainee Attendance & Notice Management Portal — Official Operational User Guide</span>
+                <span>ITI Trainee Attendance & Notice Management Portal — Operational User Guide</span>
                 <span className="font-mono font-bold text-slate-700">Page 1 of 8</span>
               </div>
             </div>
@@ -1262,7 +1262,7 @@ export default function UserGuideView({
                   </p>
                   <ul className="mt-1.5 space-y-1 text-xs text-slate-700 list-disc pl-5">
                     <li>
-                      <strong>Editable Header Fields:</strong> Customize the Government Department Title (e.g., <em>રોજગાર અને તાલીમ ખાતું, ગુજરાત રાજ્ય</em>), ITI Name, Full Institute Postal Address, Official Email ID, and Landline/Phone Number.
+                      <strong>Editable Header Fields:</strong> Customize the Department Subtitle (e.g., <em>કૌશલ્ય વિકાસ અને વ્યાવસાયિક તાલીમ વિભાગ</em>), ITI Name, Full Institute Postal Address, Email ID, and Landline/Phone Number.
                     </li>
                     <li>
                       <strong>Letterhead Toggle (`લેટરહેડ સાથે` vs `પ્રી-પ્રિન્ટેડ પેપર`):</strong> Toggle <em>Show Letterhead</em> ON when printing on plain white A4 paper, or turn it OFF when printing onto pre-printed official ITI stationery.

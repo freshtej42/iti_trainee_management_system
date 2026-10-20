@@ -625,8 +625,8 @@ export default function InstructorProfileModal({
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">
                       Jurisdiction
                     </div>
-                    <div className="font-bold text-slate-800 truncate" title="State-Wide ITIs">
-                      Gujarat ITI Directorate
+                    <div className="font-bold text-slate-800 truncate" title="Portal Administration">
+                      Portal Administration
                     </div>
                   </div>
 

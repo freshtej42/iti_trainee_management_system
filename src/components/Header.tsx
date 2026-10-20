@@ -116,7 +116,7 @@ export default function Header({
                 {isSuperAdmin ? t('superAdminSubtitle') : t('portalSubtitle')}
               </p>
               <div className="sm:hidden text-[10px] text-slate-500 truncate leading-tight">
-                {isSuperAdmin ? tText('રાજ્ય વહીવટ • ગાંધીનગર', 'राज्य प्रशासन • गांधीनगर', 'State Administration • Gandhinagar') : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
+                {isSuperAdmin ? tText('પોર્ટલ વહીવટ • સુપર એડમિન', 'पोर्टल प्रशासन • सुपर एडमिन', 'Portal Administration • Super Admin') : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
               </div>
             </div>
           </div>
@@ -394,7 +394,7 @@ export default function Header({
                 <div>
                   <div className="font-bold text-sm text-slate-900">{instructor.name}</div>
                   <div className="text-xs text-slate-500">
-                    {isSuperAdmin ? 'Super Admin • Gandhinagar (DET Gujarat)' : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
+                    {isSuperAdmin ? 'Super Admin • Portal Administrator' : `${instructor.trade} • ${instructor.unit || 'Unit A'}`}
                   </div>
                 </div>
               </div>
@@ -509,7 +509,7 @@ export default function Header({
                     <span>Administrative Notice</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-amber-800">
-                    As Super Admin, you oversee state-level administration, instructor account verifications, and system audits.
+                    As Super Admin, you oversee portal administration, instructor account verifications, and system audits.
                   </p>
                 </div>
               </div>

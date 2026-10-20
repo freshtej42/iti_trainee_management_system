@@ -89,7 +89,7 @@ export const LETTERHEAD_PRESETS: LetterheadPreset[] = [
     getHtml: (data) => `
 <div class="iti-letterhead-container" style="font-family: 'Noto Sans Gujarati', Arial, sans-serif; color: #0f172a; text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 16px;">
   <div style="font-size: 10.5px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">
-    ${data.deptGu || 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત સરકાર'}
+    ${data.deptGu || 'કૌશલ્ય વિકાસ અને વ્યાવસાયિક તાલીમ વિભાગ'}
   </div>
   <h1 style="font-size: 20px; font-weight: 900; color: #020617; margin: 4px 0 2px 0;">
     ${data.itiNameGu || 'ઔદ્યોગિક તાલીમ સંસ્થા'}

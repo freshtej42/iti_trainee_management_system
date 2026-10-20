@@ -747,8 +747,8 @@ export default function SuperAdminDashboard({
           header_config: {
             show_logo: true,
             institute_name_gu: formItiName.trim(),
-            institute_name_en: 'GOVERNMENT ITI',
-            department_subtitle: 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત રાજ્ય',
+            institute_name_en: 'INDUSTRIAL TRAINING INSTITUTE',
+            department_subtitle: 'કૌશલ્ય વિકાસ અને વ્યાવસાયિક તાલીમ વિભાગ',
             address: formAddress.trim() || 'ગુજરાત',
             ref_prefix: formOutwardCode.trim() || 'આઈટીઆઈ/તાલીમ/૨૦૨૬',
           },
@@ -2803,7 +2803,7 @@ export default function SuperAdminDashboard({
               {/* ITI Name */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  સંસ્થાનું નામ (ITI / Directorate Institute Name) *
+                  સંસ્થાનું નામ (ITI Institute Name) *
                 </label>
                 <input
                   type="text"
@@ -3007,7 +3007,7 @@ export default function SuperAdminDashboard({
                   સુપર એડમિન પાસવર્ડ બદલો
                 </h3>
                 <p className="text-xs text-slate-500 font-mono">
-                  State Super Administrator Security
+                  Portal Super Administrator Security
                 </p>
               </div>
             </div>
@@ -3029,7 +3029,7 @@ export default function SuperAdminDashboard({
             <form onSubmit={handleUpdateAdminPassword} className="space-y-4 text-xs">
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
                 <div className="text-[11px] font-bold text-slate-500">ખાતું (Super Admin Account):</div>
-                <div className="font-semibold text-slate-900 text-xs">તેજસ સુથાર (State Directorate)</div>
+                <div className="font-semibold text-slate-900 text-xs">તેજસ સુથાર (Portal Super Admin)</div>
                 <div className="text-slate-600 font-mono text-[11px]">tejassuthar21696@gmail.com</div>
               </div>
 

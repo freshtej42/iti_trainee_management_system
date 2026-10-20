@@ -291,8 +291,8 @@ export default function InstructorAuth({
       header_config: {
         show_logo: true,
         institute_name_gu: effectiveItiName,
-        institute_name_en: 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE',
-        department_subtitle: 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત રાજ્ય',
+        institute_name_en: 'INDUSTRIAL TRAINING INSTITUTE',
+        department_subtitle: 'કૌશલ્ય વિકાસ અને વ્યાવસાયિક તાલીમ વિભાગ',
         address: regAddress.trim() || `તા. ${regTaluka === 'other' ? customTaluka : regTaluka.split(' ')[0]}, જી. ${regDistrict === 'other' ? customDistrict : regDistrict.split(' ')[0]}, ગુજરાત`,
         ref_prefix: 'આઈટીઆઈ/તલમ/૨૦૨૫',
       },
@@ -333,7 +333,7 @@ export default function InstructorAuth({
           ITI Trainee Attendance Portal
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-slate-300">
-          રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી • ગુજરાત રાજ્ય
+          ઔદ્યોગિક તાલીમ સંસ્થા (ITI) હાજરી અને વાલી નોટિસ વ્યવસ્થાપન પ્રણાલી
         </p>
       </div>
 
@@ -1021,7 +1021,7 @@ export default function InstructorAuth({
                   પાસવર્ડ રીસેટ સહાય (Password Reset)
                 </h3>
                 <p className="text-xs text-slate-500">
-                  રોજગાર અને તાલીમ નિયામકશ્રી કચેરી સુરક્ષા માર્ગદર્શિકા
+                  એકાઉન્ટ પાસવર્ડ રીસેટ સહાય માર્ગદર્શિકા
                 </p>
               </div>
             </div>
@@ -1033,7 +1033,7 @@ export default function InstructorAuth({
                   <span>સુપર એડમિન દ્વારા પાસવર્ડ રીસેટ સુવિધા:</span>
                 </p>
                 <p>
-                  જો આપ આપનો પાસવર્ડ ભૂલી ગયા હોવ, તો આપના રાજ્ય સ્તરીય <strong>સુપર એડમિનિસ્ટ્રેટર</strong> તેમના એડમિન કન્સોલ દ્વારા આપના એકાઉન્ટ માટે તાત્કાલિક નવો પાસવર્ડ જનરેટ અથવા બદલી આપશે.
+                  જો આપ આપનો પાસવર્ડ ભૂલી ગયા હોવ, તો પોર્ટલના <strong>સુપર એડમિનિસ્ટ્રેટર</strong> તેમના એડમિન કન્સોલ દ્વારા આપના એકાઉન્ટ માટે તાત્કાલિક નવો પાસવર્ડ જનરેટ અથવા બદલી આપશે.
                 </p>
               </div>
 
@@ -1056,7 +1056,7 @@ export default function InstructorAuth({
                   </div>
                   <div className="flex items-center gap-2">
                     <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="font-sans text-slate-600">રોજગાર અને તાલીમ નિયામકશ્રી કચેરી, બ્લોક ૧/૩, ગાંધીનગર</span>
+                    <span className="font-sans text-slate-600">ITI હાજરી અને નોટિસ પોર્ટલ એડમિન સપોર્ટ</span>
                   </div>
                 </div>
               </div>

@@ -126,7 +126,7 @@ export default function TinyMceLetterheadModal({
         </td>
         <td style="vertical-align: middle; text-align: center; border: none; padding: 0 10px;">
           <h2 style="font-size: 18px; font-weight: bold; margin: 0; color: #0f172a;">${instructor.iti_name || 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE'}</h2>
-          <div style="font-size: 12px; font-weight: bold; color: #334155; text-transform: uppercase;">DIRECTORATE OF EMPLOYMENT &amp; TRAINING, GOVT. OF GUJARAT</div>
+          <div style="font-size: 12px; font-weight: bold; color: #334155; text-transform: uppercase;">SKILL DEVELOPMENT &amp; VOCATIONAL TRAINING</div>
           <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;">${instructor.institution_address || 'Gujarat'} ${instructor.phone ? `• Phone: ${instructor.phone}` : ''}</div>
         </td>
         <td style="width: 70px; vertical-align: middle; text-align: right; border: none;">

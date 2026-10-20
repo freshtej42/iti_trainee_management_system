@@ -54,7 +54,6 @@ export const GUJARAT_ITIS: string[] = [
   'સરકારી ઔદ્યોગિક તાલીમ સંસ્થા, કડી (ITI Kadi)',
   'સરકારી ઔદ્યોગિક તાલીમ સંસ્થા, વિસનગર (ITI Visnagar)',
   'સરકારી ઔદ્યોગિક તાલીમ સંસ્થા, ઊંઝા (ITI Unjha)',
-  'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગાંધીનગર (Directorate of Employment & Training)',
 ];
 
 export const STANDARD_DESIGNATIONS: string[] = [

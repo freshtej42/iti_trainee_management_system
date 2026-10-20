@@ -416,7 +416,7 @@ export default function TemplateStudio({
       show_logo: true,
       institute_name_gu: instructor.iti_name,
       institute_name_en: 'GOVERNMENT INDUSTRIAL TRAINING INSTITUTE',
-      department_subtitle: 'રોજગાર અને તાલીમ નિયામકશ્રીની કચેરી, ગુજરાત સરકાર',
+      department_subtitle: 'કૌશલ્ય વિકાસ અને વ્યાવસાયિક તાલીમ વિભાગ',
       address: instructor.institution_address || 'ગુજરાત',
       ref_prefix: instructor.outward_code_prefix || 'ઔતાસં/તલમ/૨૦૨૫',
     }

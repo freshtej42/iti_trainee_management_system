@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from 'express';
+import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -12,8 +12,8 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json());
 
 // Initialize GoogleGenAI client
-let aiClient: GoogleGenAI | null = null;
-function getGenAI(): GoogleGenAI | null {
+let aiClient = null;
+function getGenAI() {
   if (!aiClient && process.env.GEMINI_API_KEY) {
     aiClient = new GoogleGenAI({
       apiKey: process.env.GEMINI_API_KEY,
@@ -28,14 +28,14 @@ function getGenAI(): GoogleGenAI | null {
 }
 
 // 1. Health check (Cloud Run and monitoring)
-app.get(['/health', '/api/health', '/ping'], (req: Request, res: Response) => {
+app.get(['/health', '/api/health', '/ping'], (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // 1.1 Verification Email dispatch endpoint
-app.post('/api/auth/send-verification-email', async (req: Request, res: Response) => {
+app.post('/api/auth/send-verification-email', async (req, res) => {
   try {
-    const { email, name = 'ઇન્સ્ટ્રક્ટર' } = req.body;
+    const { email, name = 'ઇન્સ્ટ્રક્ટર' } = req.body || {};
     if (!email) {
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
@@ -55,14 +55,15 @@ app.post('/api/auth/send-verification-email', async (req: Request, res: Response
       timestamp: new Date().toISOString(),
       message: `Verification code generated for ${email}. Instant verify available.`,
     });
-  } catch (err: any) {
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     console.error('Error generating email verification:', err);
-    return res.status(500).json({ success: false, error: err?.message });
+    return res.status(500).json({ success: false, error: errorMessage });
   }
 });
 
 // 2. Gemini AI - Smart Parent Commentary Generation
-app.post('/api/gemini/commentary', async (req: Request, res: Response) => {
+app.post('/api/gemini/commentary', async (req, res) => {
   try {
     const {
       traineeName = 'વિદ્યાર્થી',
@@ -73,12 +74,11 @@ app.post('/api/gemini/commentary', async (req: Request, res: Response) => {
       previousNoticeHistory = 'First Notice',
       language = 'Gujarati',
       tone = 'Strict & Polite',
-    } = req.body;
+    } = req.body || {};
 
     const ai = getGenAI();
 
     if (!ai) {
-      // Fallback high-quality formal responses if API key is not configured in local environment
       let fallbackText = '';
       if (language === 'Gujarati') {
         fallbackText = `તાલીમાર્થી ${traineeName} ની ચાલુ માસ દરમિયાન માત્ર ${attendancePercentage}% હાજરી રહેલ છે, જે NCVT/GCVT નિયમ મુજબ પરીક્ષા માટે અમાન્ય છે. વાલીશ્રીને તાકીદ કરવામાં આવે છે કે તાત્કાલિક સંસ્થા ખાતે રૂબરૂ આવી સુપરવાઈઝર ઇન્સ્ટ્રક્ટરને મળી જરૂરી ખુલાસો રજૂ કરવો.`;
@@ -115,10 +115,10 @@ Desired Tone: ${tone}`;
       commentary: generatedText,
       source: 'gemini-3.8-flash',
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error generating AI commentary:', error);
-    // Return gracefully with fallback
-    const { traineeName = 'વિદ્યાર્થી', attendancePercentage = 60, language = 'Gujarati' } = req.body;
+    const { traineeName = 'વિદ્યાર્થી', attendancePercentage = 60, language = 'Gujarati' } = req.body || {};
     let fallbackText = '';
     if (language === 'Gujarati') {
       fallbackText = `તાલીમાર્થી ${traineeName} ની ચાલુ માસ દરમિયાન માત્ર ${attendancePercentage}% હાજરી રહેલ છે. વાલીશ્રીએ તાત્કાલિક સંસ્થા ખાતે રૂબરૂ આવી સુપરવાઈઝર ઇન્સ્ટ્રક્ટરને મળવું.`;
@@ -127,14 +127,14 @@ Desired Tone: ${tone}`;
     } else {
       fallbackText = `Trainee ${traineeName}'s attendance is ${attendancePercentage}%. Please visit the ITI institute promptly to consult the instructor.`;
     }
-    return res.json({ commentary: fallbackText, source: 'fallback-error', error: error?.message });
+    return res.json({ commentary: fallbackText, source: 'fallback-error', error: errorMessage });
   }
 });
 
 // 3. Gemini AI - Grammar & Regional Vernacular Auto-Correct
-app.post('/api/gemini/polish', async (req: Request, res: Response) => {
+app.post('/api/gemini/polish', async (req, res) => {
   try {
-    const { text = '', language = 'Gujarati', mode = 'formal-polish' } = req.body;
+    const { text = '', language = 'Gujarati' } = req.body || {};
 
     if (!text.trim()) {
       return res.json({ polishedText: text });
@@ -160,35 +160,52 @@ ${text}`;
 
     const polished = response.text?.trim() || text;
     return res.json({ polishedText: polished, source: 'gemini-3.8-flash' });
-  } catch (err: any) {
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     console.error('Error in polish endpoint:', err);
-    return res.json({ polishedText: req.body.text || '', error: err?.message });
+    return res.json({ polishedText: req.body?.text || '', error: errorMessage });
   }
 });
 
 // Vite Middleware for dev mode vs static serving in production
-async function setupViteOrStatic() {
-  const distPath = path.resolve(process.cwd(), 'dist');
-  const distIndexPath = path.join(distPath, 'index.html');
-  const hasDist = fs.existsSync(distIndexPath);
-  const isProduction = process.env.NODE_ENV === 'production' && hasDist;
+const distPath = path.resolve(process.cwd(), 'dist');
+const distIndexPath = path.join(distPath, 'index.html');
+const hasDist = fs.existsSync(distIndexPath);
+const isDevLifecycle = process.env.npm_lifecycle_event === 'dev';
+const isProduction =
+  hasDist &&
+  (!isDevLifecycle ||
+    process.env.NODE_ENV === 'production' ||
+    Boolean(process.env.K_SERVICE));
 
-  if (isProduction) {
-    app.use(express.static(distPath));
-    app.get('*', (req: Request, res: Response) => {
-      if (fs.existsSync(distIndexPath)) {
-        res.sendFile(distIndexPath);
-      } else {
-        res.status(200).send(`<!DOCTYPE html><html><head><title>ITI App</title></head><body><div id="root">Loading...</div><script>location.reload();</script></body></html>`);
-      }
-    });
-  } else {
+if (isProduction) {
+  app.use(express.static(distPath));
+  app.get('*', (_req, res) => {
+    if (fs.existsSync(distIndexPath)) {
+      res.sendFile(distIndexPath);
+    } else {
+      res
+        .status(200)
+        .send(
+          `<!DOCTYPE html><html><head><title>ITI App</title></head><body><div id="root">Loading...</div></body></html>`
+        );
+    }
+  });
+}
+
+// Bind port immediately so Cloud Run startup probes succeed without delay
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT} (mode: ${isProduction ? 'production' : 'development'})`);
+});
+
+if (!isProduction) {
+  (async () => {
     try {
       const { createServer: createViteServer } = await import('vite');
       const vite = await createViteServer({
         server: {
           middlewareMode: true,
-          allowedHosts: true as const,
+          allowedHosts: true,
         },
         appType: 'spa',
       });
@@ -197,16 +214,11 @@ async function setupViteOrStatic() {
       console.warn('Vite middleware could not be started, checking for dist fallback:', err);
       if (hasDist) {
         app.use(express.static(distPath));
-        app.get('*', (req: Request, res: Response) => {
+        app.get('*', (_req, res) => {
           res.sendFile(distIndexPath);
         });
       }
     }
-  }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT} (mode: ${isProduction ? 'production' : 'development'})`);
-  });
+  })();
 }
 
-setupViteOrStatic();

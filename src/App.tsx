@@ -62,6 +62,7 @@ import { isStudentAssignedToInstructor } from './utils/academicHelpers';
 import AcademicHierarchyManager from './components/AcademicHierarchyManager';
 import TemplateStudio from './components/TemplateStudio';
 import ReportGenerator from './components/ReportGenerator';
+import UserGuideView from './components/UserGuideView';
 import { HeaderConfig } from './types';
 import { Calendar, Eye, ShieldAlert, Sparkles, AlertCircle } from 'lucide-react';
 import { isAccountExpired, formatValidityDate } from './utils/validityHelper';
@@ -203,9 +204,9 @@ export default function App() {
     return () => unsubscribe();
   }, [isAuthenticated, isGuest, isSuperAdmin, currentInstructorId]);
 
-  // Strict role isolation: Super Admin is locked to 'admin' console; Instructors never access 'admin'
+  // Strict role isolation: Super Admin is locked to 'admin' or 'guide' console; Instructors never access 'admin'
   useEffect(() => {
-    if (isSuperAdmin && activeTab !== 'admin') {
+    if (isSuperAdmin && activeTab !== 'admin' && activeTab !== 'guide') {
       setActiveTab('admin');
     } else if (!isSuperAdmin && activeTab === 'admin') {
       setActiveTab('attendance');
@@ -572,13 +573,12 @@ export default function App() {
   // 5. Tenant Handlers
   const handleAddInstructor = async (inst: Omit<Instructor, 'id' | 'created_at'> | Instructor) => {
     if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં ઇન્સ્ટ્રક્ટર ખાતું ઉમેરી શકાતું નથી.');
       return;
     }
     const created: Instructor = {
       ...inst,
       id: 'id' in inst && inst.id ? inst.id : `inst-${Date.now()}`,
-      batches: inst.batches || [inst.batch || '૨૦૨૫–૨૦૨૬'],
+      batches: inst.batches || [inst.batch || '84'],
       units: inst.units || [inst.unit || 'Unit A'],
       trades: inst.trades || [inst.trade || 'કોપા (COPA)'],
       academic_hierarchy: inst.academic_hierarchy || [
@@ -588,7 +588,7 @@ export default function App() {
           batches: [
             {
               id: `b-${Date.now()}`,
-              name: inst.batch || '૨૦૨૫–૨૦૨૬',
+              name: inst.batch || '84',
               units: [{ id: `u-${Date.now()}`, name: inst.unit || 'Unit A' }],
             },
           ],
@@ -602,7 +602,6 @@ export default function App() {
 
   const handleDeleteInstructor = async (id: string) => {
     if (isGuest) {
-      notifyGuestBlocked('ડેમો મોડમાં ઇન્સ્ટ્રક્ટર ખાતું ડિલીટ કરી શકાતું નથી.');
       return;
     }
     setInstructors((prev) => prev.filter((i) => i.id !== id));
@@ -826,7 +825,9 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 py-3 sm:py-6 pb-24 md:pb-6 overflow-x-hidden">
-        {isSuperAdmin ? (
+        {activeTab === 'guide' ? (
+          <UserGuideView />
+        ) : isSuperAdmin ? (
           /* Super Admin Console: Pure administrative jurisdiction (verification, approvals, audit, directory) */
           <SuperAdminDashboard
             instructors={instructors}

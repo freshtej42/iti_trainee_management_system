@@ -16,6 +16,7 @@ import {
   User,
   AlertCircle,
   Eye,
+  BookOpen,
 } from 'lucide-react';
 import ImeFloatWidget from './ImeFloatWidget';
 import LanguageSelector from './LanguageSelector';
@@ -29,6 +30,7 @@ export type ActiveTab =
   | 'report'
   | 'attendance'
   | 'dispatch'
+  | 'guide'
   | 'admin';
 
 interface HeaderProps {
@@ -236,16 +238,31 @@ export default function Header({
         {/* Desktop Navigation Bar */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 hidden md:block">
           {isSuperAdmin ? (
-            /* Super Admin Workspace Header - No Classroom Tabs */
+            /* Super Admin Workspace Header */
             <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 text-white font-bold text-xs shadow-xs">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onTabChange('admin')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs shadow-xs transition-colors ${
+                    activeTab === 'admin'
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
                   <ShieldCheck className="w-4 h-4 text-amber-400" />
                   <span>{t('superAdminTitle')}</span>
-                </div>
-                <span className="text-xs text-slate-600 font-medium">
-                  {t('superAdminSubtitle')}
-                </span>
+                </button>
+                <button
+                  onClick={() => onTabChange('guide')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                    activeTab === 'guide'
+                      ? 'bg-[#346739] text-[#f2edc2] shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>{tText('માર્ગદર્શિકા PDF (User Guide)', 'उपयोगकर्ता मार्गदर्शिका PDF', 'User Guide PDF')}</span>
+                </button>
               </div>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold">
@@ -339,6 +356,18 @@ export default function Header({
               >
                 <SendHorizontal className="w-4 h-4 shrink-0" />
                 <span>{t('tabDispatchRegister')}</span>
+              </button>
+
+              <button
+                onClick={() => onTabChange('guide')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
+                  activeTab === 'guide'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-[#346739] bg-[#f2edc2]/40 hover:bg-[#f2edc2]/80 font-semibold border border-[#9fcb98]/60'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 shrink-0" />
+                <span>{tText('માર્ગદર્શિકા PDF', 'यूज़र गाइड PDF', 'User Guide PDF')}</span>
               </button>
             </nav>
           )}
@@ -450,12 +479,27 @@ export default function Header({
               <div className="space-y-2">
                 <button
                   onClick={() => handleMobileTabSelect('admin')}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold bg-slate-900 text-white min-h-[44px]"
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold min-h-[44px] ${
+                    activeTab === 'admin' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'
+                  }`}
                 >
                   <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0" />
                   <div className="text-left">
                     <div>{t('tabSuperAdmin')}</div>
-                    <div className="text-[11px] text-slate-300 font-normal">{t('superAdminSubtitle')}</div>
+                    <div className="text-[11px] opacity-80 font-normal">{t('superAdminSubtitle')}</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => handleMobileTabSelect('guide')}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold min-h-[44px] ${
+                    activeTab === 'guide' ? 'bg-[#346739] text-[#f2edc2]' : 'bg-[#f2edc2]/40 text-[#1b381e]'
+                  }`}
+                >
+                  <BookOpen className="w-5 h-5 shrink-0" />
+                  <div className="text-left">
+                    <div>{tText('માર્ગદર્શિકા PDF (User Guide)', 'उपयोगकर्ता मार्गदर्शिका PDF', 'User Guide PDF')}</div>
+                    <div className="text-[11px] opacity-80 font-normal">8-Page A4 Manual & Diagrams</div>
                   </div>
                 </button>
 
@@ -551,6 +595,18 @@ export default function Header({
                 >
                   <SendHorizontal className="w-5 h-5" />
                   <span>{t('tabDispatchRegister')}</span>
+                </button>
+
+                <button
+                  onClick={() => handleMobileTabSelect('guide')}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${
+                    activeTab === 'guide'
+                      ? 'bg-[#346739] text-[#f2edc2]'
+                      : 'text-[#1b381e] bg-[#f2edc2]/40 hover:bg-[#f2edc2]/70'
+                  }`}
+                >
+                  <BookOpen className="w-5 h-5" />
+                  <span>{tText('માર્ગદર્શિકા PDF (User Guide)', 'यूज़र गाइड PDF', 'User Guide PDF')}</span>
                 </button>
               </div>
             )}

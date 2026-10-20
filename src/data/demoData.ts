@@ -1325,7 +1325,7 @@ export const DEMO_SAMPLE_TEMPLATES: LetterTemplate[] = [
     template_name: '૩. આખરી કારણદર્શક નોટિસ - નામ કમી કરવા બાબત (Final Show-Cause Notice)',
     name: '૩. આખરી કારણદર્શક નોટિસ - નામ કમી કરવા બાબત (Final Show-Cause Notice)',
     language: 'Gujarati',
-    category: 'show_cause',
+    category: 'irregularity_notice',
     notice_type: 'Final Notice',
     subject: 'સંસ્થામાંથી નામ કમી કરવા અંગે આખરી કારણદર્શક નોટિસ (Final Show-Cause Notice).',
     content_html: `<div style="line-height: 1.7; font-family: 'Noto Sans Gujarati', sans-serif; font-size: 14px; color: #111;">
@@ -1379,7 +1379,7 @@ export const DEMO_SAMPLE_TEMPLATES: LetterTemplate[] = [
     template_name: '૪. વાલી મિટિંગ માટે હાજર રહેવા બાબત (Parent Meeting Invitation)',
     name: '૪. વાલી મિટિંગ માટે હાજર રહેવા બાબત (Parent Meeting Invitation)',
     language: 'Gujarati',
-    category: 'parent_meeting',
+    category: 'general_notice',
     notice_type: 'General Notice',
     subject: 'તાલીમાર્થીની તાલીમ પ્રગતિ અને હાજરી સમીક્ષા અર્થે વાલી મિટિંગમાં હાજર રહેવા બાબત.',
     content_html: `<div style="line-height: 1.7; font-family: 'Noto Sans Gujarati', sans-serif; font-size: 14px; color: #111;">

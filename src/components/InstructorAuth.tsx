@@ -19,7 +19,9 @@ import {
   KeyRound,
   X,
   Sparkles,
+  BookOpen,
 } from 'lucide-react';
+import UserGuideView from './UserGuideView';
 import { transliterateText } from '../utils/phoneticIme';
 import { INITIAL_INSTRUCTORS, DEMO_GUEST_INSTRUCTOR } from '../data/initialData';
 import {
@@ -75,6 +77,7 @@ export default function InstructorAuth({
   const [loginIdentifier, setLoginIdentifier] = useState<string>('');
   const [loginPassword, setLoginPassword] = useState<string>('');
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState<boolean>(false);
+  const [showUserGuideModal, setShowUserGuideModal] = useState<boolean>(false);
 
   const [regNameEn, setRegNameEn] = useState<string>('');
   const [regNameGu, setRegNameGu] = useState<string>('');
@@ -423,6 +426,21 @@ export default function InstructorAuth({
                   <span>ડેમો તરીકે તરત પ્રવેશ કરો (Instant Demo)</span>
                 </button>
               </div>
+            </div>
+
+            {/* Official User Guide & 1-Page Gujarati Infographic PDF Quick Access Row */}
+            <div className="mt-2.5 pt-2.5 border-t border-amber-200/60 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-600 font-medium">
+                ૧-પેજ ગુજરાતી પોર્ટલ ઈન્ફોગ્રાફિક અને સંપૂર્ણ માર્ગદર્શિકા PDF:
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowUserGuideModal(true)}
+                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+                <span>૧-પેજ ગુજરાતી ઈન્ફોગ્રાફિક & Guide PDF</span>
+              </button>
             </div>
           </div>
 
@@ -1085,6 +1103,14 @@ export default function InstructorAuth({
               await onUpdateInstructor(updated);
             }
           }}
+        />
+      )}
+
+      {/* User Guide PDF Modal */}
+      {showUserGuideModal && (
+        <UserGuideView
+          isModal={true}
+          onClose={() => setShowUserGuideModal(false)}
         />
       )}
     </div>

@@ -88,6 +88,7 @@ export interface Instructor {
   approved_at?: string;
   approved_by?: string;
   valid_until?: string; // Account expiration timestamp (1 year from approval date, undefined/lifetime for super admin)
+  custom_table_templates?: CustomTableTemplate[]; // User-created custom table merge tags
   created_at: string;
   updated_at?: string;
 }
@@ -178,8 +179,30 @@ export interface LetterTemplate {
   letterhead_html?: string; // Template-specific TinyMCE rich-text letterhead HTML
   use_custom_letterhead?: boolean; // True if using template-specific letterhead rather than global instructor default
   show_letterhead?: boolean; // Facility to toggle letterhead per template
+  required_fields?: string[];
   multi_student_mode?: 'individual' | 'consolidated' | 'both';
   table_columns?: string[];
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CustomTableColumn {
+  id: string;
+  header: string; // Column header name, e.g. 'તાલીમાર્થીનું નામ', 'સરનામું', 'નોંધ / સહી'
+  cell_template: string; // Merge tag expression e.g. '{{Full_Name}}' or '' if left blank for writing on paper
+  is_blank_for_handwriting?: boolean; // True when column is left blank to write by hand after printing
+  align?: 'left' | 'center' | 'right';
+  width?: string; // e.g. '25%' or 'auto'
+  bold?: boolean;
+}
+
+export interface CustomTableTemplate {
+  id: string;
+  name: string; // Display label e.g. 'વાલી મીટિંગ સહી પત્રક'
+  tag_key: string; // Merge tag e.g. '{{Custom_Table:Vali_Meeting_Sign}}'
+  description?: string;
+  columns: CustomTableColumn[];
+  row_min_height_px?: number; // Minimum height in px to allow comfortable handwriting after print
   created_at: string;
   updated_at?: string;
 }

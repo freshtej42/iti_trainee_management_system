@@ -36,11 +36,16 @@ import {
   Table2,
   LayoutList,
 } from 'lucide-react';
-import { MultiStudentTableColumnKey } from '../types';
-import { mergeTemplateTags, DEFAULT_MULTI_STUDENT_COLUMNS } from '../utils/mergeTags';
+import { MultiStudentTableColumnKey, CustomTableTemplate } from '../types';
+import {
+  mergeTemplateTags,
+  DEFAULT_MULTI_STUDENT_COLUMNS,
+  getEffectiveCustomTables,
+} from '../utils/mergeTags';
 import { calculateProgressiveAttendance } from '../utils/progressiveAttendance';
 import DraggableFieldsPalette from './DraggableFieldsPalette';
 import MultiStudentColumnCustomizer from './MultiStudentColumnCustomizer';
+import CustomTableBuilderModal from './CustomTableBuilderModal';
 import BatchNoticePrintPreviewModal, { BatchNoticeItem } from './BatchNoticePrintPreviewModal';
 import A4PrintPreviewModal from './A4PrintPreviewModal';
 import { getEffectiveLetterheadHtml, renderLetterheadHtml } from '../utils/letterheadPresets';
@@ -274,11 +279,26 @@ export default function ReportGenerator({
   );
   const [isColumnCustomizerOpen, setIsColumnCustomizerOpen] = useState<boolean>(false);
 
+  // Custom Table Merge Tag Builder State
+  const [customTables, setCustomTables] = useState<CustomTableTemplate[]>(() =>
+    getEffectiveCustomTables(instructor)
+  );
+  const [isCustomTableBuilderOpen, setIsCustomTableBuilderOpen] = useState<boolean>(false);
+
+  const handleSaveCustomTables = (updatedTables: CustomTableTemplate[]) => {
+    setCustomTables(updatedTables);
+    try {
+      localStorage.setItem('iti_custom_table_templates', JSON.stringify(updatedTables));
+    } catch {
+      // Ignore storage error
+    }
+  };
+
   // Check if current template is designed for consolidated multi-student letters
   const isTemplateMultiStudent = Boolean(
     selectedTemplate && (
       selectedTemplate.multi_student_mode === 'consolidated' ||
-      /{{Selected_Trainees_Table}}|{{Trainee_Address_Table}}|{{Trainee_Attendance_Table}}/i.test(currentTemplateContent) ||
+      /{{Selected_Trainees_Table}}|{{Trainee_Address_Table}}|{{Trainee_Attendance_Table}}|{{Custom_Table:/i.test(currentTemplateContent) ||
       selectedTemplate.notice_type === 'Report' ||
       selectedTemplate.category === 'principal_report' ||
       selectedTemplate.category === 'general_report' ||
@@ -387,6 +407,7 @@ export default function ReportGenerator({
       allLowAttendanceTrainees: lowAttendanceList,
       selectedTrainees: selectedListWithAtt,
       selectedTableColumns: selectedTableColumns,
+      customTableTemplates: customTables,
       referenceNumber: refNo,
       noticeIssueDate: new Date().toLocaleDateString('gu-IN'),
       monthYear: att?.month_year || 'ઓગસ્ટ ૨૦૨૫',
@@ -680,13 +701,23 @@ export default function ReportGenerator({
               <button
                 type="button"
                 onClick={() => setIsColumnCustomizerOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-bold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-bold transition-colors cursor-pointer"
                 title="ટેબલમાં કઈ કઈ કોલમ્સ (જેમ કે સરનામું, મોબાઈલ, વાલીનું નામ) રાખવી તે પસંદ કરો"
               >
                 <Columns3 className="w-3.5 h-3.5 text-emerald-300" />
                 <span>કોલમ્સ ગોઠવો ({selectedTableColumns.length})</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setIsCustomTableBuilderOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/90 hover:bg-emerald-900 text-emerald-200 border border-emerald-600/80 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+              title="તમારા મુજબ કોલમ અને ખાલી ખાના (Remarks) વાળું કસ્ટમ ટેબલ મર્જ ટેગ બનાવો અને પત્રમાં વાપરો"
+            >
+              <Table2 className="w-3.5 h-3.5 text-emerald-300" />
+              <span>+ કસ્ટમ ટેબલ ટેગ મેકર ({customTables.length})</span>
+            </button>
           </div>
         </div>
 
@@ -1166,7 +1197,11 @@ export default function ReportGenerator({
 
           {/* Dynamic Fields Draggable Palette Tray */}
           {showFieldsPalette && (
-            <DraggableFieldsPalette onInsertTag={handleInsertTag} />
+            <DraggableFieldsPalette
+              onInsertTag={handleInsertTag}
+              customTableTemplates={customTables}
+              onOpenCustomTableBuilder={() => setIsCustomTableBuilderOpen(true)}
+            />
           )}
 
           {/* Field Dropped Alert Notification Toast */}
@@ -1556,6 +1591,21 @@ export default function ReportGenerator({
         onClose={() => setIsColumnCustomizerOpen(false)}
         selectedColumns={selectedTableColumns}
         onChangeColumns={(cols) => setSelectedTableColumns(cols)}
+      />
+
+      {/* 4. Custom Table Merge Tag Builder Modal */}
+      <CustomTableBuilderModal
+        isOpen={isCustomTableBuilderOpen}
+        onClose={() => setIsCustomTableBuilderOpen(false)}
+        customTables={customTables}
+        onSaveCustomTables={handleSaveCustomTables}
+        onInsertTag={(tag) => {
+          handleInsertTag(tag);
+          setUserLetterMode('consolidated');
+        }}
+        sampleTrainees={selectedTraineesList}
+        attendanceRecords={attendanceRecords}
+        instructor={instructor}
       />
     </div>
   );

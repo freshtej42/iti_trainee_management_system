@@ -1,4 +1,4 @@
-import { Trainee, AttendanceRecord, Instructor, DispatchLog, MultiStudentTableColumnKey } from '../types';
+import { Trainee, AttendanceRecord, Instructor, DispatchLog, MultiStudentTableColumnKey, CustomTableTemplate } from '../types';
 
 export interface MergeContext {
   trainee: Trainee;
@@ -16,6 +16,7 @@ export interface MergeContext {
   allLowAttendanceTrainees?: Array<{ trainee: Trainee; attendance?: AttendanceRecord }>;
   selectedTrainees?: Array<{ trainee: Trainee; attendance?: AttendanceRecord }>;
   selectedTableColumns?: MultiStudentTableColumnKey[];
+  customTableTemplates?: CustomTableTemplate[];
   aiCommentary?: string;
   language?: 'Gujarati' | 'Hindi' | 'English';
   monthYear?: string;
@@ -96,10 +97,114 @@ export const AVAILABLE_MERGE_TAGS = [
   { tag: '{{Selected_Trainees_Table}}', label: 'Multi-Student Table (પસંદ કરેલ વિદ્યાર્થીઓનું સંયુક્ત પત્રક)', category: 'MultiStudent' },
   { tag: '{{Trainee_Address_Table}}', label: 'Trainee Address Table (વિદ્યાર્થીઓનું પૂરું સરનામું અને સંપર્ક પત્રક)', category: 'MultiStudent' },
   { tag: '{{Trainee_Attendance_Table}}', label: 'Attendance Forwarding Table (હાજરી / ગેરહાજરી પત્રક)', category: 'MultiStudent' },
+  { tag: '{{Custom_Table:Student_Address_Remarks}}', label: 'Custom Table: નામ, સરનામું અને ખાલી નોંધ (Name, Address & Blank Remarks)', category: 'MultiStudent' },
+  { tag: '{{Custom_Table:Parent_Meeting_Sign}}', label: 'Custom Table: વાલી મીટિંગ સહી પત્રક (Parent Sign Sheet)', category: 'MultiStudent' },
   { tag: '{{Total_Selected_Trainees}}', label: 'Total Students Count (પસંદ કરેલ વિદ્યાર્થીઓની કુલ સંખ્યા)', category: 'MultiStudent' },
   { tag: '{{Selected_Trainees_Roll_List}}', label: 'Selected Roll Numbers (પસંદ કરેલ રોલ નંબરો)', category: 'MultiStudent' },
   { tag: '{{Selected_Trainees_Names_List}}', label: 'Selected Trainees Names (પસંદ કરેલ વિદ્યાર્થીઓના નામો)', category: 'MultiStudent' },
 ];
+
+/**
+ * Available row-level merge tags when designing a Custom Table row format
+ */
+export const ROW_CELL_MERGE_TAGS = [
+  { tag: '{{Sr_No}}', label: 'ક્રમ (1, 2, 3...)' },
+  { tag: '{{Sr_No_Gu}}', label: 'ગુજરાતી ક્રમ (૧, ૨, ૩...)' },
+  { tag: '{{Full_Name}}', label: 'તાલીમાર્થીનું પૂર્ણ નામ (Full Name)' },
+  { tag: '{{Trainee_Roll_No}}', label: 'રોલ નંબર (Roll No)' },
+  { tag: '{{Enrollment_No}}', label: 'એનરોલમેન્ટ નં. (Enrollment No)' },
+  { tag: '{{Parent_Full_Name}}', label: 'વાલીનું પૂર્ણ નામ (Parent Name)' },
+  { tag: '{{Father_Name}}', label: 'પિતાનું નામ (Father Name)' },
+  { tag: '{{Full_Address}}', label: 'સંપૂર્ણ સરનામું (Full Address)' },
+  { tag: '{{Village}}', label: 'ગામ (Village)' },
+  { tag: '{{Taluka}}', label: 'તાલુકો (Taluka)' },
+  { tag: '{{District}}', label: 'જિલ્લો (District)' },
+  { tag: '{{Pincode}}', label: 'પિનકોડ (Pincode)' },
+  { tag: '{{Parent_Mobile}}', label: 'વાલી મોબાઈલ નં. (Parent Mobile)' },
+  { tag: '{{Mobile}}', label: 'તાલીમાર્થી મોબાઈલ (Student Mobile)' },
+  { tag: '{{Attendance_Percentage}}', label: 'માસિક હાજરી % (Monthly %)' },
+  { tag: '{{Progressive_Attendance_Percentage}}', label: 'સંચિત હાજરી % (Progressive %)' },
+  { tag: '{{Present_Days}}', label: 'હાજર દિવસો (Present Days)' },
+  { tag: '{{Absent_Days}}', label: 'ગેરહાજર દિવસો (Absent Days)' },
+  { tag: '{{Continuous_Absent_Since}}', label: 'ક્યારથી ગેરહાજર (Absent Since)' },
+  { tag: '{{Remarks}}', label: 'સિસ્ટમ નોંધ (System Remarks)' },
+  { tag: '{{Trade}}', label: 'ટ્રેડ (Trade)' },
+  { tag: '{{Batch}}', label: 'બેચ (Batch)' },
+  { tag: '{{Unit}}', label: 'યુનિટ (Unit)' },
+];
+
+export const DEFAULT_CUSTOM_TABLE_TEMPLATES: CustomTableTemplate[] = [
+  {
+    id: 'ctbl-student-address-remarks',
+    name: 'નામ, સરનામું અને ખાલી નોંધ પત્રક (Name, Address & Blank Remarks)',
+    tag_key: '{{Custom_Table:Student_Address_Remarks}}',
+    description: 'તાલીમાર્થીનું નામ, રોલ નંબર, સંપૂર્ણ સરનામું અને પ્રિન્ટ બાદ હાથથી લખવા માટે ખાલી નોંધ/સહી કોલમ',
+    row_min_height_px: 34,
+    columns: [
+      { id: 'c1', header: 'ક્રમ', cell_template: '{{Sr_No_Gu}}', align: 'center', width: '6%', bold: true },
+      { id: 'c2', header: 'રોલ નં.', cell_template: '{{Trainee_Roll_No}}', align: 'center', width: '10%', bold: true },
+      { id: 'c3', header: 'તાલીમાર્થીનું નામ', cell_template: '{{Full_Name}}', align: 'left', width: '24%', bold: true },
+      { id: 'c4', header: 'સંપૂર્ણ સરનામું અને મોબાઈલ', cell_template: '{{Full_Address}} (મો: {{Parent_Mobile}})', align: 'left', width: '36%' },
+      { id: 'c5', header: 'નોંધ / સહી', cell_template: '', is_blank_for_handwriting: true, align: 'left', width: '24%' },
+    ],
+    created_at: '2025-08-01T10:00:00Z',
+  },
+  {
+    id: 'ctbl-parent-meeting-sign',
+    name: 'વાલી મીટિંગ સહી અને સંપર્ક પત્રક (Parent Meeting Sign Sheet)',
+    tag_key: '{{Custom_Table:Parent_Meeting_Sign}}',
+    description: 'વાલી મીટિંગ કે રૂબરૂ મુલાકાત વખતે પ્રિન્ટ કાઢી વાલીની સહી અને અભિપ્રાય લેવા માટેનું તૈયાર ટેબલ',
+    row_min_height_px: 38,
+    columns: [
+      { id: 'c1', header: 'ક્રમ', cell_template: '{{Sr_No_Gu}}', align: 'center', width: '6%', bold: true },
+      { id: 'c2', header: 'તાલીમાર્થીનું નામ (રોલ નં.)', cell_template: '{{Full_Name}} ({{Trainee_Roll_No}})', align: 'left', width: '26%', bold: true },
+      { id: 'c3', header: 'વાલીનું નામ અને મોબાઈલ', cell_template: '{{Parent_Full_Name}} - {{Parent_Mobile}}', align: 'left', width: '28%' },
+      { id: 'c4', header: 'હાજરી %', cell_template: '{{Attendance_Percentage}}', align: 'center', width: '12%', bold: true },
+      { id: 'c5', header: 'વાલીની સહી / રૂબરૂ નોંધ', cell_template: '', is_blank_for_handwriting: true, align: 'left', width: '28%' },
+    ],
+    created_at: '2025-08-01T10:00:00Z',
+  },
+];
+
+/**
+ * Returns merged list of default + instructor/localStorage custom table templates
+ */
+export function getEffectiveCustomTables(
+  instructor?: Instructor,
+  extraCustomTables?: CustomTableTemplate[]
+): CustomTableTemplate[] {
+  let storedLocal: CustomTableTemplate[] = [];
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('iti_custom_table_templates');
+      if (raw) {
+        storedLocal = JSON.parse(raw);
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
+  const fromInstructor = instructor?.custom_table_templates || [];
+  const combined = [
+    ...(extraCustomTables || []),
+    ...fromInstructor,
+    ...storedLocal,
+    ...DEFAULT_CUSTOM_TABLE_TEMPLATES,
+  ];
+
+  const seenTags = new Set<string>();
+  const unique: CustomTableTemplate[] = [];
+  for (const item of combined) {
+    if (!item || !item.tag_key) continue;
+    const normKey = item.tag_key.trim().toLowerCase();
+    if (!seenTags.has(normKey)) {
+      seenTags.add(normKey);
+      unique.push(item);
+    }
+  }
+  return unique;
+}
 
 export interface NoticeHistory {
   previousNoticeDates: string; // Comma separated list of dates or "-" if none
@@ -719,5 +824,173 @@ export function mergeTemplateTags(templateHtml: string, context: MergeContext): 
     rendered = rendered.split(tag).join(val);
   }
 
+  // Evaluate and replace any Instructor Custom Table Merge Tags (e.g. {{Custom_Table:...}})
+  const activeCustomTables = getEffectiveCustomTables(instructor, context.customTableTemplates);
+  for (const tableDef of activeCustomTables) {
+    if (
+      rendered.includes(tableDef.tag_key) ||
+      rendered.toLowerCase().includes(tableDef.tag_key.toLowerCase())
+    ) {
+      const tableHtml = generateCustomTableHtml(tableDef, selectedTraineesList, context);
+      // Replace exact and case-insensitive matches
+      rendered = rendered.split(tableDef.tag_key).join(tableHtml);
+      const lowerTag = tableDef.tag_key.toLowerCase();
+      if (rendered.toLowerCase().includes(lowerTag)) {
+        const regex = new RegExp(tableDef.tag_key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        rendered = rendered.replace(regex, tableHtml);
+      }
+    }
+  }
+
   return rendered;
+}
+
+/**
+ * Generates an HTML table from an Instructor-designed CustomTableTemplate
+ * iterating across all selected trainees and evaluating merge tags per cell.
+ */
+export function generateCustomTableHtml(
+  tableDef: CustomTableTemplate,
+  traineesList: Array<{ trainee: Trainee; attendance?: AttendanceRecord }>,
+  baseContext: MergeContext
+): string {
+  const preferEnglish = baseContext.language === 'English';
+  const cols = tableDef.columns || [];
+  const minHeight = tableDef.row_min_height_px || 32;
+
+  if (cols.length === 0) {
+    return '';
+  }
+
+  const headerCells = cols
+    .map((col) => {
+      const align = col.align || 'left';
+      const widthStyle = col.width ? `width: ${col.width};` : '';
+      return `<th style="border: 1px solid #333; padding: 7px 8px; text-align: ${align}; background-color: #f1f5f9; font-size: 12.5px; font-weight: bold; ${widthStyle}">${col.header}</th>`;
+    })
+    .join('');
+
+  if (!traineesList || traineesList.length === 0) {
+    return `<table style="width: 100%; border-collapse: collapse; margin: 12px 0 16px 0; font-size: 12.5px;" border="1" cellpadding="6">
+      <thead>
+        <tr>${headerCells}</tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="${cols.length}" style="border: 1px solid #333; padding: 12px; text-align: center; color: #64748b; font-style: italic;">
+            ${preferEnglish ? 'No trainees selected for this table.' : 'આ પત્રક માટે કોઈ તાલીમાર્થી પસંદ કરેલ નથી.'}
+          </td>
+        </tr>
+      </tbody>
+    </table>`;
+  }
+
+  const rowsHtml = traineesList
+    .map((item, rowIndex) => {
+      const tr = item.trainee;
+      const att = item.attendance;
+      const fullName = formatFullName(tr, preferEnglish);
+      const parentFullName = formatParentFullName(tr, preferEnglish);
+      const fullAddress = formatFullAddress(tr, preferEnglish);
+      const workingDays = att?.total_working_days ?? baseContext.workingDays ?? 24;
+      const presentDays = att?.present_days ?? 0;
+      const absentDays = att?.absent_days ?? Math.max(0, workingDays - presentDays);
+      const pct =
+        att?.attendance_percentage !== undefined
+          ? `${att.attendance_percentage.toFixed(1)}%`
+          : workingDays > 0
+          ? `${((presentDays / workingDays) * 100).toFixed(1)}%`
+          : '-';
+      const progPct =
+        att?.progressive_attendance_percentage !== undefined
+          ? `${att.progressive_attendance_percentage.toFixed(1)}%`
+          : pct;
+      const absentSince = att?.continuous_absent_since || att?.absent_from_date || '-';
+      const remarksVal = att?.remarks || '';
+      const fatherVal = preferEnglish ? (tr.father_name_en || tr.father_name) : tr.father_name;
+      const grandfatherVal = preferEnglish ? (tr.grandfather_name_en || tr.grandfather_name) : tr.grandfather_name;
+      const surnameVal = preferEnglish ? (tr.surname_en || tr.surname) : tr.surname;
+
+      const rowMap: Record<string, string> = {
+        '{{Sr_No}}': String(rowIndex + 1),
+        '{{sr_no}}': String(rowIndex + 1),
+        '{{Sr_No_Gu}}': toGujaratiNumerals(rowIndex + 1),
+        '{{sr_no_gu}}': toGujaratiNumerals(rowIndex + 1),
+        '{{Full_Name}}': fullName,
+        '{{full_name}}': fullName,
+        '{{Trainee_Full_Name}}': fullName,
+        '{{Trainee_Name}}': fullName,
+        '{{students name}}': fullName,
+        '{{Student_Name}}': fullName,
+        '{{student_name}}': fullName,
+        '{{Parent_Full_Name}}': parentFullName,
+        '{{Parent_Name}}': parentFullName,
+        '{{Father_Name}}': fatherVal,
+        '{{Grandfather_Name}}': grandfatherVal,
+        '{{Surname}}': surnameVal,
+        '{{Trainee_Roll_No}}': tr.roll_no || '',
+        '{{Roll_No}}': tr.roll_no || '',
+        '{{roll_no}}': tr.roll_no || '',
+        '{{Enrollment_No}}': tr.enrollment_no || '-',
+        '{{enrollment_no}}': tr.enrollment_no || '-',
+        '{{Full_Address}}': fullAddress,
+        '{{full_address}}': fullAddress,
+        '{{Address}}': fullAddress,
+        '{{address}}': fullAddress,
+        '{{Village}}': tr.village || '',
+        '{{Taluka}}': tr.taluka || '',
+        '{{District}}': tr.district || '',
+        '{{Pincode}}': tr.pincode || '',
+        '{{Mobile}}': tr.mobile || tr.parent_mobile || '-',
+        '{{Parent_Mobile}}': tr.parent_mobile || tr.mobile || '-',
+        '{{Category}}': tr.category || 'General',
+        '{{Trade}}': tr.trade || baseContext.instructor.trade || '',
+        '{{Batch}}': tr.batch || baseContext.instructor.batch || '',
+        '{{Unit}}': tr.unit || baseContext.instructor.unit || '',
+        '{{Working_Days}}': String(workingDays),
+        '{{Present_Days}}': String(presentDays),
+        '{{Absent_Days}}': String(absentDays),
+        '{{Attendance_Percentage}}': pct,
+        '{{Attendance_Percentage}}%': pct,
+        '{{Progressive_Attendance_Percentage}}': progPct,
+        '{{Progressive_Attendance_Percentage}}%': progPct,
+        '{{Continuous_Absent_Since}}': absentSince,
+        '{{Absent_From_Date}}': att?.absent_from_date || '-',
+        '{{Remarks}}': remarksVal,
+      };
+
+      const rowCells = cols
+        .map((col) => {
+          const align = col.align || 'left';
+          const weightStyle = col.bold ? 'font-weight: bold;' : '';
+          const widthStyle = col.width ? `width: ${col.width};` : '';
+
+          if (col.is_blank_for_handwriting || !col.cell_template || !col.cell_template.trim()) {
+            // Blank column to write by hand after printing on paper
+            return `<td style="border: 1px solid #333; padding: 6px 8px; text-align: ${align}; vertical-align: middle; height: ${minHeight}px; ${widthStyle}"><div style="min-height: ${Math.max(18, minHeight - 12)}px;">&nbsp;</div></td>`;
+          }
+
+          let evaluated = col.cell_template;
+          for (const [k, v] of Object.entries(rowMap)) {
+            evaluated = evaluated.split(k).join(v);
+          }
+
+          return `<td style="border: 1px solid #333; padding: 6px 8px; text-align: ${align}; vertical-align: top; line-height: 1.4; height: ${minHeight}px; ${weightStyle} ${widthStyle}">${evaluated}</td>`;
+        })
+        .join('');
+
+      return `<tr>${rowCells}</tr>`;
+    })
+    .join('\n');
+
+  return `<table style="width: 100%; border-collapse: collapse; margin: 12px 0 16px 0; font-size: 12.5px; line-height: 1.35;" border="1" cellpadding="6">
+    <thead>
+      <tr style="background-color: #f1f5f9;">
+        ${headerCells}
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>`;
 }

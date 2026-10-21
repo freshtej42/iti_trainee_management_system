@@ -1,6 +1,6 @@
 {
-  "summary":  "Comprehensive implementation plan for the Single-Page Multi-Student Forwarding Letter & Address Table feature. Enables instructors to create consolidated office intimation and forwarding letters containing multiple selected students with their addresses and attendance details in a clean, professional tabular format on a single A4 page.",
-  "updatedAt":  "2026-10-21T09:39:20.101144147Z",
+  "summary":  "Implementation plan for the Custom Table Merge Tag Builder, allowing instructors to design custom multi-column tables using any combination of merge fields or blank write-in columns and insert them as reusable merge tags across letters for selected or all students.",
+  "updatedAt":  "2026-10-21T11:35:16.083533279Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

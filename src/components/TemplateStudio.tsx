@@ -6,16 +6,22 @@ import {
   Trainee,
   AttendanceRecord,
   DispatchLog,
+  CustomTableTemplate,
 } from '../types';
 import TinyMceEditor, { MERGE_TAG_ITEMS } from './WordEditor/TinyMceEditor';
 import TinyMceLetterheadEditor from './WordEditor/TinyMceLetterheadEditor';
 import { LetterheadEditorModal } from './LetterheadEditorModal';
+import CustomTableBuilderModal from './CustomTableBuilderModal';
 import {
   getEffectiveLetterheadHtml,
   renderLetterheadHtml,
   generateDefaultLetterheadHtml,
 } from '../utils/letterheadPresets';
-import { mergeTemplateTags, generateOutwardReference } from '../utils/mergeTags';
+import {
+  mergeTemplateTags,
+  generateOutwardReference,
+  getEffectiveCustomTables,
+} from '../utils/mergeTags';
 import { exportElementToPdf, printCleanDocument } from '../utils/pdfExport';
 import {
   FileText,
@@ -43,6 +49,7 @@ import {
   ShieldCheck,
   Check,
   RefreshCw,
+  Table2,
 } from 'lucide-react';
 
 export interface TemplateStudioProps {
@@ -410,6 +417,37 @@ export default function TemplateStudio({
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
   const [previewModalTemplate, setPreviewModalTemplate] = useState<LetterTemplate | null>(null);
 
+  // Custom Table Merge Tag Builder state
+  const [customTables, setCustomTables] = useState<CustomTableTemplate[]>(() =>
+    getEffectiveCustomTables(instructor)
+  );
+  const [isCustomTableBuilderOpen, setIsCustomTableBuilderOpen] = useState<boolean>(false);
+
+  const handleSaveCustomTables = (updatedTables: CustomTableTemplate[]) => {
+    setCustomTables(updatedTables);
+    try {
+      localStorage.setItem('iti_custom_table_templates', JSON.stringify(updatedTables));
+    } catch {
+      // Ignore storage error
+    }
+    showToast('✓ કસ્ટમ ટેબલ મર્જ ટેગ સાચવવામાં આવ્યું!');
+  };
+
+  const handleInsertCustomTableTag = (tag: string) => {
+    if (viewMode === 'editor') {
+      const activeEditor = (window as any).tinymce?.activeEditor;
+      if (activeEditor) {
+        activeEditor.insertContent(`<p>${tag}</p>`);
+      } else {
+        setContentHtml((prev) => `${prev}\n<p>${tag}</p>`);
+      }
+      showToast(`✓ કસ્ટમ ટેબલ ટેગ ${tag} પત્રમાં ઉમેરાયું!`);
+    } else {
+      navigator.clipboard?.writeText(tag);
+      showToast(`✓ ટેગ ${tag} કોપી થયું! કોઈપણ ટેમ્પલેટમાં પેસ્ટ કરો.`);
+    }
+  };
+
   // Header Config state
   const [headerConfig, setHeaderConfig] = useState<HeaderConfig>(
     instructor.header_config || {
@@ -527,6 +565,11 @@ export default function TemplateStudio({
       instructor,
       dispatchLogs,
       allLowAttendanceTrainees: lowAttendanceList,
+      selectedTrainees: trainees.slice(0, 6).map((tr) => ({
+        trainee: tr,
+        attendance: attendanceRecords.find((a) => a.trainee_id === tr.id),
+      })),
+      customTableTemplates: customTables,
       monthYear,
       workingDays,
       presentDays,
@@ -553,6 +596,7 @@ export default function TemplateStudio({
     dispatchLogs,
     trainees,
     attendanceRecords,
+    customTables,
   ]);
 
   // Save letterhead HTML as Global Default across all templates
@@ -858,6 +902,16 @@ export default function TemplateStudio({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button
+                type="button"
+                onClick={() => setIsCustomTableBuilderOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-100 text-xs font-bold border border-emerald-400/40 transition-colors shadow-2xs cursor-pointer"
+                title="Create custom multi-student tables with merge tags and blank remarks columns"
+              >
+                <Table2 className="w-4 h-4 text-emerald-300" />
+                <span>Custom Table Tags ({customTables.length})</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsHeaderModalOpen(true)}
@@ -1234,6 +1288,17 @@ export default function TemplateStudio({
               >
                 <Upload className="w-3.5 h-3.5 text-blue-200" />
                 <span className="hidden sm:inline">Upload Image</span>
+              </button>
+
+              {/* Custom Table Tag Maker Button */}
+              <button
+                type="button"
+                onClick={() => setIsCustomTableBuilderOpen(true)}
+                className="flex items-center gap-1 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg border border-emerald-400/40 transition-colors shadow-xs shrink-0 cursor-pointer"
+                title="Create & insert custom multi-student table merge tag (with student data & blank remarks columns)"
+              >
+                <Table2 className="w-3.5 h-3.5 text-emerald-200" />
+                <span className="hidden sm:inline">+ Custom Table Tag</span>
               </button>
 
               <button
@@ -1660,6 +1725,20 @@ export default function TemplateStudio({
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 5: CUSTOM TABLE MERGE TAG BUILDER                                   */}
+      {/* ========================================================================= */}
+      <CustomTableBuilderModal
+        isOpen={isCustomTableBuilderOpen}
+        onClose={() => setIsCustomTableBuilderOpen(false)}
+        customTables={customTables}
+        onSaveCustomTables={handleSaveCustomTables}
+        onInsertTag={handleInsertCustomTableTag}
+        sampleTrainees={trainees.slice(0, 4)}
+        attendanceRecords={attendanceRecords}
+        instructor={instructor}
+      />
     </div>
   );
 }

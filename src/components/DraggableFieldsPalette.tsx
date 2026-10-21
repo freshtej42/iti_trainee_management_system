@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   GripVertical,
   Search,
@@ -12,16 +12,22 @@ import {
   X,
   HelpCircle,
   Users,
+  Table2,
 } from 'lucide-react';
-import { AVAILABLE_MERGE_TAGS } from '../utils/mergeTags';
+import { AVAILABLE_MERGE_TAGS, getEffectiveCustomTables } from '../utils/mergeTags';
+import { CustomTableTemplate } from '../types';
 
 interface DraggableFieldsPaletteProps {
   onInsertTag?: (tag: string) => void;
+  customTableTemplates?: CustomTableTemplate[];
+  onOpenCustomTableBuilder?: () => void;
   className?: string;
 }
 
 export default function DraggableFieldsPalette({
   onInsertTag,
+  customTableTemplates,
+  onOpenCustomTableBuilder,
   className = '',
 }: DraggableFieldsPaletteProps) {
   const [activeCategory, setActiveCategory] = useState<string>('All');
@@ -38,7 +44,18 @@ export default function DraggableFieldsPalette({
     { id: 'Dispatch', label: 'જાવક (Dispatch)', icon: FileText },
   ];
 
-  const filteredTags = AVAILABLE_MERGE_TAGS.filter((item) => {
+  const allMergeTags = useMemo(() => {
+    const tables = customTableTemplates || getEffectiveCustomTables();
+    const customTagItems = tables.map((tbl) => ({
+      tag: tbl.tag_key,
+      label: `📋 ${tbl.name} (Custom Table - ${tbl.columns.length} Cols)`,
+      category: 'MultiStudent',
+      isCustomTable: true,
+    }));
+    return [...customTagItems, ...AVAILABLE_MERGE_TAGS.map((t) => ({ ...t, isCustomTable: false }))];
+  }, [customTableTemplates]);
+
+  const filteredTags = allMergeTags.filter((item) => {
     const matchesCategory =
       activeCategory === 'All' || item.category === activeCategory;
     if (!matchesCategory) return false;
@@ -86,25 +103,39 @@ export default function DraggableFieldsPalette({
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-56">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="ફિલ્ડ શોધો... (Search)"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-7 py-1 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#346739] focus:border-[#346739]"
-          />
-          {searchQuery && (
+        <div className="flex items-center gap-2">
+          {onOpenCustomTableBuilder && (
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              onClick={onOpenCustomTableBuilder}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-colors shrink-0 cursor-pointer"
+              title="તમારા મુજબ કોલમ અને ખાલી ખાના (Remarks) વાળું કસ્ટમ ટેબલ મર્જ ટેગ બનાવો"
             >
-              <X className="w-3 h-3" />
+              <Table2 className="w-3.5 h-3.5 text-emerald-200" />
+              <span>+ કસ્ટમ ટેબલ ટેગ બનાવો</span>
             </button>
           )}
+
+          {/* Search */}
+          <div className="relative w-full sm:w-48">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="ફિલ્ડ શોધો... (Search)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-7 py-1 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#346739] focus:border-[#346739]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -141,10 +172,12 @@ export default function DraggableFieldsPalette({
               draggable
               onDragStart={(e) => handleDragStart(e, item.tag)}
               onClick={() => handleClick(item.tag)}
-              title="ખેંચીને પત્રમાં મૂકો (Drag & Drop) અથવા ક્લિક કરીને કર્સર આગળ ઉમેરો"
+              title={`${item.tag} - ખેંચીને પત્રમાં મૂકો (Drag & Drop) અથવા ક્લિક કરીને કર્સર આગળ ઉમેરો`}
               className={`flex items-center justify-between gap-1 p-1.5 rounded-lg border text-xs cursor-grab active:cursor-grabbing transition-all select-none group shadow-2xs ${
                 isCopied
                   ? 'bg-emerald-100 border-emerald-400 text-emerald-900 scale-95'
+                  : item.isCustomTable
+                  ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950 hover:border-[#346739] hover:bg-emerald-100/70'
                   : 'bg-white border-slate-200 text-slate-800 hover:border-[#346739] hover:bg-emerald-50/40 hover:shadow-xs'
               }`}
             >

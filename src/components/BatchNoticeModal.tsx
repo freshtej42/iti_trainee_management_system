@@ -309,7 +309,7 @@ export default function BatchNoticeModal({
                 Batch Multi-Page Notice Print & Export
               </h3>
               <p className="text-xs text-slate-500">
-                Generate seamless multi-page A4 print stream with CSS page breaks
+                પ્રત્યેક વિદ્યાર્થી દીઠ અલગ પાનું (CSS Page Breaks સાથે મલ્ટી-પેજ પ્રિન્ટ)
               </p>
             </div>
           </div>
@@ -318,6 +318,21 @@ export default function BatchNoticeModal({
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
           >
             <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Notice Info Banner regarding Single-Page Consolidated Letters */}
+        <div className="bg-amber-50/90 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between text-xs text-amber-900 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-amber-800">💡 સરનામા ટેબલ સુવિધા:</span>
+            <span>જો તમારે અલગ પાનાને બદલે બધા વિદ્યાર્થીઓના નામ, સરનામા અને વિગત <strong>એક જ પાનાના સંયુક્ત પત્રકમાં (Single Page Table)</strong> જોઈએ છે, તો 'રિપોર્ટ જનરેટર' માં 'સંયુક્ત પત્ર / ટેબલ' મોડ પસંદ કરો.</span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[11px] font-bold text-amber-800 underline hover:text-amber-950 shrink-0 ml-3"
+          >
+            સંયુક્ત પત્રકમાં જાઓ →
           </button>
         </div>
 

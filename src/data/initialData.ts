@@ -1398,6 +1398,111 @@ export const INITIAL_DISPATCH_LOGS: DispatchLog[] = ([
 
 export const DEFAULT_TEMPLATES: LetterTemplate[] = [
   {
+    id: 'tpl-multi-student-forwarding',
+    instructor_id: 'global',
+    template_name: 'કચેરી/આચાર્યશ્રી જોગ તાલીમાર્થીઓની યાદી અને સરનામા સહિત ફોરવર્ડિંગ પત્ર',
+    language: 'Gujarati',
+    category: 'principal_report',
+    notice_type: 'Report',
+    multi_student_mode: 'consolidated',
+    show_letterhead: true,
+    subject: 'તાલીમાર્થીઓની યાદી અને સંપર્ક સરનામા કચેરી રેકોર્ડ/જાણ સારૂ મોકલવા બાબત.',
+    content_html: `<div style="line-height: 1.6; font-family: 'Noto Sans Gujarati', sans-serif; font-size: 14.5px; color: #111;">
+  <div style="display: flex; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+    <div><strong>જા.નં. :</strong> {{Reference_Number}}</div>
+    <div><strong>તારીખ :</strong> {{Notice_Issue_Date}}</div>
+  </div>
+
+  <div style="margin-bottom: 16px; font-size: 14px;">
+    <div><strong>પ્રતિ,</strong></div>
+    <div><strong>આચાર્યશ્રી,</strong></div>
+    <div>{{ITI_Name}}</div>
+    <div>{{Institution_Address}}</div>
+  </div>
+
+  <div style="margin: 14px 0; font-weight: bold; font-size: 14.5px; background: #f8fafc; padding: 6px 10px; border-left: 4px solid #334155;">
+    વિષય : ટ્રેડ {{Trade}} ના તાલીમાર્થીઓની યાદી અને રહેઠાણ સરનામા કચેરી રેકોર્ડ સારૂ રજૂ કરવા બાબત.
+  </div>
+
+  <div style="margin-bottom: 8px;">
+    <strong>માનનીય સાહેબશ્રી,</strong>
+  </div>
+
+  <p style="text-indent: 28px; margin-bottom: 14px; text-align: justify; line-height: 1.65;">
+    સવિનય ઉપરોક્ત વિષય અન્વયે જણાવવાનું કે અત્રેના ટ્રેડ: <strong>{{Trade}}</strong> (બેચ: <strong>{{Batch}}</strong>, યુનિટ: <strong>{{Unit}}</strong>) માં તાલીમ લઈ રહેલા કુલ <strong>{{Total_Selected_Trainees}}</strong> તાલીમાર્થીઓની સત્તાવાર યાદી, પિતા/વાલીશ્રીનું નામ, સંપૂર્ણ રહેઠાણનું ટપાલ સરનામું તેમજ મોબાઈલ નંબરની વિગત કચેરીય રેકોર્ડ, એપ્રેન્ટિસશીપ રજીસ્ટ્રેશન તથા જરૂરી પત્રવ્યવહાર અર્થે નીચે મુજબ સામેલ રાખેલ છે:
+  </p>
+
+  {{Trainee_Address_Table}}
+
+  <div style="margin-top: 18px; font-size: 14px; line-height: 1.6;">
+    ઉપરોક્ત વિગતો આપ સાહેબશ્રીની સવિનય જાણ તથા આગળની જરૂરી કચેરીય કાર્યવાહી સારૂ સાદર રવાના.<br/>
+    આભાર સહ....
+  </div>
+
+  <div style="margin-top: 36px; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <div><strong>સ્થળ :</strong> {{ITI_Name}}</div>
+      <div><strong>તારીખ :</strong> {{Notice_Issue_Date}}</div>
+    </div>
+    <div style="text-align: center; min-width: 220px;">
+      <div style="height: 40px;"></div>
+      <div style="font-weight: bold;">આપનો વિશ્વાસુ</div>
+      <div style="margin-top: 4px; font-weight: 600;">{{Instructor_Name}}</div>
+      <div>{{Designation}} ({{Trade}})</div>
+      <div>{{ITI_Name}}</div>
+    </div>
+  </div>
+</div>`,
+    created_at: '2025-08-01T10:00:00Z',
+  },
+  {
+    id: 'tpl-multi-student-consolidated-attendance',
+    instructor_id: 'global',
+    template_name: 'બહુવિધ તાલીમાર્થી ગેરહાજરી/ઓછી હાજરી સંયુક્ત પત્રક (Consolidated Table)',
+    language: 'Gujarati',
+    category: 'general_report',
+    notice_type: 'Report',
+    multi_student_mode: 'consolidated',
+    show_letterhead: true,
+    subject: 'ટ્રેડના ઓછી હાજરી ધરાવતા તાલીમાર્થીઓનું સંયુક્ત પત્રક કચેરી જાણ સારૂ.',
+    content_html: `<div style="line-height: 1.6; font-family: 'Noto Sans Gujarati', sans-serif; font-size: 14px; color: #111;">
+  <div style="display: flex; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+    <div><strong>સંદર્ભ નં :</strong> {{Reference_Number}}</div>
+    <div><strong>તારીખ :</strong> {{Notice_Issue_Date}}</div>
+  </div>
+
+  <div style="margin-bottom: 14px;">
+    <div><strong>પ્રતિ,</strong></div>
+    <div><strong>આચાર્યશ્રી / ગ્રુપ ઇન્સ્ટ્રક્ટરશ્રી,</strong></div>
+    <div>{{ITI_Name}}</div>
+  </div>
+
+  <div style="margin: 12px 0; font-weight: bold; font-size: 14px; background: #f8fafc; padding: 6px 10px; border-left: 4px solid #b91c1c;">
+    વિષય : માહે {{Month_Year}} દરમિયાન ઓછી હાજરી/ગેરહાજર તાલીમાર્થીઓનું સંયુક્ત પત્રક અને આગળની કાર્યવાહી બાબત.
+  </div>
+
+  <p style="text-indent: 28px; margin-bottom: 12px; text-align: justify; line-height: 1.6;">
+    સવિનય જણાવવાનું કે અત્રેના ટ્રેડ: <strong>{{Trade}}</strong> (બેચ: <strong>{{Batch}}</strong>) માં માહે <strong>{{Month_Year}}</strong> અંતિત નિયત ૮૦% કરતા ઓછી હાજરી ધરાવતા કુલ <strong>{{Total_Selected_Trainees}}</strong> તાલીમાર્થીઓની યાદી, રહેઠાણ સરનામું, હાજરીની ટકાવારી અને નોંધ નીચે મુજબ પત્રકમાં દર્શાવેલ છે:
+  </p>
+
+  {{Selected_Trainees_Table}}
+
+  <div style="margin-top: 14px; font-size: 13.5px; line-height: 1.5;">
+    ઉપરોક્ત દર્શાવેલ તાલીમાર્થીઓના વાલીશ્રીઓને સંસ્થા નિયમ મુજબ ચેતવણી નોટિસ પાઠવવા તથા નિયમિત હાજરીની બાંયધરી મેળવવા આગળની કાર્યવાહી કરવા વિનંતી છે.
+  </div>
+
+  <div style="margin-top: 32px; display: flex; justify-content: flex-end; text-align: center;">
+    <div style="min-width: 200px;">
+      <div style="height: 36px;"></div>
+      <div style="font-weight: bold;">{{Instructor_Name}}</div>
+      <div>{{Designation}}</div>
+      <div>ટ્રેડ: {{Trade}}, {{ITI_Name}}</div>
+    </div>
+  </div>
+</div>`,
+    created_at: '2025-08-01T10:00:00Z',
+  },
+  {
     id: 'tpl-shankheshwar-parent',
     instructor_id: 'global',
     template_name: 'આઈ.ટી.આઈ. શંખેશ્વર - વગર પરવાનગીએ ગેરહાજર વાલી નોટિસ',

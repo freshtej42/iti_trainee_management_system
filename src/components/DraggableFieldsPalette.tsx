@@ -11,6 +11,7 @@ import {
   Plus,
   X,
   HelpCircle,
+  Users,
 } from 'lucide-react';
 import { AVAILABLE_MERGE_TAGS } from '../utils/mergeTags';
 
@@ -29,6 +30,7 @@ export default function DraggableFieldsPalette({
 
   const categories = [
     { id: 'All', label: 'બધા (All)', icon: Sparkles },
+    { id: 'MultiStudent', label: 'બહુવિધ ટેબલ (Multi-Student)', icon: Users },
     { id: 'Trainee', label: 'વિદ્યાર્થી (Trainee)', icon: User },
     { id: 'Attendance', label: 'હાજરી (Attendance)', icon: Calendar },
     { id: 'Address', label: 'સરનામું (Address)', icon: MapPin },

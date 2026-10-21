@@ -178,10 +178,32 @@ export interface LetterTemplate {
   letterhead_html?: string; // Template-specific TinyMCE rich-text letterhead HTML
   use_custom_letterhead?: boolean; // True if using template-specific letterhead rather than global instructor default
   show_letterhead?: boolean; // Facility to toggle letterhead per template
-  required_fields?: string[]; // dynamic field tags needed, e.g. ['Trainee_Name', 'Attendance_Percentage']
+  multi_student_mode?: 'individual' | 'consolidated' | 'both';
+  table_columns?: string[];
   created_at: string;
   updated_at?: string;
 }
+
+export type MultiStudentTableColumnKey =
+  | 'sr_no'
+  | 'roll_no'
+  | 'enrollment_no'
+  | 'full_name'
+  | 'parent_name'
+  | 'address'
+  | 'mobile'
+  | 'attendance_pct'
+  | 'absent_since'
+  | 'remarks';
+
+export interface MultiStudentTableColumnDef {
+  key: MultiStudentTableColumnKey;
+  labelGu: string;
+  labelEn: string;
+  defaultVisible: boolean;
+  width?: string;
+}
+
 
 export interface DispatchLog {
   id: string;

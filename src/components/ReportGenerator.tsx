@@ -32,10 +32,15 @@ import {
   Sliders,
   Maximize2,
   Download,
+  Columns3,
+  Table2,
+  LayoutList,
 } from 'lucide-react';
-import { mergeTemplateTags } from '../utils/mergeTags';
+import { MultiStudentTableColumnKey } from '../types';
+import { mergeTemplateTags, DEFAULT_MULTI_STUDENT_COLUMNS } from '../utils/mergeTags';
 import { calculateProgressiveAttendance } from '../utils/progressiveAttendance';
 import DraggableFieldsPalette from './DraggableFieldsPalette';
+import MultiStudentColumnCustomizer from './MultiStudentColumnCustomizer';
 import BatchNoticePrintPreviewModal, { BatchNoticeItem } from './BatchNoticePrintPreviewModal';
 import A4PrintPreviewModal from './A4PrintPreviewModal';
 import { getEffectiveLetterheadHtml, renderLetterheadHtml } from '../utils/letterheadPresets';
@@ -217,6 +222,81 @@ export default function ReportGenerator({
     setSelectedTraineeIds([]);
   };
 
+  // Safe trainee fallback
+  const safeTrainee = (tr: Trainee): Trainee => ({
+    ...tr,
+    trade: tr.trade?.trim() || selectedTrade || instructor.trade || 'કોપા (COPA)',
+    batch: tr.batch?.trim() || selectedBatch || instructor.batch || '૨૦૨૫–૨૦૨૬',
+    unit: tr.unit?.trim() || selectedUnit || instructor.unit || 'Unit A',
+  });
+
+  const fallbackSampleTrainee: Trainee = {
+    id: 'sample-trainee-001',
+    instructor_id: instructor.id,
+    roll_no: '૧૦૧',
+    enrollment_no: 'EN-2025-001',
+    trade: selectedTrade || instructor.trade || 'કોપા (COPA)',
+    batch: selectedBatch || instructor.batch || '૨૦૨૫–૨૦૨૬',
+    unit: selectedUnit || instructor.unit || 'Unit A',
+    surname: 'પટેલ',
+    student_name: 'નમૂના તાલીમાર્થી',
+    father_name: 'રમણભાઈ',
+    grandfather_name: 'કાંતિલાલ',
+    surname_en: 'Patel',
+    student_name_en: 'Sample Trainee',
+    father_name_en: 'Ramanbhai',
+    grandfather_name_en: 'Kantilal',
+    address: instructor.institution_address || 'ગુજરાત',
+    village: 'ગાંધીનગર',
+    taluka: 'ગાંધીનગર',
+    district: 'ગાંધીનગર',
+    pincode: '382010',
+    created_at: new Date().toISOString(),
+  };
+
+  const rawSelectedList = trainees.filter((t) => selectedTraineeIds.includes(t.id));
+  const effectiveSelectedList = rawSelectedList.length > 0
+    ? rawSelectedList
+    : assignedFilteredTrainees.length > 0
+    ? assignedFilteredTrainees
+    : filteredTrainees.length > 0
+    ? filteredTrainees
+    : trainees.length > 0
+    ? trainees
+    : [fallbackSampleTrainee];
+
+  const selectedTraineesList = effectiveSelectedList.map(safeTrainee);
+  const activePreviewTrainee = selectedTraineesList[activePreviewIndex] || selectedTraineesList[0] || (trainees[0] ? safeTrainee(trainees[0]) : fallbackSampleTrainee);
+
+  // Multi-Student Table Column Customizer State
+  const [selectedTableColumns, setSelectedTableColumns] = useState<MultiStudentTableColumnKey[]>(
+    DEFAULT_MULTI_STUDENT_COLUMNS
+  );
+  const [isColumnCustomizerOpen, setIsColumnCustomizerOpen] = useState<boolean>(false);
+
+  // Check if current template is designed for consolidated multi-student letters
+  const isTemplateMultiStudent = Boolean(
+    selectedTemplate && (
+      selectedTemplate.multi_student_mode === 'consolidated' ||
+      /{{Selected_Trainees_Table}}|{{Trainee_Address_Table}}|{{Trainee_Attendance_Table}}/i.test(currentTemplateContent) ||
+      selectedTemplate.notice_type === 'Report' ||
+      selectedTemplate.category === 'principal_report' ||
+      selectedTemplate.category === 'general_report' ||
+      /આચાર્ય|principal|ફોરવર્ડિંગ|forwarding|અહેવાલ/i.test(selectedTemplate.template_name || '') ||
+      /આચાર્ય|principal/i.test(selectedTemplate.subject || '')
+    )
+  );
+
+  // User letter mode: 'auto' (follow template), 'consolidated' (single page table), or 'individual' (1 page per student)
+  const [userLetterMode, setUserLetterMode] = useState<'individual' | 'consolidated' | 'auto'>('auto');
+
+  const letterMode: 'individual' | 'consolidated' =
+    userLetterMode === 'auto'
+      ? (isTemplateMultiStudent ? 'consolidated' : 'individual')
+      : userLetterMode;
+
+  const isConsolidated = letterMode === 'consolidated';
+
   // Build merged HTML for any given trainee using centralized merge engine
   const getRenderedMergedHtml = (trainee: Trainee) => {
     if (!selectedTemplate) return '';
@@ -290,12 +370,23 @@ export default function ReportGenerator({
       })
       .filter((item) => item.requiresNotice);
 
+    // Selected trainees list with attendance for multi-student tables
+    const selectedListWithAtt = selectedTraineesList.map((tr) => {
+      const trAtt = attendanceRecords.find((a) => a.trainee_id === tr.id);
+      return {
+        trainee: tr,
+        attendance: trAtt,
+      };
+    });
+
     return mergeTemplateTags(currentTemplateContent, {
       trainee,
       attendance: att,
       instructor,
       dispatchLogs,
       allLowAttendanceTrainees: lowAttendanceList,
+      selectedTrainees: selectedListWithAtt,
+      selectedTableColumns: selectedTableColumns,
       referenceNumber: refNo,
       noticeIssueDate: new Date().toLocaleDateString('gu-IN'),
       monthYear: att?.month_year || 'ઓગસ્ટ ૨૦૨૫',
@@ -432,12 +523,14 @@ export default function ReportGenerator({
   };
 
   const isPrincipalReport = Boolean(
-    selectedTemplate && (
+    isConsolidated ||
+    (selectedTemplate && (
       selectedTemplate.notice_type === 'Report' ||
+      selectedTemplate.category === 'principal_report' ||
       selectedTemplate.category === 'general_report' ||
       /આચાર્ય|principal|ફોરવર્ડિંગ|forwarding|અહેવાલ/i.test(selectedTemplate.template_name || '') ||
       /આચાર્ય|principal/i.test(selectedTemplate.subject || '')
-    )
+    ))
   );
 
   // Manual or automatic logging into Inward/Outward register
@@ -447,8 +540,8 @@ export default function ReportGenerator({
     if (validTrainees.length === 0) return;
     const todayStr = new Date().toISOString().split('T')[0];
 
-    if (isPrincipalReport) {
-      // Principal report forwarding must be logged as INWARD in the official register
+    if (isPrincipalReport || isConsolidated) {
+      // Principal report forwarding or multi-student consolidated letter
       const refNum = `${cleanRefPrefix}/PRIN-IN-${Date.now().toString().slice(-4)}`;
       const inwardLog: DispatchLog = {
         id: `disp-inward-${Date.now()}`,
@@ -457,8 +550,8 @@ export default function ReportGenerator({
         ref_number: refNum,
         outward_number: refNum,
         entry_type: 'inward',
-        notice_type: 'Principal Report Forwarding',
-        subject: selectedTemplate?.subject || 'આચાર્યશ્રીને ઓછી હાજરી અહેવાલ ફોરવર્ડિંગ',
+        notice_type: selectedTemplate?.notice_type || 'Consolidated Forwarding',
+        subject: selectedTemplate?.subject || 'તાલીમાર્થીઓની યાદી અને વિગત સંયુક્ત પત્રક',
         sender_recipient: `${instructor.name} (સુ.ઇ., ${instructor.trade}) → આચાર્યશ્રી`,
         issue_date: todayStr,
         issued_date: todayStr,
@@ -466,7 +559,7 @@ export default function ReportGenerator({
         month_year: attendanceRecords[0]?.month_year || 'ઓગસ્ટ ૨૦૨૫',
         status: 'Dispatched',
         dispatch_mode: 'કચેરી ફાઇલિંગ / આવક નોંધણી',
-        notes: `ટ્રેડ ${instructor.trade} ના કુલ ${validTrainees.length} ઓછી હાજરી વાળા તાલીમાર્થીઓનો અહેવાલ આચાર્યશ્રી સમક્ષ ફોરવર્ડિંગ પત્ર તરીકે આવક રજીસ્ટરમાં નોંધેલ.`,
+        notes: `ટ્રેડ ${instructor.trade} ના કુલ ${validTrainees.length} તાલીમાર્થીઓનો સંયુક્ત અહેવાલ / સરનામા પત્રક કચેરી રેકોર્ડ સારૂ નોંધેલ.`,
         created_at: new Date().toISOString(),
       };
       onBatchLogDispatch([inwardLog]);
@@ -504,7 +597,7 @@ export default function ReportGenerator({
 
   // Open Full A4 Print Preview & Save as PDF Modal
   const handleOpenPrintPreview = () => {
-    if (isPrincipalReport) {
+    if (isConsolidated || isPrincipalReport) {
       setIsPrincipalPrintModalOpen(true);
       return;
     }
@@ -529,52 +622,6 @@ export default function ReportGenerator({
     handleOpenPrintPreview();
   };
 
-  // Ensure every trainee in the preview list has safe fallback values so preview/PDF never fails
-  const safeTrainee = (tr: Trainee): Trainee => ({
-    ...tr,
-    trade: tr.trade?.trim() || selectedTrade || instructor.trade || 'કોપા (COPA)',
-    batch: tr.batch?.trim() || selectedBatch || instructor.batch || '૨૦૨૫–૨૦૨૬',
-    unit: tr.unit?.trim() || selectedUnit || instructor.unit || 'Unit A',
-  });
-
-  const fallbackSampleTrainee: Trainee = {
-    id: 'sample-trainee-001',
-    instructor_id: instructor.id,
-    roll_no: '૧૦૧',
-    enrollment_no: 'EN-2025-001',
-    trade: selectedTrade || instructor.trade || 'કોપા (COPA)',
-    batch: selectedBatch || instructor.batch || '૨૦૨૫–૨૦૨૬',
-    unit: selectedUnit || instructor.unit || 'Unit A',
-    surname: 'પટેલ',
-    student_name: 'નમૂના તાલીમાર્થી',
-    father_name: 'રમણભાઈ',
-    grandfather_name: 'કાંતિલાલ',
-    surname_en: 'Patel',
-    student_name_en: 'Sample Trainee',
-    father_name_en: 'Ramanbhai',
-    grandfather_name_en: 'Kantilal',
-    address: instructor.institution_address || 'ગુજરાત',
-    village: 'ગાંધીનગર',
-    taluka: 'ગાંધીનગર',
-    district: 'ગાંધીનગર',
-    pincode: '382010',
-    created_at: new Date().toISOString(),
-  };
-
-  const rawSelectedList = trainees.filter((t) => selectedTraineeIds.includes(t.id));
-  const effectiveSelectedList = rawSelectedList.length > 0
-    ? rawSelectedList
-    : assignedFilteredTrainees.length > 0
-    ? assignedFilteredTrainees
-    : filteredTrainees.length > 0
-    ? filteredTrainees
-    : trainees.length > 0
-    ? trainees
-    : [fallbackSampleTrainee];
-
-  const selectedTraineesList = effectiveSelectedList.map(safeTrainee);
-  const activePreviewTrainee = selectedTraineesList[activePreviewIndex] || selectedTraineesList[0] || (trainees[0] ? safeTrainee(trainees[0]) : null);
-
   const isTemplateModified = Boolean(
     selectedTemplate && templateOverrides[selectedTemplate.id]
   );
@@ -583,42 +630,88 @@ export default function ReportGenerator({
     <div className="space-y-6">
       {/* Top Banner */}
       <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-800 print:hidden">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
             <Printer className="w-6 h-6 text-[#f2edc2]" />
             <h2 className="text-lg sm:text-xl font-black tracking-tight">
               યુનિફાઇડ રિપોર્ટ અને નોટિસ જનરેટર (Report & Notice Generator)
             </h2>
           </div>
-          <p className="text-xs text-slate-300">
-            {isPrincipalReport
-              ? 'આચાર્યશ્રી અહેવાલ: તમામ ૮૦% થી ઓછી હાજરી વાળા તાલીમાર્થીઓનું પત્રક → આવક રજીસ્ટરમાં નોંધ (Inward)'
-              : 'વાલી નોટિસ: મેઇલ મર્જ દ્વારા અગાઉની તમામ નોટિસ તારીખો સહિત પત્ર → જાવક રજીસ્ટરમાં નોંધ (Outward)'}
+          <p className="text-xs text-slate-300 max-w-2xl">
+            {isConsolidated
+              ? `સંયુક્ત પત્રક / ફોરવર્ડિંગ પત્ર: પસંદ કરેલ તમામ ${selectedTraineesList.length} વિદ્યાર્થીઓની યાદી અને સરનામા એક જ પાનાના ટેબલમાં છપાશે.`
+              : `વ્યક્તિગત નોટિસ: પસંદ કરેલ ${selectedTraineesList.length} તાલીમાર્થીઓ પૈકી દરેક વિદ્યાર્થી દીઠ અલગ-અલગ પાનું જનરેટ થશે.`}
           </p>
+
+          {/* Letter Mode Switcher */}
+          <div className="pt-1 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-400">પત્ર ફોર્મેટ:</span>
+            <div className="inline-flex items-center p-1 bg-slate-800/90 rounded-xl border border-slate-700">
+              <button
+                type="button"
+                onClick={() => setUserLetterMode('consolidated')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  isConsolidated
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+                title="તમામ વિદ્યાર્થીઓના નામ અને સરનામા એક જ પાનામાં ટેબલ સ્વરૂપે સામેલ કરો"
+              >
+                <Table2 className="w-3.5 h-3.5" />
+                <span>સંયુક્ત પત્ર / ટેબલ (એક જ પાનામાં)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setUserLetterMode('individual')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  !isConsolidated
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+                title="દરેક વિદ્યાર્થી માટે અલગ પાનું છાપો (વાલી નોટિસ વગેરે)"
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span>વ્યક્તિગત નોટિસ (વિદ્યાર્થી દીઠ ૧ પાનું)</span>
+              </button>
+            </div>
+
+            {isConsolidated && (
+              <button
+                type="button"
+                onClick={() => setIsColumnCustomizerOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-bold transition-colors"
+                title="ટેબલમાં કઈ કઈ કોલમ્સ (જેમ કે સરનામું, મોબાઈલ, વાલીનું નામ) રાખવી તે પસંદ કરો"
+              >
+                <Columns3 className="w-3.5 h-3.5 text-emerald-300" />
+                <span>કોલમ્સ ગોઠવો ({selectedTableColumns.length})</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
           {/* Explicit Register Log Button */}
           <button
             type="button"
             onClick={() => logEntriesToRegister()}
             disabled={trainees.length === 0}
             className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold rounded-xl border transition-all active:scale-[0.99] disabled:opacity-40 ${
-              isPrincipalReport
+              isConsolidated
                 ? 'bg-sky-950 text-sky-200 border-sky-600 hover:bg-sky-900'
                 : 'bg-emerald-950 text-emerald-200 border-emerald-600 hover:bg-emerald-900'
             }`}
             title={
-              isPrincipalReport
-                ? 'આચાર્યશ્રી રિપોર્ટ આવક રજીસ્ટરમાં નોંધો (Log as Inward Register)'
-                : 'વાલી નોટિસો જાવક રજીસ્ટરમાં નોંધો (Log as Outward Register)'
+              isConsolidated
+                ? 'સંયુક્ત પત્રક / ફોરવર્ડિંગ અહેવાલ કચેરી રજીસ્ટરમાં નોંધો'
+                : 'વાલી નોટિસો જાવક રજીસ્ટરમાં નોંધો'
             }
           >
             <Send className="w-3.5 h-3.5" />
             <span>
-              {isPrincipalReport
-                ? 'આવક રજીસ્ટરમાં નોંધ કરો (Inward)'
-                : `જાવક રજીસ્ટરમાં નોંધ (${selectedTraineeIds.length > 0 ? selectedTraineeIds.length : selectedTraineesList.length})`}
+              {isConsolidated
+                ? `કચેરી રજીસ્ટરમાં નોંધ (${selectedTraineesList.length})`
+                : `જાવક રજીસ્ટરમાં નોંધ (${selectedTraineesList.length})`}
             </span>
           </button>
 
@@ -631,9 +724,9 @@ export default function ReportGenerator({
           >
             <Download className="w-4 h-4 text-emerald-200" />
             <span>
-              {isPrincipalReport
-                ? 'પ્રિન્ટ પૂર્વાવલોકન અને PDF સેવ કરો (આચાર્યશ્રી અહેવાલ)'
-                : `પ્રિન્ટ પૂર્વાવલોકન અને PDF સેવ કરો (${selectedTraineeIds.length > 0 ? selectedTraineeIds.length : selectedTraineesList.length} પત્રો)`}
+              {isConsolidated
+                ? `પ્રિન્ટ પૂર્વાવલોકન અને PDF (સંયુક્ત પત્ર)`
+                : `પ્રિન્ટ પૂર્વાવલોકન અને PDF (${selectedTraineesList.length} પત્રો)`}
             </span>
           </button>
 
@@ -1021,35 +1114,53 @@ export default function ReportGenerator({
 
             {/* Right: Trainee Page Navigator in Preview Mode */}
             {selectedTraineesList.length > 0 && viewMode === 'preview' && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-600">
-                  વિદ્યાર્થી {activePreviewIndex + 1} of {selectedTraineesList.length}
-                </span>
-
-                <div className="flex items-center gap-1">
+              isConsolidated ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/90 px-3 py-1 rounded-lg border border-emerald-300">
+                    <Table2 className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>સંયુક્ત પત્રક: {selectedTraineesList.length} તાલીમાર્થીઓ</span>
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setActivePreviewIndex((prev) => Math.max(0, prev - 1))}
-                    disabled={activePreviewIndex === 0}
-                    className="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 text-slate-700"
+                    onClick={() => setIsColumnCustomizerOpen(true)}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer"
+                    title="પત્રકમાં દર્શાવવાની કોલમ્સ ગોઠવો"
                   >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActivePreviewIndex((prev) =>
-                        Math.min(selectedTraineesList.length - 1, prev + 1)
-                      )
-                    }
-                    disabled={activePreviewIndex >= selectedTraineesList.length - 1}
-                    className="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 text-slate-700"
-                  >
-                    <ChevronRight className="w-4 h-4" />
+                    <Columns3 className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>કોલમ્સ ({selectedTableColumns.length})</span>
                   </button>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-600">
+                    વિદ્યાર્થી {activePreviewIndex + 1} of {selectedTraineesList.length}
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setActivePreviewIndex((prev) => Math.max(0, prev - 1))}
+                      disabled={activePreviewIndex === 0}
+                      className="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 text-slate-700 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActivePreviewIndex((prev) =>
+                          Math.min(selectedTraineesList.length - 1, prev + 1)
+                        )
+                      }
+                      disabled={activePreviewIndex >= selectedTraineesList.length - 1}
+                      className="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 text-slate-700 cursor-pointer"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )
             )}
           </div>
 
@@ -1325,9 +1436,13 @@ export default function ReportGenerator({
         <A4PrintPreviewModal
           isOpen={isPrincipalPrintModalOpen}
           onClose={() => setIsPrincipalPrintModalOpen(false)}
-          title="આચાર્યશ્રી અહેવાલ - ઓછી હાજરી પત્રક"
-          subtitle={`${headerConfig.institute_name_gu} • ${instructor.name} (${instructor.trade})`}
-          filename={`Principal_Report_${(instructor.trade || 'ITI').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`}
+          title={
+            isConsolidated
+              ? (selectedTemplate?.template_name || 'કચેરી સંયુક્ત પત્ર / સરનામા પત્રક')
+              : 'આચાર્યશ્રી અહેવાલ - ઓછી હાજરી પત્રક'
+          }
+          subtitle={`${headerConfig.institute_name_gu} • કુલ ${selectedTraineesList.length} તાલીમાર્થીઓ`}
+          filename={`${(selectedTemplate?.template_name || 'Forwarding_Letter').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`}
           initialOrientation="portrait"
           showLetterheadToggle={true}
           isLetterheadActive={showInstituteHeader}
@@ -1434,6 +1549,14 @@ export default function ReportGenerator({
           </div>
         </A4PrintPreviewModal>
       )}
+
+      {/* 3. Multi-Student Table Column Customizer Modal */}
+      <MultiStudentColumnCustomizer
+        isOpen={isColumnCustomizerOpen}
+        onClose={() => setIsColumnCustomizerOpen(false)}
+        selectedColumns={selectedTableColumns}
+        onChangeColumns={(cols) => setSelectedTableColumns(cols)}
+      />
     </div>
   );
 }

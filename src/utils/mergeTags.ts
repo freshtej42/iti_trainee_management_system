@@ -1,4 +1,4 @@
-import { Trainee, AttendanceRecord, Instructor, DispatchLog } from '../types';
+import { Trainee, AttendanceRecord, Instructor, DispatchLog, MultiStudentTableColumnKey } from '../types';
 
 export interface MergeContext {
   trainee: Trainee;
@@ -14,6 +14,8 @@ export interface MergeContext {
   secondNoticeDate?: string;
   dispatchLogs?: DispatchLog[];
   allLowAttendanceTrainees?: Array<{ trainee: Trainee; attendance?: AttendanceRecord }>;
+  selectedTrainees?: Array<{ trainee: Trainee; attendance?: AttendanceRecord }>;
+  selectedTableColumns?: MultiStudentTableColumnKey[];
   aiCommentary?: string;
   language?: 'Gujarati' | 'Hindi' | 'English';
   monthYear?: string;
@@ -90,6 +92,13 @@ export const AVAILABLE_MERGE_TAGS = [
   { tag: '{{First_Notice_Date}}', label: '1st Notice Date (પ્રથમ નોટિસ તારીખ / "-")', category: 'Dispatch' },
   { tag: '{{Second_Notice_Date}}', label: '2nd Notice Date (દ્વિતીય નોટિસ તારીખ / "-")', category: 'Dispatch' },
   { tag: '{{AI_Commentary}}', label: 'વાલી પરામર્શ / વિશેષ નિર્દેશ (Parent Advisory)', category: 'Advisory' },
+  // Multi-Student & Forwarding Office Intimation Table Tags
+  { tag: '{{Selected_Trainees_Table}}', label: 'Multi-Student Table (પસંદ કરેલ વિદ્યાર્થીઓનું સંયુક્ત પત્રક)', category: 'MultiStudent' },
+  { tag: '{{Trainee_Address_Table}}', label: 'Trainee Address Table (વિદ્યાર્થીઓનું પૂરું સરનામું અને સંપર્ક પત્રક)', category: 'MultiStudent' },
+  { tag: '{{Trainee_Attendance_Table}}', label: 'Attendance Forwarding Table (હાજરી / ગેરહાજરી પત્રક)', category: 'MultiStudent' },
+  { tag: '{{Total_Selected_Trainees}}', label: 'Total Students Count (પસંદ કરેલ વિદ્યાર્થીઓની કુલ સંખ્યા)', category: 'MultiStudent' },
+  { tag: '{{Selected_Trainees_Roll_List}}', label: 'Selected Roll Numbers (પસંદ કરેલ રોલ નંબરો)', category: 'MultiStudent' },
+  { tag: '{{Selected_Trainees_Names_List}}', label: 'Selected Trainees Names (પસંદ કરેલ વિદ્યાર્થીઓના નામો)', category: 'MultiStudent' },
 ];
 
 export interface NoticeHistory {
@@ -167,28 +176,211 @@ export function getNoticeHistory(
 }
 
 /**
- * Generates the official 5-column table of low attendance trainees (<80%)
- * for embedding into the Principal Forwarding Report template via {{Trainee_Attendance_Table}}.
+ * Converts English digits to Gujarati numerals (e.g. 123 -> ૧૨૩)
+ */
+export function toGujaratiNumerals(num: number | string): string {
+  const gujaratiDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
+  return String(num).replace(/[0-9]/g, (d) => gujaratiDigits[parseInt(d, 10)]);
+}
+
+export const DEFAULT_MULTI_STUDENT_COLUMNS: MultiStudentTableColumnKey[] = [
+  'sr_no',
+  'roll_no',
+  'full_name',
+  'address',
+  'mobile',
+  'attendance_pct',
+  'remarks',
+];
+
+/**
+ * Generates a customizable multi-student table featuring multiple trainees with selected columns.
+ * Ideal for office forwarding letters and consolidated notices on a single page.
+ */
+export function generateSelectedTraineesTable(
+  traineesList: Array<{ trainee: Trainee; attendance?: AttendanceRecord }>,
+  columns: MultiStudentTableColumnKey[] = DEFAULT_MULTI_STUDENT_COLUMNS,
+  preferEnglish = false
+): string {
+  if (!traineesList || traineesList.length === 0) {
+    return `<table style="width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px;" border="1" cellpadding="6">
+      <tbody>
+        <tr>
+          <td style="border: 1px solid #333; padding: 12px; text-align: center; color: #64748b; font-style: italic;">
+            ${preferEnglish ? 'No trainees selected for this consolidated table.' : 'આ પત્રક માટે કોઈ તાલીમાર્થી પસંદ કરેલ નથી. કૃપા કરીને યાદીમાંથી તાલીમાર્થીઓ પસંદ કરો.'}
+          </td>
+        </tr>
+      </tbody>
+    </table>`;
+  }
+
+  // Column definitions with headers and rendering logic
+  const columnDefs: Record<MultiStudentTableColumnKey, { header: string; width: string; align: 'left' | 'center' | 'right' }> = {
+    sr_no: { header: preferEnglish ? 'Sr.' : 'ક્રમ', width: '5%', align: 'center' },
+    roll_no: { header: preferEnglish ? 'Roll No' : 'રોલ નં.', width: '9%', align: 'center' },
+    enrollment_no: { header: preferEnglish ? 'Enrollment No' : 'એનરોલમેન્ટ નં.', width: '13%', align: 'center' },
+    full_name: { header: preferEnglish ? 'Trainee Full Name' : 'તાલીમાર્થીનું નામ', width: '22%', align: 'left' },
+    parent_name: { header: preferEnglish ? 'Parent / Guardian' : 'વાલીનું નામ', width: '20%', align: 'left' },
+    address: { header: preferEnglish ? 'Full Address (Village/Taluka/Dist)' : 'રહેઠાણનું સંપૂર્ણ સરનામું', width: '26%', align: 'left' },
+    mobile: { header: preferEnglish ? 'Mobile No' : 'મોબાઈલ નં.', width: '11%', align: 'center' },
+    attendance_pct: { header: preferEnglish ? 'Att. %' : 'હાજરી %', width: '9%', align: 'center' },
+    absent_since: { header: preferEnglish ? 'Absent Since' : 'ક્યારથી ગેરહાજર?', width: '12%', align: 'center' },
+    remarks: { header: preferEnglish ? 'Remarks' : 'વિગત / નોંધ', width: '14%', align: 'left' },
+  };
+
+  const activeCols = columns.length > 0 ? columns : DEFAULT_MULTI_STUDENT_COLUMNS;
+
+  // Header row
+  const headerCells = activeCols
+    .map((colKey) => {
+      const def = columnDefs[colKey] || { header: colKey, width: 'auto', align: 'left' };
+      return `<th style="border: 1px solid #333; padding: 6px 8px; text-align: ${def.align}; background-color: #f1f5f9; font-size: 12.5px; width: ${def.width};">${def.header}</th>`;
+    })
+    .join('');
+
+  // Body rows
+  const rows = traineesList
+    .map((item, index) => {
+      const tr = item.trainee;
+      const att = item.attendance;
+      const fullName = formatFullName(tr, preferEnglish);
+      const parentName = formatParentFullName(tr, preferEnglish);
+      const fullAddress = formatFullAddress(tr, preferEnglish);
+      const mobile = tr.parent_mobile || tr.mobile || '-';
+      const pct = att?.attendance_percentage !== undefined ? `${att.attendance_percentage.toFixed(1)}%` : '-';
+      const absentSince = att?.continuous_absent_since || att?.absent_from_date || '-';
+      const remarks = att?.remarks || (preferEnglish ? 'Absentee intimation' : 'કચેરી જાણ સારૂ');
+
+      const cells = activeCols
+        .map((colKey) => {
+          switch (colKey) {
+            case 'sr_no':
+              return `<td style="border: 1px solid #333; padding: 6px; text-align: center; font-weight: bold; vertical-align: top;">${index + 1}</td>`;
+            case 'roll_no':
+              return `<td style="border: 1px solid #333; padding: 6px; text-align: center; font-weight: 600; vertical-align: top;">${tr.roll_no}</td>`;
+            case 'enrollment_no':
+              return `<td style="border: 1px solid #333; padding: 6px; text-align: center; font-size: 11.5px; vertical-align: top;">${tr.enrollment_no || '-'}</td>`;
+            case 'full_name':
+              return `<td style="border: 1px solid #333; padding: 6px; vertical-align: top;"><strong>${fullName}</strong></td>`;
+            case 'parent_name':
+              return `<td style="border: 1px solid #333; padding: 6px; vertical-align: top;">${parentName}</td>`;
+            case 'address':
+              return `<td style="border: 1px solid #333; padding: 6px; font-size: 11.5px; line-height: 1.4; vertical-align: top;">${fullAddress}</td>`;
+            case 'mobile':
+              return `<td style="border: 1px solid #333; padding: 6px; text-align: center; font-size: 12px; vertical-align: top;">${mobile}</td>`;
+            case 'attendance_pct': {
+              const isLow = (att?.attendance_percentage ?? 100) < 80;
+              return `<td style="border: 1px solid #333; padding: 6px; text-align: center; font-weight: bold; color: ${isLow ? '#b91c1c' : '#0f172a'}; vertical-align: top;">${pct}</td>`;
+            }
+            case 'absent_since':
+              return `<td style="border: 1px solid #333; padding: 6px; text-align: center; font-size: 12px; vertical-align: top;">${absentSince}</td>`;
+            case 'remarks':
+              return `<td style="border: 1px solid #333; padding: 6px; font-size: 12px; vertical-align: top;">${remarks}</td>`;
+            default:
+              return `<td style="border: 1px solid #333; padding: 6px; vertical-align: top;">-</td>`;
+          }
+        })
+        .join('');
+
+      return `<tr>${cells}</tr>`;
+    })
+    .join('\n');
+
+  return `<table style="width: 100%; border-collapse: collapse; margin: 12px 0 16px 0; font-size: 12.5px; line-height: 1.35;" border="1" cellpadding="6">
+    <thead>
+      <tr style="text-align: center; font-weight: bold;">
+        ${headerCells}
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>`;
+}
+
+/**
+ * Specialized Trainee Address Table for official forwarding letters and dispatch intimation
+ * Containing Roll No, Student Full Name, Parent Name, Complete Postal Address, and Contact Mobile.
+ */
+export function generateTraineeAddressTable(
+  traineesList: Array<{ trainee: Trainee; attendance?: AttendanceRecord }>,
+  preferEnglish = false
+): string {
+  if (!traineesList || traineesList.length === 0) {
+    return `<table style="width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px;" border="1" cellpadding="6">
+      <tbody>
+        <tr>
+          <td style="border: 1px solid #333; padding: 12px; text-align: center; color: #64748b; font-style: italic;">
+            ${preferEnglish ? 'No trainee records found.' : 'કોઈ તાલીમાર્થી પસંદ કરેલ નથી.'}
+          </td>
+        </tr>
+      </tbody>
+    </table>`;
+  }
+
+  const rows = traineesList
+    .map((item, index) => {
+      const tr = item.trainee;
+      const fullName = formatFullName(tr, preferEnglish);
+      const parentName = formatParentFullName(tr, preferEnglish);
+      const fullAddress = formatFullAddress(tr, preferEnglish);
+      const mobile = tr.parent_mobile || tr.mobile || '-';
+
+      return `<tr>
+        <td style="border: 1px solid #333; text-align: center; font-weight: bold; vertical-align: top; padding: 6px 8px; width: 6%;">${index + 1}</td>
+        <td style="border: 1px solid #333; text-align: center; font-weight: 600; vertical-align: top; padding: 6px 8px; width: 10%;">${tr.roll_no}</td>
+        <td style="border: 1px solid #333; vertical-align: top; padding: 6px 8px; width: 24%;">
+          <strong>${fullName}</strong>
+          ${tr.enrollment_no ? `<br/><span style="font-size: 11px; color: #475569;">(${tr.enrollment_no})</span>` : ''}
+        </td>
+        <td style="border: 1px solid #333; vertical-align: top; padding: 6px 8px; width: 22%;">${parentName}</td>
+        <td style="border: 1px solid #333; vertical-align: top; padding: 6px 8px; font-size: 12px; line-height: 1.4; width: 28%;">${fullAddress}</td>
+        <td style="border: 1px solid #333; text-align: center; vertical-align: top; padding: 6px 8px; font-size: 12px; width: 10%;">${mobile}</td>
+      </tr>`;
+    })
+    .join('\n');
+
+  return `<table style="width: 100%; border-collapse: collapse; margin: 12px 0 16px 0; font-size: 13px;" border="1" cellpadding="6">
+    <thead>
+      <tr style="background-color: #f1f5f9; text-align: center; font-weight: bold;">
+        <th style="border: 1px solid #333; padding: 6px 8px; width: 6%;">${preferEnglish ? 'Sr.' : 'ક્રમ'}</th>
+        <th style="border: 1px solid #333; padding: 6px 8px; width: 10%;">${preferEnglish ? 'Roll No' : 'રોલ નં.'}</th>
+        <th style="border: 1px solid #333; padding: 6px 8px; width: 24%; text-align: left;">${preferEnglish ? 'Trainee Full Name' : 'તાલીમાર્થીનું નામ'}</th>
+        <th style="border: 1px solid #333; padding: 6px 8px; width: 22%; text-align: left;">${preferEnglish ? 'Parent / Father Name' : 'વાલી / પિતાનું નામ'}</th>
+        <th style="border: 1px solid #333; padding: 6px 8px; width: 28%; text-align: left;">${preferEnglish ? 'Full Residential Postal Address' : 'રહેઠાણનું સંપૂર્ણ ટપાલ સરનામું'}</th>
+        <th style="border: 1px solid #333; padding: 6px 8px; width: 10%;">${preferEnglish ? 'Mobile No' : 'મોબાઈલ નં.'}</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>`;
+}
+
+/**
+ * Generates the official table of attendance / low attendance trainees
+ * for embedding into report templates via {{Trainee_Attendance_Table}}.
  */
 export function generateTraineeAttendanceTable(
-  traineesList: Array<{ trainee: Trainee; attendance?: AttendanceRecord }>
+  traineesList: Array<{ trainee: Trainee; attendance?: AttendanceRecord }>,
+  preferEnglish = false
 ): string {
   if (!traineesList || traineesList.length === 0) {
     return `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px;" border="1" cellpadding="6">
       <thead>
         <tr style="background-color: #f1f5f9; text-align: center; font-weight: bold;">
-          <th style="width: 6%; border: 1px solid #333; padding: 6px;">ક્રમ</th>
-          <th style="width: 38%; border: 1px solid #333; padding: 6px;">તાલીમાર્થીનું નામ અને સરનામું</th>
-          <th style="width: 18%; border: 1px solid #333; padding: 6px;">કઈ તારીખથી સતત ગેરહાજર?</th>
-          <th style="width: 12%; border: 1px solid #333; padding: 6px;">માસિક %</th>
-          <th style="width: 12%; border: 1px solid #333; padding: 6px;">સંચિત %</th>
-          <th style="width: 14%; border: 1px solid #333; padding: 6px;">નોંધ</th>
+          <th style="width: 6%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Sr.' : 'ક્રમ'}</th>
+          <th style="width: 38%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Trainee Name & Address' : 'તાલીમાર્થીનું નામ અને સરનામું'}</th>
+          <th style="width: 18%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Absent Since' : 'કઈ તારીખથી સતત ગેરહાજર?'}</th>
+          <th style="width: 12%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Monthly %' : 'માસિક %'}</th>
+          <th style="width: 12%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Prog. %' : 'સંચિત %'}</th>
+          <th style="width: 14%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Remarks' : 'નોંધ'}</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td colspan="6" style="border: 1px solid #333; padding: 12px; text-align: center; color: #64748b; font-style: italic;">
-            આ માસ માટે ૮૦% થી ઓછી સંચિત હાજરી વાળો કોઈ તાલીમાર્થી નથી (તમામ તાલીમાર્થીઓ નિયમ અનુસાર છે).
+            ${preferEnglish ? 'No trainees with attendance below 80%.' : 'આ માસ માટે ૮૦% થી ઓછી સંચિત હાજરી વાળો કોઈ તાલીમાર્થી નથી (તમામ તાલીમાર્થીઓ નિયમ અનુસાર છે).'}
           </td>
         </tr>
       </tbody>
@@ -199,12 +391,12 @@ export function generateTraineeAttendanceTable(
     .map((item, index) => {
       const tr = item.trainee;
       const att = item.attendance;
-      const fullName = formatFullName(tr);
-      const fullAddress = formatFullAddress(tr);
+      const fullName = formatFullName(tr, preferEnglish);
+      const fullAddress = formatFullAddress(tr, preferEnglish);
       const absentSince = att?.continuous_absent_since || att?.absent_from_date || '-';
       const pct = att?.attendance_percentage !== undefined ? `${att.attendance_percentage.toFixed(1)}%` : '-';
       const progPct = att?.progressive_attendance_percentage !== undefined ? `${att.progressive_attendance_percentage.toFixed(1)}%` : pct;
-      const remarks = att?.remarks || 'વાલીને રૂબરૂ બોલાવવા અંગે';
+      const remarks = att?.remarks || (preferEnglish ? 'Parent intimation' : 'વાલીને રૂબરૂ બોલાવવા અંગે');
 
       return `<tr>
         <td style="border: 1px solid #333; text-align: center; font-weight: bold; vertical-align: top; padding: 6px;">${index + 1}</td>
@@ -223,12 +415,12 @@ export function generateTraineeAttendanceTable(
   return `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px;" border="1" cellpadding="6">
     <thead>
       <tr style="background-color: #f1f5f9; text-align: center; font-weight: bold;">
-        <th style="width: 6%; border: 1px solid #333; padding: 6px;">ક્રમ</th>
-        <th style="width: 38%; border: 1px solid #333; padding: 6px;">તાલીમાર્થીનું નામ અને સરનામું</th>
-        <th style="width: 18%; border: 1px solid #333; padding: 6px;">કઈ તારીખથી સતત ગેરહાજર?</th>
-        <th style="width: 12%; border: 1px solid #333; padding: 6px;">માસિક %</th>
-        <th style="width: 12%; border: 1px solid #333; padding: 6px;">સંચિત %</th>
-        <th style="width: 14%; border: 1px solid #333; padding: 6px;">નોંધ</th>
+        <th style="width: 6%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Sr.' : 'ક્રમ'}</th>
+        <th style="width: 38%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Trainee Name & Address' : 'તાલીમાર્થીનું નામ અને સરનામું'}</th>
+        <th style="width: 18%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Absent Since' : 'કઈ તારીખથી સતત ગેરહાજર?'}</th>
+        <th style="width: 12%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Monthly %' : 'માસિક %'}</th>
+        <th style="width: 12%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Prog. %' : 'સંચિત %'}</th>
+        <th style="width: 14%; border: 1px solid #333; padding: 6px;">${preferEnglish ? 'Remarks' : 'નોંધ'}</th>
       </tr>
     </thead>
     <tbody>
@@ -346,10 +538,44 @@ export function mergeTemplateTags(templateHtml: string, context: MergeContext): 
       : '-';
   const resolvedPriorCount = history.priorNoticeCount;
 
+  // Determine effective selected trainees list for multi-student tables and reports
+  const selectedTraineesList =
+    context.selectedTrainees && context.selectedTrainees.length > 0
+      ? context.selectedTrainees
+      : (allLowAttendanceTrainees && allLowAttendanceTrainees.length > 0
+      ? allLowAttendanceTrainees
+      : [{ trainee, attendance }]);
+
+  // Generate Multi-Student Table with customizable columns
+  const selectedTraineesTableHtml = generateSelectedTraineesTable(
+    selectedTraineesList,
+    context.selectedTableColumns,
+    language === 'English'
+  );
+
+  // Generate Specialized Trainee Address Table for official forwarding letters
+  const traineeAddressTableHtml = generateTraineeAddressTable(
+    selectedTraineesList,
+    language === 'English'
+  );
+
   // Generate Low Attendance Trainee Table (<80%) for Principal Forwarding reports
   const lowAttendanceTableHtml = generateTraineeAttendanceTable(
-    allLowAttendanceTrainees || []
+    context.selectedTrainees && context.selectedTrainees.length > 0
+      ? context.selectedTrainees
+      : (allLowAttendanceTrainees || [])
   );
+
+  const totalSelectedCount = selectedTraineesList.length;
+  const totalSelectedCountGu = toGujaratiNumerals(totalSelectedCount);
+  const selectedRollsList = selectedTraineesList
+    .map((item) => item.trainee.roll_no)
+    .filter(Boolean)
+    .join(', ');
+  const selectedNamesList = selectedTraineesList
+    .map((item) => formatFullName(item.trainee, language === 'English'))
+    .filter(Boolean)
+    .join(', ');
 
   const resolvedRefNumber =
     referenceNumber ||
@@ -470,10 +696,20 @@ export function mergeTemplateTags(templateHtml: string, context: MergeContext): 
     '{{first_notice_date}}': resolvedFirstNotice,
     '{{Second_Notice_Date}}': resolvedSecondNotice,
     '{{second_notice_date}}': resolvedSecondNotice,
-    '{{Prior_Notice_Count}}': String(resolvedPriorCount),
-    '{{prior_notice_count}}': String(resolvedPriorCount),
     '{{Trainee_Attendance_Table}}': lowAttendanceTableHtml,
     '{{trainee_attendance_table}}': lowAttendanceTableHtml,
+    '{{Selected_Trainees_Table}}': selectedTraineesTableHtml,
+    '{{selected_trainees_table}}': selectedTraineesTableHtml,
+    '{{Trainee_Address_Table}}': traineeAddressTableHtml,
+    '{{trainee_address_table}}': traineeAddressTableHtml,
+    '{{Total_Selected_Trainees}}': `${totalSelectedCountGu} (${totalSelectedCount})`,
+    '{{total_selected_trainees}}': `${totalSelectedCountGu} (${totalSelectedCount})`,
+    '{{Total_Selected_Count}}': `${totalSelectedCountGu}`,
+    '{{total_selected_count}}': `${totalSelectedCountGu}`,
+    '{{Selected_Trainees_Roll_List}}': selectedRollsList,
+    '{{selected_trainees_roll_list}}': selectedRollsList,
+    '{{Selected_Trainees_Names_List}}': selectedNamesList,
+    '{{selected_trainees_names_list}}': selectedNamesList,
     '{{AI_Commentary}}': aiCommentary,
   };
 

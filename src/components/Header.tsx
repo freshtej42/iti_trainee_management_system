@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Eye,
   BookOpen,
+  Home,
 } from 'lucide-react';
 import ImeFloatWidget from './ImeFloatWidget';
 import LanguageSelector from './LanguageSelector';
@@ -24,6 +25,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { formatValidityDate } from '../utils/validityHelper';
 
 export type ActiveTab =
+  | 'home'
   | 'hierarchy'
   | 'trainees'
   | 'templates'
@@ -87,20 +89,29 @@ export default function Header({
         <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-2 border-b border-slate-100 w-full overflow-hidden">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
             {/* Emblem Icon */}
-            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-xs shrink-0 ${
-              isSuperAdmin
-                ? 'bg-gradient-to-br from-slate-900 to-slate-800 text-amber-400 border border-slate-700'
-                : isGuest
-                ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white border border-amber-500'
-                : 'bg-gradient-to-br from-[#346739] to-[#1b381e] text-[#f2edc2] border border-[#264e2b]'
-            }`}>
+            <div
+              onClick={() => onTabChange('home')}
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-xs shrink-0 cursor-pointer ${
+                isSuperAdmin
+                  ? 'bg-gradient-to-br from-slate-900 to-slate-800 text-amber-400 border border-slate-700'
+                  : isGuest
+                  ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white border border-amber-500'
+                  : 'bg-gradient-to-br from-[#346739] to-[#1b381e] text-[#f2edc2] border border-[#264e2b]'
+              }`}
+              title="મુખ્ય પૃષ્ઠ (Home / Features Overview)"
+            >
               {isSuperAdmin ? <ShieldCheck className="w-5 h-5 text-amber-400" /> : isGuest ? <Eye className="w-5 h-5 text-white" /> : 'ITI'}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
-                <h1 className="text-xs sm:text-base font-bold text-slate-900 tracking-tight leading-tight truncate">
+                <button
+                  type="button"
+                  onClick={() => onTabChange('home')}
+                  className="text-xs sm:text-base font-bold text-slate-900 tracking-tight leading-tight truncate hover:text-[#346739] text-left transition-colors cursor-pointer"
+                  title="મુખ્ય પૃષ્ઠ જુઓ (View Landing Page)"
+                >
                   {isSuperAdmin ? t('superAdminTitle') : t('portalTitle')}
-                </h1>
+                </button>
                 {isSuperAdmin && (
                   <span className="hidden lg:inline-flex text-[11px] font-bold bg-slate-900 text-amber-400 border border-slate-800 px-2.5 py-0.5 rounded-full shrink-0">
                     {t('tabSuperAdmin')}
@@ -242,6 +253,18 @@ export default function Header({
             <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => onTabChange('home')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                    activeTab === 'home'
+                      ? 'bg-[#346739] text-[#f2edc2] shadow-xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                  title="મુખ્ય પૃષ્ઠ અને તમામ સુવિધાઓ (Home / Features Overview)"
+                >
+                  <Home className="w-4 h-4 text-emerald-600" />
+                  <span>{tText('મુખ્ય પૃષ્ઠ (Home)', 'होम (Home)', 'Home & Features')}</span>
+                </button>
+                <button
                   onClick={() => onTabChange('admin')}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs shadow-xs transition-colors ${
                     activeTab === 'admin'
@@ -274,6 +297,19 @@ export default function Header({
           ) : (
             /* Standard Instructor Navigation Tabs - Strictly Instructors Only */
             <nav className="flex space-x-1 sm:space-x-1.5 py-1.5 overflow-x-auto text-xs sm:text-sm font-medium scrollbar-none items-center">
+              <button
+                onClick={() => onTabChange('home')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
+                  activeTab === 'home'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+                title="મુખ્ય પૃષ્ઠ અને તમામ સુવિધાઓ (Home / Features Overview)"
+              >
+                <Home className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{tText('મુખ્ય પૃષ્ઠ', 'होम', 'Home')}</span>
+              </button>
+
               <button
                 onClick={() => onTabChange('hierarchy')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
@@ -478,6 +514,19 @@ export default function Header({
             {isSuperAdmin ? (
               <div className="space-y-2">
                 <button
+                  onClick={() => handleMobileTabSelect('home')}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold min-h-[44px] ${
+                    activeTab === 'home' ? 'bg-[#346739] text-white' : 'bg-slate-100 text-slate-800'
+                  }`}
+                >
+                  <Home className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <div className="text-left">
+                    <div>{tText('મુખ્ય પૃષ્ઠ (Home & Features)', 'होम (Home & Features)', 'Home & Features')}</div>
+                    <div className="text-[11px] opacity-80 font-normal">{tText('પોર્ટલની તમામ સુવિધાઓ અને માહિતી', 'पोर्टल की सभी सुविधाएं', 'All Portal Features Overview')}</div>
+                  </div>
+                </button>
+
+                <button
                   onClick={() => handleMobileTabSelect('admin')}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold min-h-[44px] ${
                     activeTab === 'admin' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'
@@ -515,6 +564,18 @@ export default function Header({
               </div>
             ) : (
               <div className="space-y-1">
+                <button
+                  onClick={() => handleMobileTabSelect('home')}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${
+                    activeTab === 'home'
+                      ? 'bg-[#346739] text-[#f2edc2]'
+                      : 'text-slate-700 hover:bg-[#f2edc2]/40'
+                  }`}
+                >
+                  <Home className="w-5 h-5 text-emerald-600" />
+                  <span>{tText('મુખ્ય પૃષ્ઠ (Home & Features)', 'होम (Home & Features)', 'Home & Features')}</span>
+                </button>
+
                 <button
                   onClick={() => handleMobileTabSelect('hierarchy')}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${

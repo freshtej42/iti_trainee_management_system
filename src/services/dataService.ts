@@ -852,8 +852,8 @@ export async function deleteBatchTraineesFromCloud(traineeIds: string[]): Promis
 export const DEFAULT_ADMIN_SETTINGS: SuperAdminSettings = {
   upi_id: 'tejassuthar21696@okhdfcbank',
   payee_name: 'Tejas Suthar (Super Admin)',
-  fee_amount: 9,
-  payment_instructions: 'Pay ₹9 for ITI Trainee Portal Account Verification & Activation',
+  fee_amount: 49,
+  payment_instructions: 'Pay ₹49 for ITI Trainee Portal Account Verification & Activation',
   qr_enabled: true,
   qr_image_url: DEFAULT_ADMIN_QR_IMAGE_URL,
 };

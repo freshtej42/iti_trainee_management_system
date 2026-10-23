@@ -168,8 +168,8 @@ export default function SuperAdminDashboard({
   // UPI Settings & Admin QR Code Form State
   const [settingsUpiId, setSettingsUpiId] = useState(adminSettings.upi_id || 'tejassuthar21696@okhdfcbank');
   const [settingsPayeeName, setSettingsPayeeName] = useState(adminSettings.payee_name || 'Tejas Suthar (Super Admin)');
-  const [settingsFeeAmount, setSettingsFeeAmount] = useState(adminSettings.fee_amount || 9);
-  const [settingsInstructions, setSettingsInstructions] = useState(adminSettings.payment_instructions || 'Pay ₹9 for ITI Trainee Portal Account Verification & Activation');
+  const [settingsFeeAmount, setSettingsFeeAmount] = useState(adminSettings.fee_amount || 49);
+  const [settingsInstructions, setSettingsInstructions] = useState(adminSettings.payment_instructions || 'Pay ₹49 for ITI Trainee Portal Account Verification & Activation');
   const [settingsQrImageUrl, setSettingsQrImageUrl] = useState<string>(
     adminSettings.qr_image_url || DEFAULT_ADMIN_QR_IMAGE_URL
   );
@@ -195,7 +195,7 @@ export default function SuperAdminDashboard({
       onUpdateAdminSettings({
         upi_id: settingsUpiId.trim(),
         payee_name: settingsPayeeName.trim(),
-        fee_amount: Number(settingsFeeAmount) || 9,
+        fee_amount: Number(settingsFeeAmount) || 49,
         payment_instructions: settingsInstructions.trim(),
         qr_enabled: true,
         qr_image_url: finalQr,
@@ -570,7 +570,7 @@ export default function SuperAdminDashboard({
       payment_screenshot_url: screenshotUrl,
       payment_utr: inst.payment_utr || sampleUtr || `UPI${Date.now().toString().slice(-8)}`,
       payment_mobile: inst.payment_mobile || inst.phone,
-      payment_amount: inst.payment_amount || adminSettings.fee_amount || 9,
+      payment_amount: inst.payment_amount || adminSettings.fee_amount || 49,
       payment_submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -1107,7 +1107,7 @@ export default function SuperAdminDashboard({
               }`}>
                 <QrCode className="w-4 h-4" />
               </div>
-              <span className="text-[11px] font-black text-emerald-600">₹{adminSettings.fee_amount || 9}</span>
+              <span className="text-[11px] font-black text-emerald-600">₹{adminSettings.fee_amount || 49}</span>
             </div>
             <div>
               <div className="font-bold text-xs leading-tight">UPI અને QR સેટિંગ્સ</div>
@@ -1209,7 +1209,7 @@ export default function SuperAdminDashboard({
           }`}
         >
           <QrCode className="w-3.5 h-3.5 text-amber-500" />
-          <span>UPI અને ₹9 QR સેટિંગ્સ (QR Code Settings)</span>
+          <span>UPI અને QR સેટિંગ્સ (QR Code Settings)</span>
         </button>
       </div>
 
@@ -1288,7 +1288,7 @@ export default function SuperAdminDashboard({
                         <div className="flex items-center justify-between gap-1 mb-2">
                           <span className="font-bold flex items-center gap-1.5">
                             <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
-                            ₹{inst.payment_amount || adminSettings.fee_amount || 9} UPI પેમેન્ટ સ્ટેટસ
+                            ₹{inst.payment_amount || adminSettings.fee_amount || 49} UPI પેમેન્ટ સ્ટેટસ
                           </span>
                           {inst.payment_screenshot_url ? (
                             <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -2158,7 +2158,7 @@ export default function SuperAdminDashboard({
         </div>
       )}
 
-      {/* TAB 5: UPI & ₹9 QR CODE SETTINGS */}
+      {/* TAB 5: UPI & QR CODE SETTINGS */}
       {activeTab === 'upi-settings' && (
         <div className="space-y-5 animate-in fade-in">
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
@@ -2168,10 +2168,10 @@ export default function SuperAdminDashboard({
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900">
-                  UPI એકાઉન્ટ અને ₹9 QR કોડ સેટિંગ્સ (Editable UPI Configuration)
+                  UPI એકાઉન્ટ અને QR કોડ સેટિંગ્સ (Editable UPI Configuration)
                 </h3>
                 <p className="text-xs text-slate-500">
-                  ઇન્સ્ટ્રક્ટર નોંધણી અને વેરિફિકેશન સમયે દેખાતો ₹9 નો UPI QR કોડ અને ખાતાની વિગતો અહીંથી બદલો
+                  ઇન્સ્ટ્રક્ટર નોંધણી અને વેરિફિકેશન સમયે દેખાતો ₹{adminSettings.fee_amount || 49} નો UPI QR કોડ અને ખાતાની વિગતો અહીંથી બદલો
                 </p>
               </div>
             </div>
@@ -2319,7 +2319,7 @@ export default function SuperAdminDashboard({
                       onUpdateAdminSettings({
                         upi_id: settingsUpiId.trim(),
                         payee_name: settingsPayeeName.trim(),
-                        fee_amount: Number(settingsFeeAmount) || 9,
+                        fee_amount: Number(settingsFeeAmount) || 49,
                         payment_instructions: settingsInstructions.trim(),
                         qr_enabled: true,
                         qr_image_url: settingsQrImageUrl,
@@ -2428,7 +2428,7 @@ export default function SuperAdminDashboard({
                 <UpiQrCode
                   upiId={settingsUpiId}
                   payeeName={settingsPayeeName}
-                  amount={Number(settingsFeeAmount) || 9}
+                  amount={Number(settingsFeeAmount) || 49}
                   note={`Verification - ${settingsPayeeName}`}
                   size={210}
                   qrImageUrl={settingsQrImageUrl}
@@ -2532,7 +2532,7 @@ export default function SuperAdminDashboard({
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block">રકમ</span>
-                    <strong className="text-emerald-700 font-bold">₹{previewScreenshotInstructor.payment_amount || adminSettings.fee_amount || 9}</strong>
+                    <strong className="text-emerald-700 font-bold">₹{previewScreenshotInstructor.payment_amount || adminSettings.fee_amount || 49}</strong>
                   </div>
                 </div>
 

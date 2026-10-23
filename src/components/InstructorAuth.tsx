@@ -20,6 +20,7 @@ import {
   X,
   Sparkles,
   BookOpen,
+  ArrowLeft,
 } from 'lucide-react';
 import UserGuideView from './UserGuideView';
 import { transliterateText } from '../utils/phoneticIme';
@@ -41,6 +42,8 @@ interface InstructorAuthProps {
   onRegister: (newInstructor: Omit<Instructor, 'id' | 'created_at'> & { id?: string }) => void;
   onVerifyEmail?: (instructorId: string) => void;
   onUpdateInstructor?: (instructor: Instructor) => void;
+  onBackToHome?: () => void;
+  initialAuthMode?: 'login' | 'register';
 }
 
 import {
@@ -59,8 +62,10 @@ export default function InstructorAuth({
   onLogin,
   onRegister,
   onUpdateInstructor,
+  onBackToHome,
+  initialAuthMode = 'login',
 }: InstructorAuthProps) {
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(initialAuthMode);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [infoMsg, setInfoMsg] = useState<string>('');
@@ -325,6 +330,22 @@ export default function InstructorAuth({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-[#1b381e] to-slate-950 flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8">
+      {onBackToHome && (
+        <div className="sm:mx-auto sm:w-full sm:max-w-xl mb-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer backdrop-blur-sm"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-emerald-300" />
+            <span>મુખ્ય પૃષ્ઠ પર પાછા (Back to Home Page)</span>
+          </button>
+          <span className="text-[11px] text-slate-400 hidden sm:inline">
+            ગુજરાત ITI પોર્ટલ
+          </span>
+        </div>
+      )}
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#346739] text-[#f2edc2] shadow-xl border border-[#9fcb98]/40 mb-3">
           <Building2 className="w-8 h-8" />
@@ -499,11 +520,11 @@ export default function InstructorAuth({
                   {pendingNotice.instructor.payment_screenshot_url ? (
                     <span className="text-emerald-800 font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      ₹{pendingNotice.instructor.payment_amount || adminSettings.fee_amount || 9} ની ચુકવણી રસીદ સુપર એડમિન પાસે ચકાસણી માટે મોકલેલ છે.
+                      ₹{pendingNotice.instructor.payment_amount || adminSettings.fee_amount || 49} ની ચુકવણી રસીદ સુપર એડમિન પાસે ચકાસણી માટે મોકલેલ છે.
                     </span>
                   ) : (
                     <span className="text-amber-800 font-medium">
-                      ⚠️ રજીસ્ટ્રેશન વેરિફિકેશન માટે ₹{adminSettings.fee_amount || 9} ચૂકવણી અને સ્ક્રીનશોટ જરૂરી છે.
+                      ⚠️ રજીસ્ટ્રેશન વેરિફિકેશન માટે ₹{adminSettings.fee_amount || 49} ચૂકવણી અને સ્ક્રીનશોટ જરૂરી છે.
                     </span>
                   )}
                 </div>
@@ -516,7 +537,7 @@ export default function InstructorAuth({
                   }}
                   className="px-3 py-1.5 bg-[#346739] hover:bg-[#2b552f] text-white rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5"
                 >
-                  <span>{pendingNotice.instructor.payment_screenshot_url ? 'પેમેન્ટ વિગતો જુઓ / ફરી અપલોડ કરો' : 'QR કોડ સ્કેન કરી ₹9 ચૂકવો'}</span>
+                  <span>{pendingNotice.instructor.payment_screenshot_url ? 'પેમેન્ટ વિગતો જુઓ / ફરી અપલોડ કરો' : 'QR કોડ સ્કેન કરી ₹49 ચૂકવો'}</span>
                 </button>
               </div>
 

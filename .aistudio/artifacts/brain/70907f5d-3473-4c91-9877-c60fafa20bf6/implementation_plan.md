@@ -1,117 +1,171 @@
-# Custom Table Merge Tag Builder & Reusable Multi-Student Table System
+# Gujarat ITI Trainee Portal - Public Landing Page & Feature Showcase
 
-An interactive **Custom Table Merge Tag Studio** that empowers ITI Instructors to design their own custom table layouts with user-defined column headers, populate row cells using any existing student/attendance merge tags (such as `{{Full_Name}}`, `{{Full_Address}}`, `{{Roll_No}}`, `{{Mobile}}`, `{{Attendance_Percentage}}`, or auto-numbered `{{Sr_No}}`), or intentionally leave columns blank (such as "સહી / Remarks / નોંધ") for handwritten entries after printing on A4 paper. Each saved table format automatically registers as a reusable custom merge tag (e.g., `{{Custom_Table:My_Table}}`) that can be inserted into any letter or report for selected or all students.
+A high-performance, bilingual marketing and orientation landing page showcasing all capabilities of the Gujarat ITI Trainee Attendance, Warning Notice & Letterhead Portal, organized into thematic card-view sections with admin contact details, website documentation, and direct entry points to login and demo mode.
 
----
+## User Review & Critical Decisions
 
-## User Review & Key Product Decisions
-
-### Key Design Decisions
-1. **Visual Row-Template Table Designer (`CustomTableBuilderModal.tsx`)**:
-   - Instructors can create, edit, duplicate, and delete custom table formats from both the **Report & Notice Generator** and **Template Studio**.
-   - Each custom table has:
-     - **Table Name & Merge Tag Key**: e.g., Name: *"વાલી મીટિંગ સહી પત્રક"* → Auto-generates tag `{{Custom_Table:Vali_Meeting_Sign}}` (or custom slug).
-     - **Dynamic Columns Configuration**: Add, reorder, resize width (`auto`, `%`), align (`left`, `center`, `right`), or remove columns.
-     - **Header Label**: Custom Gujarati/English column header (e.g., `ક્રમ`, `તાલીમાર્થીનું નામ અને રોલ નં.`, `સંપૂર્ણ સરનામું`, `વાલીની સહી / નોંધ`).
-     - **Row Cell Template**: Each column's data row cell can contain:
-       - **Single or Multiple Merge Tags**: Click-to-insert from existing tags (`{{Sr_No}}`, `{{Full_Name}}`, `{{Roll_No}}`, `{{Full_Address}}`, `{{Parent_Mobile}}`, `{{Attendance_Percentage}}`, etc.), allowing rich combinations like `<strong>{{Full_Name}}</strong><br/>(રોલ નં: {{Roll_No}})`.
-       - **Blank / Handwritten Entry Mode**: A 1-click toggle *"પ્રિન્ટ બાદ હાથથી લખવા ખાલી રાખો (Leave Blank for Handwritten Entry)"* with configurable minimum row height (e.g., comfortable space for physical signature or remarks on printed paper).
-
-2. **Seamless Integration as First-Class Merge Tags**:
-   - Every custom table created by the instructor immediately appears in:
-     - **Draggable Fields Palette (`DraggableFieldsPalette.tsx`)** under the **બહુવિધ ટેબલ (Multi-Student)** category with a special *"કસ્ટમ ટેબલ"* badge and quick *"Edit / + New Custom Table"* button.
-     - **Template Studio (`TinyMceEditor.tsx`)** variable insertion dropdown.
-   - When the tag (e.g., `{{Custom_Table:Vali_Meeting}}`) is placed inside **any** letter template:
-     - The merge engine (`mergeTemplateTags` in `src/utils/mergeTags.ts`) iterates over all currently **selected trainees** (or all filtered trainees) and renders a print-ready bordered HTML table where each row is evaluated against that student's merge context.
-     - Automatically triggers **Consolidated Single-Page Mode** when a custom table tag is detected in a letter, while still allowing manual mode switching.
-
-3. **Cloud & Local Persistence**:
-   - Custom table definitions (`custom_table_templates: CustomTableTemplate[]`) are stored on the `Instructor` profile (persisted to Firestore via `saveInstructorToCloud` and cached in `localStorage`) alongside 2 pre-configured starter custom tables so instructors can test and customize immediately.
+> [!IMPORTANT]
+> The following user preferences were confirmed during interactive clarification and govern the implementation:
+> - **Navigation & Access**: The Landing Page will serve as the initial public front page for visitors and logged-out users, while remaining accessible at any time from the top navigation bar when logged in.
+> - **Bilingual Presentation**: Full bilingual presentation with a smooth toggle switch (ગુજરાતી / English) allowing instructors to read all feature details in their preferred language.
+> - **Admin Contact & Footer**: Standard, trustworthy technical support and admin contact section detailing Admin Tejas Suthar (`tejassuthar21696@gmail.com`), technical support hours, ITI onboarding guidance, and official website information.
 
 ---
 
-## Technical Architecture & Data Flow
+## 1. Overview & Core Concept
+
+- **What It Does**: Provides an official, welcoming presentation of the entire portal ecosystem. Visitors and prospective ITI instructors can explore all software capabilities—from student records and smart attendance calculation to custom letterhead design, drag-and-drop merge tags, custom multi-student table creation, and outward dispatch registers.
+- **Target Audience / Persona**:
+  - Gujarat ITI Instructors & Supervisors seeking to automate attendance notice compliance and dispatch letters.
+  - ITI Principals & Administrative Staff reviewing system capabilities for institutional adoption.
+  - New Instructors registering and seeking approval assistance.
+- **Key Value**: Replaces confusion and manual paperwork with a clear, visual showcase. Users can read concise feature summaries in cards, try the interactive live demo with one click, or log in to manage their classroom.
+
+---
+
+## 2. User Experience & Visual Design
+
+### Key User Flows
+
+1. **Visitor Arrival (First Touch)**:
+   - Visitor arrives at the website and immediately sees the hero section: Gujarat ITI Portal brand, clear mission statement, key capability highlights, and two prominent actions: **"ઇન્સ્ટ્રક્ટર પ્રવેશ (Instructor Login)"** and **"ડેમો મોડ અજમાવો (Try Live Demo)"**.
+2. **Exploring Categorized Feature Cards**:
+   - Visitors scroll through 7 structured feature sections. Each section presents cards with concise, benefit-focused bullet points, domain icons, and visual highlights:
+     - *Section 1*: Academic Hierarchy & Student Directory (Trade, Batch, Unit A/B/C, Excel import).
+     - *Section 2*: Smart Attendance Tracker & Progressive Rules (DGT 80% rule, progressive safe vs notice required, continuous absence alerts).
+     - *Section 3*: Official Letterhead & Word-Style Template Studio (TinyMCE canvas, letterhead builder, logo upload, pre-printed stationery mode).
+     - *Section 4*: Unified Notice & Multi-Student Report Generator (Single-page forwarding letters, custom table tags, A4 PDF export).
+     - *Section 5*: Drag-and-Drop Dynamic Merge Tag Engine (Student tags, address tags, custom tables, Gujarati numerals).
+     - *Section 6*: Outward & Inward Dispatch Registry (Legal compliance, dispatch modes, tracking numbers, status tracking).
+     - *Section 7*: Multi-Language Support, Gujarati Phonetic Typing & Security (Gujarati IME, Super Admin audit, 1-year license validity).
+3. **Bilingual Toggle**:
+   - Visitors can flip the language toggle in the landing page header at any time between Gujarati and English without losing their position on the page.
+4. **Direct Action / Onboarding**:
+   - Clicking **"Instructor Login / Register"** smoothly transitions to the authentication screen with a **"← મુખ્ય પૃષ્ઠ (Back to Home)"** navigation button.
+   - Clicking **"Try Live Demo"** instantly activates the isolated demo session populated with realistic sample trade data.
+5. **Logged-In Instructor Navigation**:
+   - Logged-in instructors and admins have a dedicated **"મુખ્ય પૃષ્ઠ (Home)"** link in the header to revisit feature guides and documentation anytime, returning to their active workflow with one click.
+
+### Visual Identity & Theme
+
+- **Aesthetic Direction**: Trustworthy institutional portal meets modern productivity SaaS. Clean, authoritative, crisp, and uncluttered.
+- **Color Palette (60-30-10 Rule)**:
+  - *60% Neutral Canvas*: Crisp off-white (`#F8FAFC` and `#FFFFFF`) with subtle slate dividing lines (`#E2E8F0`).
+  - *30% Structural Surfaces*: Deep Gujarat ITI Forest Green (`#1E3A24` and `#346739`) for focal containers, coupled with subdued slate-900 typography.
+  - *10% Accent Tokens*: Soft gold/champagne accent (`#F2EDC2`) and emerald action accents (`#059669`) for primary CTAs and active states.
+- **Typography & Hierarchy**:
+  - Headings: Display bold sans (`Plus Jakarta Sans` / `Noto Sans Gujarati`) with tight tracking and balanced line wrapping (`text-wrap: balance`).
+  - Body: High-legibility prose (`15px`, `1.6` line-height) with clear Gujarati and English font rendering.
+- **Card View Architecture**:
+  - Clean, single-elevation cards with subtle hairline borders (`border border-slate-200`) and soft hover transitions (`hover:border-emerald-600 hover:shadow-md`).
+  - Zero-pill metadata discipline: category indicators and metadata use clean, quiet typography rather than bulky pill capsules.
+  - No fake comment headers (`//`), no decorative pulsing dots, and no meaningless buzzwords.
+
+---
+
+## 3. Key Product Decisions & Trade-Offs
+
+- **Decision 1: Public Default with Seamless Navigation**
+  - *Chosen Approach*: Unauthenticated visitors see the Landing Page by default. A top-bar button provides instant access to the Login/Registration portal, and the Auth screen includes a "Back to Home" button.
+  - *Why*: Allows new visitors to understand portal capabilities before creating an account, while preventing friction for returning instructors who can log in in one click.
+- **Decision 2: Bilingual Gujarati / English Switcher**
+  - *Chosen Approach*: Embed complete Gujarati and English text matrices into the landing page component with an interactive toggle switch.
+  - *Why*: Gujarat ITI instructors work officially in Gujarati for letters and notices, but frequently search technical terms and portal settings in English.
+- **Decision 3: Transparent Admin & Platform Details in Footer**
+  - *Chosen Approach*: Include a dedicated technical contact and admin card in the footer featuring Super Admin Tejas Suthar's verified email (`tejassuthar21696@gmail.com`), support availability hours, and portal purpose.
+  - *Why*: Establishes institutional credibility and offers clear channels for instructors needing payment verification or account activation.
+
+---
+
+## 4. Technical Architecture & Data Strategy
+
+### System Component Diagram
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                   Custom Table Merge Tag Studio (Modal)                  │
-│  ┌──────────────┬────────────────────────┬────────────────────────────┐  │
-│  │ Column 1     │ Column 2               │ Column 3                   │  │
-│  │ Header: ક્રમ  │ Header: નામ અને સરનામું │ Header: સહી / હાથથી નોંધ    │  │
-│  │ Cell:        │ Cell:                  │ Cell:                      │  │
-│  │ {{Sr_No}}    │ {{Full_Name}}          │ [Blank for Handwriting]    │  │
-│  │              │ {{Full_Address}}       │ (Min Height: 32px)         │  │
-│  └──────────────┴────────────────────────┴────────────────────────────┘  │
-│         ▼ Saves as CustomTableTemplate → Tag: {{Custom_Table:ID}}        │
-└──────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│          DraggableFieldsPalette  &  TinyMCE Template Studio              │
-│   Displays {{Custom_Table:...}} chips → Drag/Click into any Letter       │
-└──────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                  mergeTemplateTags() in mergeTags.ts                     │
-│   For each {{Custom_Table:ID}} in template:                              │
-│     Loops over Selected Trainees (1..N):                                 │
-│       Evaluates each column's Cell Template with student's MergeContext  │
-│       Outputs crisp A4-bordered HTML <table> with all N student rows     │
-└──────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           App Entry & Router (App.tsx)                      │
+│                                                                             │
+│  State: [currentView: 'landing' | 'auth' | 'app']                           │
+│         [isAuthenticated: boolean]                                          │
+│         [activeTab: 'home' | 'attendance' | 'report' | 'templates' | ...]   │
+└──────────────────────┬───────────────────────────────┬──────────────────────┘
+                       │                               │
+        Visitor / Home │                Auth Action    │
+                       ▼                               ▼
+┌─────────────────────────────────────────┐  ┌────────────────────────────────┐
+│       LandingPageView Component         │  │     InstructorAuth Component   │
+│                                         │  │                                │
+│ • Hero Banner & Value Proposition       │  │ • Mobile & Email Login         │
+│ • Bilingual Language Toggle (Guj/Eng)   │  │ • 1-Year Registration Flow     │
+│ • Quick Actions: Login / Demo / Explore │  │ • Guest Demo Sandbox Launch    │
+│ • Section 1: Academic Hierarchy         │  │ • "← Back to Home" button      │
+│ • Section 2: Smart Attendance Tracking  │  └────────────────────────────────┘
+│ • Section 3: Word-Style Template Studio │
+│ • Section 4: Unified Notice Generator   │
+│ • Section 5: Dynamic Merge Tag Engine   │
+│ • Section 6: Inward & Outward Register  │
+│ • Section 7: Multi-Language & Security  │
+│ • Website Specifications & Standards    │
+│ • Official Admin & Tech Support Footer  │
+└─────────────────────────────────────────┘
+                       ▲
+                       │ Navigates to/from
+┌──────────────────────┴──────────────────────────────────────────────────────┐
+│                    Authenticated Portal Header (Header.tsx)                 │
+│                                                                             │
+│  • Primary Navigation: [Home | Attendance | Report | Templates | ...]       │
+│  • Language Switcher & Gujarati IME Floating Companion                     │
+│  • Instructor Profile & Logout                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Files to Create & Modify
+### Feature Sections & Content Specification
 
-1. **`src/types.ts`**:
-   - Define `CustomTableColumn`:
-     - `id: string`
-     - `header: string` (Column title in Gujarati/English)
-     - `cell_template: string` (Merge tags like `{{Full_Name}}` or empty string for blank column)
-     - `is_blank_for_handwriting?: boolean` (Leaves cell empty with adequate vertical padding for pen writing/signature)
-     - `align?: 'left' | 'center' | 'right'`
-     - `width?: string`
-     - `bold?: boolean`
-   - Define `CustomTableTemplate`:
-     - `id: string`
-     - `name: string` (Display name, e.g., *"વિદ્યાર્થી સરનામા અને સહી પત્રક"*)
-     - `tag_key: string` (e.g., `{{Custom_Table:Student_Sign_Sheet}}`)
-     - `description?: string`
-     - `columns: CustomTableColumn[]`
-     - `row_min_height_px?: number` (For comfortable handwriting after print)
-     - `created_at: string`
-   - Add `custom_table_templates?: CustomTableTemplate[]` to `Instructor`.
-
-2. **`src/utils/mergeTags.ts`**:
-   - Add `{{Sr_No}}` (Serial Number `1, 2, 3...`) and `{{Sr_No_Gu}}` (`૧, ૨, ૩...`) row-level tags.
-   - Add `DEFAULT_CUSTOM_TABLE_TEMPLATES: CustomTableTemplate[]` so instructors have ready-to-use examples right away.
-   - Implement `generateCustomTableHtml(tableDef: CustomTableTemplate, traineesList, baseContext)`:
-     - Iterates through `traineesList` (`selectedTrainees` or all trainees).
-     - For each student row, resolves all standard merge tags (`{{Full_Name}}`, `{{Full_Address}}`, `{{Roll_No}}`, `{{Mobile}}`, `{{Attendance_Percentage}}`, `{{Sr_No}}`, etc.) inside each column's `cell_template`.
-     - If `is_blank_for_handwriting` is true (or `cell_template` is empty), renders `&nbsp;` with minimum height so the printed A4 table row has clean space to write by hand.
-   - Update `mergeTemplateTags()` to dynamically replace all `{{Custom_Table:...}}` tags using `context.customTableTemplates`.
-
-3. **`src/components/CustomTableBuilderModal.tsx` (New Component)**:
-   - Interactive visual table designer where the instructor:
-     - Enters the Table Name (auto-generating the `{{Custom_Table:...}}` tag).
-     - Adds/edits/reorders columns with header names.
-     - For each column, either clicks merge field chips (`+ {{Full_Name}}`, `+ {{Full_Address}}`, `+ {{Roll_No}}`, `+ {{Parent_Mobile}}`, `+ {{Sr_No}}`, etc.) to build the cell value, OR toggles **"હાથથી લખવા ખાલી કોલમ (Blank for Handwriting/Remarks)"**.
-     - Sees a **Live Sample Table Preview** with real student rows right inside the modal before saving.
-     - Can click **"Save & Insert Tag into Letter"** to immediately place the new table tag into their active letter.
-
-4. **`src/components/DraggableFieldsPalette.tsx`**:
-   - Accept `customTableTemplates?: CustomTableTemplate[]` and `onOpenCustomTableBuilder?: () => void`.
-   - Display saved custom table merge tags in the palette and provide a **"+ નવું કસ્ટમ ટેબલ બનાવો (Create Custom Table Tag)"** button.
-
-5. **`src/components/ReportGenerator.tsx` & `src/components/TemplateStudio.tsx` & `src/App.tsx`**:
-   - Wire `customTableTemplates` from `instructor.custom_table_templates` (with default presets and Firestore/localStorage persistence).
-   - Add **"કસ્ટમ ટેબલ મેકર (Custom Table Tag Builder)"** button in the Report Generator toolbar and Template Studio so instructors can design a custom table and insert its merge tag in one click.
-   - Automatically recognize `{{Custom_Table:...}}` in `isTemplateMultiStudent` so any letter containing a custom table tag defaults to single-page consolidated table rendering for all selected students.
+1. **Section 1: શૈક્ષણિક માળખું અને તાલીમાર્થી ડિરેક્ટરી (Academic Hierarchy & Trainee Records)**
+   - Trade, Batch (e.g. 2025–2026), and Unit (Unit A/B/C) hierarchical structure.
+   - Bulk Excel/CSV student roster import with Gujarati Unicode name support.
+   - Automatic parent directory, mobile numbers, and complete residential addresses.
+2. **Section 2: સ્માર્ટ હાજરી ટ્રેકિંગ અને પ્રગતિશીલ વિશ્લેષણ (Smart Attendance & Progressive Attendance)**
+   - Monthly and progressive cumulative attendance calculation.
+   - Automatic DGT 80% rule compliance detection.
+   - Progressive Safe status intelligence (trainees with safe cumulative attendance are exempt from notices).
+   - Continuous absenteeism tracking with exact absence start dates.
+3. **Section 3: અધિકૃત પત્ર ટેમ્પલેટ સ્ટુડિયો (Official Letterhead & Word-Style Template Studio)**
+   - Full-featured TinyMCE rich text editor with Gujarati font support.
+   - Pre-configured starter presets (1st Warning, 2nd Warning, Final Notice, Parent-Teacher Meeting).
+   - Custom institute letterhead designer (upload official logos, pre-printed stationery mode).
+   - Direct image and official stamp uploads from device.
+4. **Section 4: યુનિફાઇડ રિપોર્ટ અને નોટિસ જનરેટર (Unified Report & Notice Generator)**
+   - One-click batch notice generation for parents with custom reference numbers.
+   - Consolidated single-page multi-student forwarding letters for office filing.
+   - Multi-Student Column Customizer to choose visible table columns.
+   - Custom Table Merge Tag Builder allowing instructors to create custom tables with merge tags and blank rows for handwritten remarks.
+   - True A4 print preview and vector PDF export.
+5. **Section 5: ડાયનેમિક ડ્રેગ-એન્ડ-ડ્રોપ મર્જ ટેગ એન્જિન (Drag & Drop Merge Tag Engine)**
+   - 25+ dynamic tags covering Trainee details, Attendance, Address, Institute, and Outward code.
+   - Drag-and-drop chips directly onto document canvases.
+   - Automatic Gujarati numeral and date rendering.
+6. **Section 6: જાવક અને આવક રજીસ્ટ્રાર (Outward & Inward Dispatch Registry)**
+   - Automatic logging of printed and dispatched notices in official register.
+   - Inward recording for Principal forwarding reports.
+   - Real-time search, filters, status tracking, and batch export.
+7. **Section 7: બહુભાષીય સપોર્ટ અને સુરક્ષિત વહીવટ (Multi-Language, Phonetic Typing & Security)**
+   - Trilingual interface support (English, Gujarati, Hindi).
+   - Built-in phonetic Gujarati IME typing companion for effortless typing on any keyboard.
+   - Super Admin payment verification and 1-year license validity governance.
+   - Isolated Guest Demo Mode to test all portal features risk-free.
 
 ---
 
-## Verification Plan
-- Create a custom table with columns: `ક્રમ ({{Sr_No}})`, `તાલીમાર્થીનું નામ ({{Full_Name}})`, `સરનામું ({{Full_Address}})`, and `નોંધ / સહી (Blank)`.
-- Insert the generated `{{Custom_Table:...}}` tag into any letter template.
-- Select multiple students (or all students) in Report Generator and verify that Live Preview and A4 Print/PDF Preview render a single consolidated letter containing the custom table populated with each student's data and blank write-in cells.
-- Verify compilation (`compile_applet`) and TypeScript linting (`lint_applet`).
+## 5. Verification Plan
+
+1. **Compilation & Linting**: Run `compile_applet` and `lint_applet` to ensure zero TypeScript errors.
+2. **Navigation Testing**:
+   - Verify unauthenticated visitors land on the Landing Page by default.
+   - Verify clicking "Instructor Login" opens the login screen, with a working "Back to Home" button.
+   - Verify clicking "Try Demo Mode" logs into the guest sandbox.
+   - Verify logged-in users can navigate between "Home" (landing page) and tool tabs (`attendance`, `report`, `templates`, etc.) seamlessly.
+3. **Language Toggle Testing**:
+   - Verify toggling between Gujarati and English updates all section headers, feature cards, and footer labels smoothly without layout shift.
+4. **Responsive Verification**:
+   - Verify clean 1440px desktop card grids, tablet 2-column layouts, and mobile single-column view with touch targets $\ge 44\text{px}$.

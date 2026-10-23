@@ -47,7 +47,7 @@ export const PaymentVerificationModal: React.FC<PaymentVerificationModalProps> =
 
   if (!isOpen) return null;
 
-  const feeAmount = adminSettings.fee_amount || 9;
+  const feeAmount = adminSettings.fee_amount || 49;
   const upiId = adminSettings.upi_id || 'tejassuthar21696@okhdfcbank';
   const payeeName = adminSettings.payee_name || 'Tejas Suthar';
 

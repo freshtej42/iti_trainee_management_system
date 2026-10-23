@@ -677,7 +677,7 @@ export default function UserGuideView({
                       <div className="bg-white border border-slate-300 rounded-lg p-2.5">
                         <div className="text-[10px] font-black text-[#346739]">STEP 2</div>
                         <div className="text-xs font-bold text-slate-900 mt-1">Scan UPI QR</div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">Pay nominal annual fee (e.g. ₹9)</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">Pay nominal annual fee (e.g. ₹49)</div>
                       </div>
                       <div className="bg-white border border-slate-300 rounded-lg p-2.5">
                         <div className="text-[10px] font-black text-[#346739]">STEP 3</div>
@@ -1534,7 +1534,7 @@ export default function UserGuideView({
                       <strong>Instructor Account Approval & 1-Year Validity:</strong> Inspect newly registered instructors, verify their 12-digit UPI UTR reference number and uploaded payment screenshot, and click <strong>Approve (`મંજૂર કરો`)</strong> to grant 365 days of active portal access.
                     </li>
                     <li>
-                      <strong>Dynamic Payment & UPI QR Configuration:</strong> Update the portal's UPI ID, Payee Name, Annual Maintenance Fee amount (e.g., ₹9), or upload a custom UPI QR image in real time.
+                      <strong>Dynamic Payment & UPI QR Configuration:</strong> Update the portal's UPI ID, Payee Name, Annual Maintenance Fee amount (e.g., ₹49), or upload a custom UPI QR image in real time.
                     </li>
                     <li>
                       <strong>State-Wide Directory & Audit:</strong> Search, edit, or reset passwords for any registered instructor across Gujarat ITIs, and inspect global trainee and dispatch statistics.

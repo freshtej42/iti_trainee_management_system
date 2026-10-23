@@ -63,6 +63,7 @@ import AcademicHierarchyManager from './components/AcademicHierarchyManager';
 import TemplateStudio from './components/TemplateStudio';
 import ReportGenerator from './components/ReportGenerator';
 import UserGuideView from './components/UserGuideView';
+import LandingPageView from './components/LandingPageView';
 import { HeaderConfig } from './types';
 import { Calendar, Eye, ShieldAlert, Sparkles, AlertCircle } from 'lucide-react';
 import { isAccountExpired, formatValidityDate } from './utils/validityHelper';
@@ -127,6 +128,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('attendance');
   const [activeTemplateId, setActiveTemplateId] = useState<string>(INITIAL_TEMPLATES[0].id);
   const [selectedTraineeId, setSelectedTraineeId] = useState<string>(INITIAL_TRAINEES[0].id);
+
+  // Unauthenticated Public Landing Page vs Auth Form
+  const [unauthView, setUnauthView] = useState<'landing' | 'auth'>('landing');
+  const [unauthAuthMode, setUnauthAuthMode] = useState<'login' | 'register'>('login');
 
   // Modals & Auth State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -204,9 +209,9 @@ export default function App() {
     return () => unsubscribe();
   }, [isAuthenticated, isGuest, isSuperAdmin, currentInstructorId]);
 
-  // Strict role isolation: Super Admin is locked to 'admin' or 'guide' console; Instructors never access 'admin'
+  // Strict role isolation: Super Admin is locked to 'admin', 'guide' or 'home' console; Instructors never access 'admin'
   useEffect(() => {
-    if (isSuperAdmin && activeTab !== 'admin' && activeTab !== 'guide') {
+    if (isSuperAdmin && activeTab !== 'admin' && activeTab !== 'guide' && activeTab !== 'home') {
       setActiveTab('admin');
     } else if (!isSuperAdmin && activeTab === 'admin') {
       setActiveTab('attendance');
@@ -304,6 +309,8 @@ export default function App() {
     setTrainees([]);
     setAttendanceRecords([]);
     setDispatchLogs([]);
+    setUnauthView('landing');
+    setUnauthAuthMode('login');
   };
 
   const handleUpdateInstructor = async (updated: Instructor) => {
@@ -622,8 +629,23 @@ export default function App() {
     setActiveTab('report');
   };
 
-  // If instructor is logged out or visiting auth screen
+  // If instructor is logged out or visiting landing page / auth screen
   if (!isAuthenticated) {
+    if (unauthView === 'landing') {
+      return (
+        <LandingPageView
+          onNavigateToAuth={(mode = 'login') => {
+            setUnauthAuthMode(mode);
+            setUnauthView('auth');
+          }}
+          onLaunchDemo={() => {
+            handleInstructorLogin(DEMO_GUEST_INSTRUCTOR);
+          }}
+          isAuthenticated={false}
+        />
+      );
+    }
+
     return (
       <InstructorAuth
         instructors={instructors}
@@ -632,6 +654,8 @@ export default function App() {
         onRegister={handleInstructorRegister}
         onVerifyEmail={handleVerifyInstructorEmail}
         onUpdateInstructor={handleUpdateInstructor}
+        onBackToHome={() => setUnauthView('landing')}
+        initialAuthMode={unauthAuthMode}
       />
     );
   }
@@ -669,7 +693,7 @@ export default function App() {
               {currentInstructor.payment_screenshot_url ? (
                 <div className="space-y-2">
                   <div className="text-emerald-800 font-bold flex items-center justify-between">
-                    <span>✓ ₹{currentInstructor.payment_amount || adminSettings.fee_amount || 9} ચૂકવણી સ્ક્રીનશોટ મોકલાયો છે</span>
+                    <span>✓ ₹{currentInstructor.payment_amount || adminSettings.fee_amount || 49} ચૂકવણી સ્ક્રીનશોટ મોકલાયો છે</span>
                     <button
                       type="button"
                       onClick={() => setIsPaymentModalOpen(true)}
@@ -689,13 +713,13 @@ export default function App() {
                 </div>
               ) : (
                 <div className="text-rose-800 font-bold flex items-center justify-between">
-                  <span>⚠️ ₹{adminSettings.fee_amount || 9} ચૂકવણી અને સ્ક્રીનશોટ બાકી છે</span>
+                  <span>⚠️ ₹{adminSettings.fee_amount || 49} ચૂકવણી અને સ્ક્રીનશોટ બાકી છે</span>
                   <button
                     type="button"
                     onClick={() => setIsPaymentModalOpen(true)}
                     className="px-2.5 py-1 bg-[#346739] text-white rounded-lg text-[11px] font-bold shadow-2xs hover:bg-[#2b552f]"
                   >
-                    હવે ચૂકવો (Pay ₹{adminSettings.fee_amount || 9})
+                    હવે ચૂકવો (Pay ₹{adminSettings.fee_amount || 49})
                   </button>
                 </div>
               )}
@@ -766,7 +790,7 @@ export default function App() {
             <div>• મંજૂરી તારીખ (Approval Date): <strong>{formatValidityDate(currentInstructor.approved_at)}</strong></div>
             <div>• માન્યતા અંતિમ તારીખ (Expiry Date): <strong className="text-rose-700">{formatValidityDate(currentInstructor.valid_until)}</strong></div>
             <div className="pt-2 border-t border-rose-200 text-rose-800">
-              વાર્ષિક રીન્યુઅલ માટે ₹{adminSettings.fee_amount || 9} ચૂકવણી કરી સ્ક્રીનશોટ મોકલો અથવા સુપર એડમિનનો સંપર્ક કરો.
+              વાર્ષિક રીન્યુઅલ માટે ₹{adminSettings.fee_amount || 49} ચૂકવણી કરી સ્ક્રીનશોટ મોકલો અથવા સુપર એડમિનનો સંપર્ક કરો.
             </div>
           </div>
 
@@ -775,7 +799,7 @@ export default function App() {
               onClick={() => setIsPaymentModalOpen(true)}
               className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-[#346739] hover:bg-[#2b552f] text-white rounded-xl transition-colors shadow-xs"
             >
-              ₹{adminSettings.fee_amount || 9} ચૂકવી રીન્યુ કરો
+              ₹{adminSettings.fee_amount || 49} ચૂકવી રીન્યુ કરો
             </button>
             <button
               onClick={handleInstructorLogout}
@@ -822,10 +846,17 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 py-3 sm:py-6 pb-24 md:pb-6 overflow-x-hidden">
-        {activeTab === 'guide' ? (
+      <main className={`flex-1 w-full mx-auto overflow-x-hidden ${activeTab === 'home' ? 'p-0' : 'max-w-7xl px-2 sm:px-6 py-3 sm:py-6 pb-24 md:pb-6'}`}>
+        {activeTab === 'home' ? (
+          <LandingPageView
+            onNavigateToAuth={() => {}}
+            onLaunchDemo={() => {}}
+            onNavigateToTab={(tab) => setActiveTab(tab as ActiveTab)}
+            isAuthenticated={true}
+            currentInstructorName={currentInstructor.name}
+            currentInstructorTrade={currentInstructor.trade}
+          />
+        ) : activeTab === 'guide' ? (
           <UserGuideView />
         ) : isSuperAdmin ? (
           /* Super Admin Console: Pure administrative jurisdiction (verification, approvals, audit, directory) */

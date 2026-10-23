@@ -96,7 +96,7 @@ export interface Instructor {
 export interface SuperAdminSettings {
   upi_id: string; // e.g. tejassuthar21696@okhdfcbank
   payee_name: string; // e.g. Tejas Suthar
-  fee_amount: number; // ₹9
+  fee_amount: number; // ₹49
   payment_instructions?: string;
   qr_enabled: boolean;
   qr_image_url?: string; // QR code image added/uploaded by super admin for payment

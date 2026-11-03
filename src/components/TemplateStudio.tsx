@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Instructor,
   LetterTemplate,
@@ -50,6 +50,11 @@ import {
   Check,
   RefreshCw,
   Table2,
+  ZoomIn,
+  ZoomOut,
+  Ruler,
+  Maximize2,
+  FileCheck,
 } from 'lucide-react';
 
 export interface TemplateStudioProps {
@@ -423,10 +428,17 @@ export default function TemplateStudio({
   );
   const [isCustomTableBuilderOpen, setIsCustomTableBuilderOpen] = useState<boolean>(false);
 
+  // Realistic A4 Paper Print Simulation & Zoom States
+  const [zoomLevel, setZoomLevel] = useState<number>(1.0);
+  const [showPrintMargins, setShowPrintMargins] = useState<boolean>(true);
+  const [contentExceedsOnePage, setContentExceedsOnePage] = useState<boolean>(false);
+  const docSheetRef = useRef<HTMLDivElement>(null);
+
   const handleSaveCustomTables = (updatedTables: CustomTableTemplate[]) => {
-    setCustomTables(updatedTables);
+    const cleaned = getEffectiveCustomTables(instructor, updatedTables);
+    setCustomTables(cleaned);
     try {
-      localStorage.setItem('iti_custom_table_templates', JSON.stringify(updatedTables));
+      localStorage.setItem('iti_custom_table_templates', JSON.stringify(cleaned));
     } catch {
       // Ignore storage error
     }
@@ -598,6 +610,20 @@ export default function TemplateStudio({
     attendanceRecords,
     customTables,
   ]);
+
+  // Measure paper height to detect if content fits in 1 A4 page or flows to page 2
+  useEffect(() => {
+    const checkHeight = () => {
+      if (docSheetRef.current) {
+        const h = docSheetRef.current.scrollHeight;
+        // Standard A4 at 96 DPI is ~1123px; with padding and header room ~1080px indicates multi-page overflow
+        setContentExceedsOnePage(h > 1080);
+      }
+    };
+    checkHeight();
+    const timer = setTimeout(checkHeight, 350);
+    return () => clearTimeout(timer);
+  }, [contentHtml, mergedHtml, previewMerged, showLetterhead, zoomLevel]);
 
   // Save letterhead HTML as Global Default across all templates
   const handleSaveAsGlobalDefault = (html: string) => {
@@ -1345,8 +1371,8 @@ export default function TemplateStudio({
             </div>
           </div>
 
-          {/* Sub-bar: Subject Input & Live Trainee Preview Switcher */}
-          <div className="bg-[#f3f6f9] border-b border-slate-300 px-3 sm:px-4 py-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs">
+          {/* Sub-bar: Subject Input, Live Trainee Switcher, Zoom Controller & Margins Guide */}
+          <div className="bg-[#f3f6f9] border-b border-slate-300 px-3 sm:px-4 py-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs flex-wrap">
             <div className="flex items-center gap-2 flex-grow min-w-0">
               <span className="font-bold text-slate-600 whitespace-nowrap shrink-0">Subject:</span>
               <input
@@ -1358,107 +1384,244 @@ export default function TemplateStudio({
               />
             </div>
 
-            {/* Live Trainee Data Mode Switcher */}
-            <div className="flex items-center justify-between sm:justify-start gap-2 bg-white px-2.5 py-1 rounded-lg border border-slate-300 shadow-2xs shrink-0">
-              <label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer select-none text-xs">
-                <input
-                  type="checkbox"
-                  checked={previewMerged}
-                  onChange={(e) => setPreviewMerged(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-                <Eye className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span className="whitespace-nowrap">Live Trainee Preview</span>
-              </label>
-
-              {previewMerged && trainees.length > 0 && (
-                <select
-                  value={selectedTraineeId}
-                  onChange={(e) => setSelectedTraineeId(e.target.value)}
-                  className="bg-blue-50 text-blue-900 font-bold border border-blue-300 rounded px-2 py-0.5 text-xs max-w-[170px] sm:max-w-[220px] truncate"
+            {/* Right: Print Simulation Toolbar (Zoom, 20mm Margins, Page Fit Indicator, Live Preview) */}
+            <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
+              {/* Zoom Controller */}
+              <div className="flex items-center gap-0.5 bg-white px-2 py-0.5 rounded-lg border border-slate-300 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel((z) => Math.max(0.6, Math.round((z - 0.1) * 10) / 10))}
+                  className="p-1 text-slate-600 hover:text-slate-900 rounded hover:bg-slate-100 cursor-pointer"
+                  title="Zoom Out (-10%)"
                 >
-                  {trainees.map((tr) => (
-                    <option key={tr.id} value={tr.id}>
-                      Roll {tr.roll_no} - {tr.student_name_en || tr.student_name}
-                    </option>
-                  ))}
-                </select>
-              )}
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-[11px] font-mono font-bold text-slate-800 min-w-[36px] text-center">
+                  {Math.round(zoomLevel * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel((z) => Math.min(1.5, Math.round((z + 0.1) * 10) / 10))}
+                  className="p-1 text-slate-600 hover:text-slate-900 rounded hover:bg-slate-100 cursor-pointer"
+                  title="Zoom In (+10%)"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel(1.0)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    zoomLevel === 1.0
+                      ? 'bg-[#104899] text-white'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                  title="1:1 True A4 Scale (૧૦૦% સાચું કદ)"
+                >
+                  1:1
+                </button>
+              </div>
+
+              {/* 20mm Printable Margin Guide Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowPrintMargins(!showPrintMargins)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                  showPrintMargins
+                    ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-2xs'
+                    : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                }`}
+                title="પ્રિન્ટ હાસિયો (Show 20mm Printable Margin Guidelines)"
+              >
+                <Ruler className="w-3.5 h-3.5 text-blue-600" />
+                <span>હાસિયો: {showPrintMargins ? '૨૦mm ચાલુ' : 'બંધ'}</span>
+              </button>
+
+              {/* Page Fit Indicator Badge */}
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border shadow-2xs ${
+                  contentExceedsOnePage
+                    ? 'bg-amber-50 border-amber-300 text-amber-900'
+                    : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                }`}
+                title={
+                  contentExceedsOnePage
+                    ? 'લખાણ ૧ પાના કરતા વધુ હોવાથી પ્રિન્ટમાં ૨ પાના થશે'
+                    : 'સંપૂર્ણ લખાણ A4 ના ૧ જ પાના પર બરાબર સમાઈ જશે'
+                }
+              >
+                {contentExceedsOnePage ? (
+                  <>
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>૨ પાના થશે (Page 2 Overflow)</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>૧ પાનામાં સમાશે (Fits 1 Page)</span>
+                  </>
+                )}
+              </div>
+
+              {/* Live Trainee Data Mode Switcher */}
+              <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-lg border border-slate-300 shadow-2xs shrink-0">
+                <label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer select-none text-xs">
+                  <input
+                    type="checkbox"
+                    checked={previewMerged}
+                    onChange={(e) => setPreviewMerged(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <Eye className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span className="whitespace-nowrap">Live Trainee Preview</span>
+                </label>
+
+                {previewMerged && trainees.length > 0 && (
+                  <select
+                    value={selectedTraineeId}
+                    onChange={(e) => setSelectedTraineeId(e.target.value)}
+                    className="bg-blue-50 text-blue-900 font-bold border border-blue-300 rounded px-2 py-0.5 text-xs max-w-[170px] sm:max-w-[220px] truncate"
+                  >
+                    {trainees.map((tr) => (
+                      <option key={tr.id} value={tr.id}>
+                        Roll {tr.roll_no} - {tr.student_name_en || tr.student_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Main A4 Document Workspace */}
-          <div className="flex-1 bg-[#d8dfe6] p-2 sm:p-6 pb-20 sm:pb-12 overflow-y-auto flex flex-col items-center justify-start min-h-[600px]">
-            {/* The A4 Document Container */}
+          {/* Main A4 Document Workspace with Realistic Desk Canvas & Zoom */}
+          <div className="flex-1 bg-[#cdd5de] p-3 sm:p-8 pb-32 overflow-x-auto overflow-y-auto flex flex-col items-center justify-start min-h-[650px] relative">
+            {/* Zoom wrapper for true scale rendering */}
             <div
-              id="notice-a4-sheet"
-              className="bg-white text-slate-900 shadow-2xl border border-slate-300 relative flex flex-col justify-start a4-printable-document p-8 sm:p-12 transition-all"
+              className="a4-zoom-wrapper transition-transform duration-150 ease-out origin-top flex flex-col items-center"
               style={{
-                width: '100%',
-                maxWidth: '820px',
-                minHeight: '1050px',
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: 'top center',
+                marginBottom: `${Math.max(0, (zoomLevel - 1) * 1100)}px`,
               }}
             >
-              {/* Top Official Letterhead Workspace on A4 Canvas */}
-              {showLetterhead ? (
-                previewMerged ? (
-                  /* Live Rendered Letterhead with Merged Outward No & Date */
+              {/* The A4 Document Container */}
+              <div
+                id="notice-a4-sheet"
+                ref={docSheetRef}
+                className="bg-white text-slate-900 shadow-2xl border border-slate-300 relative flex flex-col justify-start a4-printable-document p-8 sm:p-12 transition-all"
+                style={{
+                  width: '210mm',
+                  minHeight: '297mm',
+                  maxWidth: '100%',
+                }}
+              >
+                {/* Visual Printable Margin Guide (20mm) */}
+                {showPrintMargins && (
                   <div
-                    className="mb-6 iti-rendered-letterhead select-none"
-                    dangerouslySetInnerHTML={{
-                      __html: renderLetterheadHtml(letterheadHtml, {
-                        refNumber: `${headerConfig.ref_prefix || 'ઔતાસં/૨૦૨૫-૨૬'}/${
-                          selectedTraineeId
-                            ? trainees.find((t) => t.id === selectedTraineeId)?.roll_no || '૧૦૧'
-                            : '૧૦૧'
-                        }`,
-                        issueDate: new Date().toLocaleDateString('gu-IN'),
-                      }),
-                    }}
-                  />
-                ) : (
-                  /* Dedicated Inline TinyMCE Letterhead Editor directly on the A4 Canvas */
-                  <TinyMceLetterheadEditor
-                    value={letterheadHtml}
-                    onChange={(html) => setLetterheadHtml(html)}
-                    instructor={instructor}
-                    template={currentTemplate}
-                    disabled={isGuest}
-                    isTemplateSpecific={isTemplateSpecificHeader}
-                    onToggleScope={(isSpecific) => setIsTemplateSpecificHeader(isSpecific)}
-                    onSaveAsGlobalDefault={handleSaveAsGlobalDefault}
-                    onResetToDefault={handleResetLetterhead}
-                  />
-                )
-              ) : (
-                /* Sleek prompter when letterhead is toggled off */
-                <div
-                  onClick={() => setShowLetterhead(true)}
-                  className="border border-dashed border-slate-300 hover:border-amber-400 bg-slate-50/70 hover:bg-amber-50/50 text-slate-500 hover:text-amber-800 py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all mb-4 select-none group"
-                  title="Click to enable letterhead on canvas"
-                >
-                  <Building2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
-                  <span>Letterhead disabled • Click here to enable letterhead on A4 canvas</span>
-                </div>
-              )}
-
-              {/* Document Body Area */}
-              <div className="flex-1 min-h-[500px]">
-                {previewMerged ? (
-                  // Live Rendered Merged HTML Preview
-                  <div
-                    className="prose max-w-none text-slate-900 leading-relaxed outline-hidden"
-                    dangerouslySetInnerHTML={{ __html: mergedHtml }}
-                  />
-                ) : (
-                  // TinyMCE Editor Canvas
-                  <TinyMceEditor
-                    value={contentHtml}
-                    onChange={setContentHtml}
-                    disabled={isGuest}
-                    minHeight={560}
-                  />
+                    className="pointer-events-none absolute inset-0 m-[20mm] border border-dashed border-indigo-400/40 rounded-xs print:hidden z-10 flex flex-col justify-between p-1 select-none"
+                    aria-hidden="true"
+                  >
+                    <div className="flex justify-between items-center text-[9px] font-mono text-indigo-700/80 font-semibold tracking-wider">
+                      <span>┌ 20mm MARGIN</span>
+                      <span>PRINTABLE BOUNDARY ┐</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] font-mono text-indigo-700/80 font-semibold tracking-wider">
+                      <span>└ A4 PAPER (210×297mm)</span>
+                      <span>SAFE PRINT AREA ┘</span>
+                    </div>
+                  </div>
                 )}
+
+                {/* Top Official Letterhead Workspace on A4 Canvas */}
+                {showLetterhead ? (
+                  previewMerged ? (
+                    /* Live Rendered Letterhead with Merged Outward No & Date */
+                    <div
+                      className="mb-6 iti-rendered-letterhead select-none"
+                      dangerouslySetInnerHTML={{
+                        __html: renderLetterheadHtml(letterheadHtml, {
+                          refNumber: `${headerConfig.ref_prefix || 'ઔતાસં/૨૦૨૫-૨૬'}/${
+                            selectedTraineeId
+                              ? trainees.find((t) => t.id === selectedTraineeId)?.roll_no || '૧૦૧'
+                              : '૧૦૧'
+                          }`,
+                          issueDate: new Date().toLocaleDateString('gu-IN'),
+                        }),
+                      }}
+                    />
+                  ) : (
+                    /* Dedicated Inline TinyMCE Letterhead Editor directly on the A4 Canvas */
+                    <TinyMceLetterheadEditor
+                      value={letterheadHtml}
+                      onChange={(html) => setLetterheadHtml(html)}
+                      instructor={instructor}
+                      template={currentTemplate}
+                      disabled={isGuest}
+                      isTemplateSpecific={isTemplateSpecificHeader}
+                      onToggleScope={(isSpecific) => setIsTemplateSpecificHeader(isSpecific)}
+                      onSaveAsGlobalDefault={handleSaveAsGlobalDefault}
+                      onResetToDefault={handleResetLetterhead}
+                    />
+                  )
+                ) : (
+                  /* Sleek prompter when letterhead is toggled off */
+                  <div
+                    onClick={() => setShowLetterhead(true)}
+                    className="border border-dashed border-slate-300 hover:border-amber-400 bg-slate-50/70 hover:bg-amber-50/50 text-slate-500 hover:text-amber-800 py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all mb-4 select-none group"
+                    title="Click to enable letterhead on canvas"
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                    <span>Letterhead disabled • Click here to enable letterhead on A4 canvas</span>
+                  </div>
+                )}
+
+                {/* Document Body Area */}
+                <div className="flex-1 min-h-[500px]">
+                  {previewMerged ? (
+                    // Live Rendered Merged HTML Preview
+                    <div
+                      className="prose max-w-none text-slate-900 leading-relaxed outline-hidden"
+                      dangerouslySetInnerHTML={{ __html: mergedHtml }}
+                    />
+                  ) : (
+                    // TinyMCE Editor Canvas
+                    <TinyMceEditor
+                      value={contentHtml}
+                      onChange={setContentHtml}
+                      disabled={isGuest}
+                      minHeight={560}
+                    />
+                  )}
+                </div>
+
+                {/* Dynamic Page 1 Cutoff / Page Fit Visual Marker */}
+                <div className="mt-8 pt-4 print:hidden select-none border-t border-slate-200">
+                  {contentExceedsOnePage ? (
+                    <div className="bg-rose-50 border border-rose-300 rounded-lg p-2.5 flex items-center justify-between text-xs text-rose-800">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <div>
+                          <strong className="font-semibold">પેજ ૧ સીમા વટાવી ગઈ છે (Page 1 Overflow):</strong>{' '}
+                          આ પત્ર ૨૯૭mm કરતાં વધુ લાંબો હોવાથી ફિઝિકલ પ્રિન્ટમાં ૨ પાના (Page 2) પર જશે.
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono bg-rose-200 text-rose-900 px-2 py-0.5 rounded font-bold shrink-0">
+                        2 Pages
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-lg p-2 flex items-center justify-between text-[11px] text-emerald-800">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>
+                          <strong>પરફેક્ટ ૧-પેજ ફિટ:</strong> સમગ્ર લખાણ અને કોષ્ટક સ્ટાન્ડર્ડ A4 (210 × 297 mm) ના એક જ પાનામાં સમાઈ જાય છે.
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold shrink-0">
+                        Fits 1 Page
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

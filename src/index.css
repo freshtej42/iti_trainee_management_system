@@ -82,6 +82,12 @@
     margin: 10mm 10mm 10mm 10mm;
   }
 
+  .a4-zoom-wrapper {
+    transform: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   .a4-page,
   .a4-printable-document {
     box-shadow: none !important;

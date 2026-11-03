@@ -193,6 +193,7 @@ export interface CustomTableColumn {
   is_blank_for_handwriting?: boolean; // True when column is left blank to write by hand after printing
   align?: 'left' | 'center' | 'right';
   width?: string; // e.g. '25%' or 'auto'
+  min_width_px?: number; // Minimum width in px e.g. 70, 120
   bold?: boolean;
 }
 

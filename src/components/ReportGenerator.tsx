@@ -286,9 +286,10 @@ export default function ReportGenerator({
   const [isCustomTableBuilderOpen, setIsCustomTableBuilderOpen] = useState<boolean>(false);
 
   const handleSaveCustomTables = (updatedTables: CustomTableTemplate[]) => {
-    setCustomTables(updatedTables);
+    const cleaned = getEffectiveCustomTables(instructor, updatedTables);
+    setCustomTables(cleaned);
     try {
-      localStorage.setItem('iti_custom_table_templates', JSON.stringify(updatedTables));
+      localStorage.setItem('iti_custom_table_templates', JSON.stringify(cleaned));
     } catch {
       // Ignore storage error
     }

@@ -45,14 +45,28 @@ export default function DraggableFieldsPalette({
   ];
 
   const allMergeTags = useMemo(() => {
-    const tables = customTableTemplates || getEffectiveCustomTables();
-    const customTagItems = tables.map((tbl) => ({
-      tag: tbl.tag_key,
-      label: `📋 ${tbl.name} (Custom Table - ${tbl.columns.length} Cols)`,
-      category: 'MultiStudent',
-      isCustomTable: true,
-    }));
-    return [...customTagItems, ...AVAILABLE_MERGE_TAGS.map((t) => ({ ...t, isCustomTable: false }))];
+    const rawTables = customTableTemplates || getEffectiveCustomTables();
+    const seenTags = new Set<string>();
+    const customTagItems: Array<{ tag: string; label: string; category: string; isCustomTable: boolean }> = [];
+
+    for (const tbl of rawTables) {
+      if (!tbl || !tbl.tag_key) continue;
+      const lower = tbl.tag_key.toLowerCase();
+      if (seenTags.has(lower)) continue;
+      seenTags.add(lower);
+      customTagItems.push({
+        tag: tbl.tag_key,
+        label: `📋 ${tbl.name} (Custom Table - ${tbl.columns?.length || 0} Cols)`,
+        category: 'MultiStudent',
+        isCustomTable: true,
+      });
+    }
+
+    const availableWithoutDuplicates = AVAILABLE_MERGE_TAGS.filter(
+      (t) => !seenTags.has(t.tag.toLowerCase())
+    ).map((t) => ({ ...t, isCustomTable: false }));
+
+    return [...customTagItems, ...availableWithoutDuplicates];
   }, [customTableTemplates]);
 
   const filteredTags = allMergeTags.filter((item) => {
@@ -164,11 +178,11 @@ export default function DraggableFieldsPalette({
 
       {/* Draggable Tag Chips Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 max-h-36 overflow-y-auto pr-1">
-        {filteredTags.map((item) => {
+        {filteredTags.map((item, idx) => {
           const isCopied = copiedTag === item.tag;
           return (
             <div
-              key={item.tag}
+              key={`${item.tag}-${idx}`}
               draggable
               onDragStart={(e) => handleDragStart(e, item.tag)}
               onClick={() => handleClick(item.tag)}

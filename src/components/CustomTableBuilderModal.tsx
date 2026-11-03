@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   CustomTableTemplate,
   CustomTableColumn,
@@ -25,6 +25,9 @@ import {
   PenTool,
   Eye,
   Save,
+  MoveHorizontal,
+  Sliders,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface CustomTableBuilderModalProps {
@@ -66,6 +69,31 @@ export default function CustomTableBuilderModal({
   const [columns, setColumns] = useState<CustomTableColumn[]>([]);
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
+  const [testWithLongContent, setTestWithLongContent] = useState<boolean>(false);
+  const [resizingColIdx, setResizingColIdx] = useState<number | null>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  // Strictly deduplicate customTables by both ID and tag_key to prevent React key collision
+  const dedupedTables = useMemo(() => {
+    const list = Array.isArray(customTables) ? customTables : [];
+    const seenIds = new Set<string>();
+    const seenTags = new Set<string>();
+    const result: CustomTableTemplate[] = [];
+
+    for (const t of list) {
+      if (!t) continue;
+      const idKey = (t.id || '').trim().toLowerCase();
+      const tagKey = (t.tag_key || '').trim().toLowerCase();
+
+      if (idKey && seenIds.has(idKey)) continue;
+      if (tagKey && seenTags.has(tagKey)) continue;
+
+      if (idKey) seenIds.add(idKey);
+      if (tagKey) seenTags.add(tagKey);
+      result.push(t);
+    }
+    return result;
+  }, [customTables]);
 
   useEffect(() => {
     if (isOpen) {
@@ -83,6 +111,7 @@ export default function CustomTableBuilderModal({
         cell_template: '{{Sr_No_Gu}}',
         align: 'center',
         width: '7%',
+        min_width_px: 45,
         bold: true,
       },
       {
@@ -91,6 +120,7 @@ export default function CustomTableBuilderModal({
         cell_template: '{{Full_Name}}',
         align: 'left',
         width: '26%',
+        min_width_px: 140,
         bold: true,
       },
       {
@@ -99,6 +129,7 @@ export default function CustomTableBuilderModal({
         cell_template: '{{Full_Address}}',
         align: 'left',
         width: '42%',
+        min_width_px: 180,
         bold: false,
       },
       {
@@ -108,12 +139,13 @@ export default function CustomTableBuilderModal({
         is_blank_for_handwriting: true,
         align: 'left',
         width: '25%',
+        min_width_px: 120,
         bold: false,
       },
     ];
     setEditingId(null);
     setTableName('મારું કસ્ટમ વિદ્યાર્થી પત્રક');
-    setTagSlug(`Student_Table_${customTables.length + 1}`);
+    setTagSlug(`Student_Table_${dedupedTables.length + 1}`);
     setDescription('તાલીમાર્થીનું નામ, સરનામું અને પ્રિન્ટ બાદ હાથથી લખવા માટે ખાલી નોંધ કોલમ');
     setRowMinHeight(36);
     setColumns(newCols);
@@ -129,26 +161,31 @@ export default function CustomTableBuilderModal({
       .replace(/\}\}$/, '');
     setTagSlug(extractedSlug || 'Custom_Table_1');
     setDescription(tbl.description || '');
-    setRowMinHeight(tbl.row_min_height_px || 34);
-    const clonedCols = tbl.columns.map((c) => ({ ...c }));
+    setRowMinHeight(tbl.row_min_height_px || 36);
+    const clonedCols = tbl.columns.map((c) => ({
+      ...c,
+      min_width_px: c.min_width_px || 60,
+    }));
     setColumns(clonedCols);
     setActiveColumnId(clonedCols[0]?.id || null);
     setActiveTab('editor');
   };
 
   const handleDeleteTable = (id: string) => {
-    const updated = customTables.filter((t) => t.id !== id);
+    const updated = dedupedTables.filter((t) => t.id !== id);
     onSaveCustomTables(updated);
   };
 
   const addColumn = () => {
+    const remainingW = Math.max(12, Math.floor(100 / (columns.length + 1)));
     const newCol: CustomTableColumn = {
       id: `col-${Date.now()}-${columns.length + 1}`,
       header: `કોલમ ${columns.length + 1}`,
       cell_template: '',
       is_blank_for_handwriting: true,
       align: 'left',
-      width: 'auto',
+      width: `${remainingW}%`,
+      min_width_px: 80,
       bold: false,
     };
     setColumns([...columns, newCol]);
@@ -194,6 +231,74 @@ export default function CustomTableBuilderModal({
     });
   };
 
+  // Direct Drag-to-Resize Column Divider Handler
+  const handleStartResize = (e: React.MouseEvent, colIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = e.clientX;
+    const tableEl = tableContainerRef.current?.querySelector('table');
+    if (!tableEl) return;
+
+    const tableRect = tableEl.getBoundingClientRect();
+    const tableWidth = tableRect.width;
+    if (tableWidth <= 0) return;
+
+    const colsCopy = columns.map((c) => {
+      const parsed = parseFloat(c.width || '');
+      return {
+        ...c,
+        numWidth: !isNaN(parsed) && (c.width || '').includes('%') ? parsed : 100 / columns.length,
+      };
+    });
+
+    const col1 = colsCopy[colIndex];
+    const col2 = colsCopy[colIndex + 1];
+    if (!col1 || !col2) return;
+
+    const startW1 = col1.numWidth;
+    const startW2 = col2.numWidth;
+    setResizingColIdx(colIndex);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaPercent = (deltaX / tableWidth) * 100;
+
+      const minPercent = 5;
+      const maxPercent = startW1 + startW2 - minPercent;
+
+      let newW1 = Math.max(minPercent, Math.min(maxPercent, startW1 + deltaPercent));
+      let newW2 = startW1 + startW2 - newW1;
+
+      newW1 = Math.round(newW1 * 10) / 10;
+      newW2 = Math.round(newW2 * 10) / 10;
+
+      setColumns((prev) => {
+        const next = [...prev];
+        next[colIndex] = {
+          ...next[colIndex],
+          width: `${newW1}%`,
+          min_width_px: Math.max(40, Math.round((newW1 / 100) * 750)),
+        };
+        next[colIndex + 1] = {
+          ...next[colIndex + 1],
+          width: `${newW2}%`,
+          min_width_px: Math.max(40, Math.round((newW2 / 100) * 750)),
+        };
+        return next;
+      });
+    };
+
+    const handleMouseUp = () => {
+      setResizingColIdx(null);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   const fullGeneratedTagKey = `{{Custom_Table:${slugifyTagName(tagSlug || tableName)}}}`;
 
   const buildCurrentTemplateObject = (): CustomTableTemplate => {
@@ -206,6 +311,7 @@ export default function CustomTableBuilderModal({
       columns: columns.map((c) => ({
         ...c,
         header: c.header.trim() || 'કોલમ',
+        min_width_px: c.min_width_px ? Number(c.min_width_px) : 60,
       })),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -216,9 +322,14 @@ export default function CustomTableBuilderModal({
     const newObj = buildCurrentTemplateObject();
     let updatedList: CustomTableTemplate[];
     if (editingId) {
-      updatedList = customTables.map((t) => (t.id === editingId ? newObj : t));
+      updatedList = dedupedTables.map((t) => (t.id === editingId ? newObj : t));
     } else {
-      updatedList = [newObj, ...customTables];
+      const filtered = dedupedTables.filter(
+        (t) =>
+          (t.id || '').toLowerCase() !== newObj.id.toLowerCase() &&
+          (t.tag_key || '').toLowerCase() !== newObj.tag_key.toLowerCase()
+      );
+      updatedList = [newObj, ...filtered];
     }
     onSaveCustomTables(updatedList);
 
@@ -230,9 +341,37 @@ export default function CustomTableBuilderModal({
     }
   };
 
+  const longTraineeSample: Trainee = {
+    id: 'sample-long',
+    instructor_id: instructor.id,
+    roll_no: '૧૨૫',
+    enrollment_no: '250125-GUJ-99',
+    trade: instructor.trade || 'કોમ્પ્યુટર ઓપરેટર એન્ડ પ્રોગ્રામિંગ આસિસ્ટન્ટ (COPA)',
+    batch: instructor.batch || '૨૦૨૫–૨૦૨૬ (પ્રથમ વર્ષ)',
+    unit: instructor.unit || 'Unit A',
+    surname: 'પ્રજાપતિ-વાઘેલા',
+    student_name: 'હર્ષવર્ધનસિંહ ઘનશ્યામભાઈ',
+    father_name: 'ઘનશ્યામભાઈ મનસુખલાલ',
+    grandfather_name: 'મનસુખલાલ પ્રેમજીભાઈ',
+    surname_en: 'Prajapati-Vaghela',
+    student_name_en: 'Harshvardhansinh Ghanshyambhai',
+    father_name_en: 'Ghanshyambhai Mansukhlal',
+    grandfather_name_en: 'Mansukhlal Premjibhai',
+    mobile: '9876543210',
+    parent_mobile: '9825011223',
+    address: 'પ્લોટ નં. ૪૫/બી, સરદાર પટેલ સોસાયટી, ગાયત્રી મંદિર સામે, મેઈન હાઈવે રોડ, શંખેશ્વર તાલુકો, પાટણ જિલ્લો',
+    village: 'શંખેશ્વર (મોટી વાસ)',
+    taluka: 'શંખેશ્વર તાલુકા પંચાયત',
+    district: 'પાટણ (ઉત્તર ગુજરાત)',
+    pincode: '384246',
+    created_at: new Date().toISOString(),
+  };
+
   // Sample trainees for live preview inside builder
   const previewTraineesList = (
-    sampleTrainees.length > 0
+    testWithLongContent
+      ? [longTraineeSample, ...(sampleTrainees.length > 0 ? sampleTrainees.slice(0, 2) : [])]
+      : sampleTrainees.length > 0
       ? sampleTrainees.slice(0, 3)
       : [
           {
@@ -303,6 +442,59 @@ export default function CustomTableBuilderModal({
 
   const activeColObj = columns.find((c) => c.id === activeColumnId) || columns[0];
 
+  const evaluateCellPreview = (template: string, item: { trainee: Trainee; attendance?: AttendanceRecord }, rowIndex: number) => {
+    if (!template) return '';
+    const tr = item.trainee;
+    const att = item.attendance;
+    const workingDays = att?.total_working_days ?? 24;
+    const presentDays = att?.present_days ?? 0;
+    const absentDays = att?.absent_days ?? Math.max(0, workingDays - presentDays);
+    const pct = att?.attendance_percentage !== undefined ? `${att.attendance_percentage.toFixed(1)}%` : '-';
+    const progPct = att?.progressive_attendance_percentage !== undefined ? `${att.progressive_attendance_percentage.toFixed(1)}%` : pct;
+
+    const rowMap: Record<string, string> = {
+      '{{Sr_No}}': String(rowIndex + 1),
+      '{{Sr_No_Gu}}': ['૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯', '૧૦'][rowIndex] || String(rowIndex + 1),
+      '{{Full_Name}}': `${tr.student_name} ${tr.father_name} ${tr.surname}`,
+      '{{Trainee_Full_Name}}': `${tr.student_name} ${tr.father_name} ${tr.surname}`,
+      '{{Trainee_Name}}': tr.student_name,
+      '{{students name}}': `${tr.student_name} ${tr.father_name} ${tr.surname}`,
+      '{{Student_Name}}': tr.student_name,
+      '{{Parent_Full_Name}}': `${tr.father_name} ${tr.grandfather_name || ''} ${tr.surname}`.trim(),
+      '{{Parent_Name}}': `${tr.father_name} ${tr.surname}`,
+      '{{Father_Name}}': tr.father_name,
+      '{{Grandfather_Name}}': tr.grandfather_name || '',
+      '{{Surname}}': tr.surname,
+      '{{Trainee_Roll_No}}': tr.roll_no || '',
+      '{{Roll_No}}': tr.roll_no || '',
+      '{{Enrollment_No}}': tr.enrollment_no || '-',
+      '{{Full_Address}}': `${tr.address}, ${tr.village}, તા: ${tr.taluka}, જિ: ${tr.district} - ${tr.pincode}`,
+      '{{Address}}': tr.address,
+      '{{Village}}': tr.village || '',
+      '{{Taluka}}': tr.taluka || '',
+      '{{District}}': tr.district || '',
+      '{{Pincode}}': tr.pincode || '',
+      '{{Mobile}}': tr.mobile || '-',
+      '{{Parent_Mobile}}': tr.parent_mobile || tr.mobile || '-',
+      '{{Trade}}': tr.trade || instructor.trade || '',
+      '{{Batch}}': tr.batch || instructor.batch || '',
+      '{{Unit}}': tr.unit || instructor.unit || '',
+      '{{Attendance_Percentage}}': pct,
+      '{{Attendance_Percentage}}%': pct,
+      '{{Progressive_Attendance_Percentage}}': progPct,
+      '{{Progressive_Attendance_Percentage}}%': progPct,
+      '{{Present_Days}}': String(presentDays),
+      '{{Absent_Days}}': String(absentDays),
+      '{{Remarks}}': att?.remarks || '',
+    };
+
+    let result = template;
+    for (const [k, v] of Object.entries(rowMap)) {
+      result = result.split(k).join(v);
+    }
+    return result;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden">
@@ -342,7 +534,7 @@ export default function CustomTableBuilderModal({
                   : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
               }`}
             >
-              તૈયાર કસ્ટમ ટેબલ ટેગ્સ ({customTables.length})
+              તૈયાર કસ્ટમ ટેબલ ટેગ્સ ({dedupedTables.length})
             </button>
             <button
               type="button"
@@ -399,7 +591,7 @@ export default function CustomTableBuilderModal({
               </div>
 
               <div className="grid grid-cols-1 gap-4">
-                {customTables.map((tbl) => {
+                {dedupedTables.map((tbl, tblIdx) => {
                   const isJustCopied = copiedTag === tbl.tag_key;
                   const sampleHtml = generateCustomTableHtml(
                     tbl,
@@ -414,7 +606,7 @@ export default function CustomTableBuilderModal({
 
                   return (
                     <div
-                      key={tbl.id}
+                      key={`${tbl.id || 'ctbl'}-${tblIdx}`}
                       className="border border-slate-200 rounded-2xl p-4 bg-white hover:border-slate-300 shadow-2xs space-y-3 transition-all"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
@@ -471,7 +663,7 @@ export default function CustomTableBuilderModal({
                             <span>ફેરફાર (Edit)</span>
                           </button>
 
-                          {customTables.length > 1 && (
+                          {dedupedTables.length > 1 && (
                             <button
                               type="button"
                               onClick={() => handleDeleteTable(tbl.id)}
@@ -489,7 +681,7 @@ export default function CustomTableBuilderModal({
                         <span className="font-bold text-slate-500">કોલમ્સ ({tbl.columns.length}):</span>
                         {tbl.columns.map((c, idx) => (
                           <span
-                            key={c.id || idx}
+                            key={`${c.id || 'col'}-${idx}`}
                             className={`px-2 py-0.5 rounded border font-medium ${
                               c.is_blank_for_handwriting || !c.cell_template.trim()
                                 ? 'bg-amber-50 border-amber-200 text-amber-900'
@@ -558,20 +750,46 @@ export default function CustomTableBuilderModal({
                   </div>
                 </div>
 
-                <div className="md:col-span-3">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    ૩. રો ઊંચાઈ (હાથથી લખવા જગ્યા)
-                  </label>
-                  <select
+                <div className="md:col-span-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                      <Sliders className="w-3.5 h-3.5 text-[#346739]" />
+                      <span>૩. ન્યૂનતમ રો ઊંચાઈ (Min Row Height)</span>
+                    </label>
+                    <span className="text-xs font-mono font-bold text-[#346739] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      {rowMinHeight}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={24}
+                    max={120}
+                    step={2}
                     value={rowMinHeight}
                     onChange={(e) => setRowMinHeight(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl font-semibold text-slate-900"
-                  >
-                    <option value={28}>સામાન્ય (28px - Compact)</option>
-                    <option value={36}>મધ્યમ જગ્યા (36px - Standard)</option>
-                    <option value={46}>વધુ જગ્યા - સહી/નોંધ માટે (46px)</option>
-                    <option value={58}>મોટી જગ્યા (58px - Extra Large)</option>
-                  </select>
+                    className="w-full accent-[#346739] cursor-pointer"
+                  />
+                  <div className="flex items-center gap-1 overflow-x-auto text-[10px] pb-0.5">
+                    {[
+                      { label: 'Compact', val: 30 },
+                      { label: 'Standard', val: 38 },
+                      { label: 'Handwriting', val: 54 },
+                      { label: 'Sign', val: 72 },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setRowMinHeight(preset.val)}
+                        className={`px-1.5 py-0.5 rounded font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                          rowMinHeight === preset.val
+                            ? 'bg-[#346739] text-[#f2edc2]'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {preset.label} ({preset.val}px)
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -684,7 +902,30 @@ export default function CustomTableBuilderModal({
                                 <span>પ્રિન્ટ બાદ કાગળ પર હાથથી લખવા ખાલી રાખો (Leave Blank)</span>
                               </label>
 
-                              <div className="flex items-center gap-2 text-[11px]">
+                              <div className="flex items-center gap-2 text-[11px] flex-wrap">
+                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5" title="કોલમ પહોળાઈ ટકાવારી (Width percentage)">
+                                  <span className="text-[10px] text-slate-500 font-bold">પહોળાઈ %:</span>
+                                  <input
+                                    type="text"
+                                    value={col.width || ''}
+                                    onChange={(e) => updateColumn(col.id, { width: e.target.value })}
+                                    placeholder="25%"
+                                    className="w-12 bg-white border border-slate-300 rounded px-1 text-center font-mono font-bold text-slate-800 text-[11px]"
+                                  />
+                                </div>
+
+                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5" title="ન્યૂનતમ પહોળાઈ પિક્સેલમાં (Minimum pixel width)">
+                                  <span className="text-[10px] text-slate-500 font-bold">Min px:</span>
+                                  <input
+                                    type="number"
+                                    min={35}
+                                    max={600}
+                                    value={col.min_width_px || 60}
+                                    onChange={(e) => updateColumn(col.id, { min_width_px: Number(e.target.value) })}
+                                    className="w-14 bg-white border border-slate-300 rounded px-1 text-center font-mono font-bold text-slate-800 text-[11px]"
+                                  />
+                                </div>
+
                                 <select
                                   value={col.align || 'left'}
                                   onChange={(e) =>
@@ -781,21 +1022,158 @@ export default function CustomTableBuilderModal({
                 </div>
               </div>
 
-              {/* Step 3: Live Real-Time Preview */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
-                    <Eye className="w-4 h-4 text-[#346739]" />
-                    <span>લાઈવ ટેબલ પ્રિવ્યુ (Live Sample Table Format Preview)</span>
+              {/* Step 3: Live Interactive Preview & Column Width Drag Resizer */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-[#346739] text-[#f2edc2] rounded-lg">
+                      <MoveHorizontal className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-slate-800 flex items-center gap-2">
+                        <span>લાઈવ ઇન્ટરેક્ટિવ પ્રિવ્યુ & કોલમ ડ્રેગ રીસાઈઝર</span>
+                        <span className="hidden sm:inline text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          ડ્રેગ કરી પહોળાઈ સેટ કરો
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        કોલમ વચ્ચેની લાઈન પકડીને ડાબે-જમણે ખેંચવાથી (drag) પહોળાઈ બદલાશે. લખાણ મોટું હશે તો રો આપોઆપ નીચે વિસ્તરશે.
+                      </p>
+                    </div>
                   </div>
-                  <code className="text-xs font-mono font-bold text-[#346739] bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
-                    મર્જ ટેગ: {fullGeneratedTagKey}
-                  </code>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-2xs cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={testWithLongContent}
+                        onChange={(e) => setTestWithLongContent(e.target.checked)}
+                        className="rounded text-[#346739] focus:ring-[#346739]"
+                      />
+                      <Sparkles className="w-3.5 h-3.5 text-[#346739]" />
+                      <span>મોટા લખાણ સાથે ટેસ્ટ (Test Long Content)</span>
+                    </label>
+
+                    <code className="text-xs font-mono font-bold text-[#346739] bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      {fullGeneratedTagKey}
+                    </code>
+                  </div>
                 </div>
+
+                {/* Interactive Drag-Resizing Table */}
                 <div
-                  className="bg-white p-4 rounded-xl border border-slate-300 overflow-x-auto font-gujarati text-slate-900"
-                  dangerouslySetInnerHTML={{ __html: livePreviewHtml }}
-                />
+                  ref={tableContainerRef}
+                  className="bg-white p-3 rounded-xl border border-slate-300 overflow-x-auto select-none"
+                >
+                  <table className="w-full border-collapse border border-slate-600 text-xs table-fixed font-gujarati">
+                    <thead>
+                      <tr className="bg-slate-100">
+                        {columns.map((col, idx) => {
+                          const isSelected = activeColObj?.id === col.id;
+                          const isResizing = resizingColIdx === idx;
+                          return (
+                            <th
+                              key={col.id || idx}
+                              onClick={() => setActiveColumnId(col.id)}
+                              style={{
+                                width: col.width || `${Math.round(100 / columns.length)}%`,
+                                minWidth: col.min_width_px ? `${col.min_width_px}px` : '48px',
+                                textAlign: col.align || 'left',
+                              }}
+                              className={`relative border border-slate-600 p-2 font-bold cursor-pointer transition-colors group ${
+                                isSelected
+                                  ? 'bg-emerald-100/90 text-[#346739] ring-2 ring-[#346739] ring-inset'
+                                  : 'text-slate-800 hover:bg-slate-200/80'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1 overflow-hidden pr-2">
+                                <span className="truncate">{col.header || `કોલમ ${idx + 1}`}</span>
+                                <span className="text-[9.5px] font-mono text-slate-500 font-semibold bg-white/80 border border-slate-300 px-1 rounded shrink-0">
+                                  {col.width || 'auto'}
+                                </span>
+                              </div>
+
+                              {/* Interactive Draggable Column Divider Handle */}
+                              {idx < columns.length - 1 && (
+                                <div
+                                  onMouseDown={(e) => handleStartResize(e, idx)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="કોલમ પહોળાઈ બદલવા માટે પકડીને ખેંચો (Drag to resize column)"
+                                  className={`absolute right-0 top-0 bottom-0 w-3.5 -mr-1.5 cursor-col-resize z-30 flex items-center justify-center transition-all ${
+                                    isResizing
+                                      ? 'bg-[#346739]'
+                                      : 'hover:bg-[#346739]/80'
+                                  }`}
+                                >
+                                  <div
+                                    className={`w-[2px] h-full ${
+                                      isResizing ? 'bg-white' : 'bg-slate-400 group-hover:bg-white'
+                                    }`}
+                                  />
+                                </div>
+                              )}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewTraineesList.map((item, rowIdx) => {
+                        return (
+                          <tr key={item.trainee.id || rowIdx} className="hover:bg-slate-50/60">
+                            {columns.map((col, cIdx) => {
+                              const isBlank = col.is_blank_for_handwriting || !col.cell_template;
+                              const evalText = isBlank ? '' : evaluateCellPreview(col.cell_template, item, rowIdx);
+
+                              return (
+                                <td
+                                  key={col.id || cIdx}
+                                  style={{
+                                    width: col.width || 'auto',
+                                    minWidth: col.min_width_px ? `${col.min_width_px}px` : '48px',
+                                    height: `${rowMinHeight}px`,
+                                    minHeight: `${rowMinHeight}px`,
+                                    textAlign: col.align || 'left',
+                                    fontWeight: col.bold ? 'bold' : 'normal',
+                                    wordBreak: 'break-word',
+                                    overflowWrap: 'anywhere',
+                                    whiteSpace: 'normal',
+                                    verticalAlign: 'top',
+                                  }}
+                                  className="border border-slate-600 p-2 text-xs text-slate-800 leading-relaxed font-gujarati"
+                                >
+                                  {isBlank ? (
+                                    <div
+                                      style={{ minHeight: `${Math.max(22, rowMinHeight - 12)}px` }}
+                                      className="bg-amber-50/70 border border-dashed border-amber-300 rounded p-1.5 text-[11px] text-amber-800 italic"
+                                    >
+                                      ✍️ [કાગળ પર હાથથી લખવા ખાલી જગ્યા (Min {rowMinHeight}px)]
+                                    </div>
+                                  ) : (
+                                    evalText
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Status Notice */}
+                <div className="flex items-center justify-between text-[11px] text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200 flex-wrap gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      રો ઊંચાઈ ન્યૂનતમ <strong>{rowMinHeight}px</strong> સેટ છે. જો વિદ્યાર્થીનું નામ કે સરનામું મોટું હશે તો રોની ઊંચાઈ આપોઆપ વધીને આખું લખાણ સમાવી લેશે.
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">
+                    Auto-wrap &amp; Dynamic Height Expansion
+                  </span>
+                </div>
               </div>
             </div>
           )}

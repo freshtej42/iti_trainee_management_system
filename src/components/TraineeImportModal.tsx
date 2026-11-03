@@ -29,22 +29,32 @@ interface TraineeImportModalProps {
 interface ParsedTraineeRow {
   roll_no: string;
   enrollment_no: string;
-  student_name: string;
-  surname: string;
-  father_name: string;
-  grandfather_name: string;
-  student_name_en: string;
+  // English name fields in sequence: Surname, Student, Father, Grandfather
   surname_en: string;
+  student_name_en: string;
   father_name_en: string;
   grandfather_name_en: string;
+  // Gujarati name fields in sequence: Surname, Student, Father, Grandfather
+  surname: string;
+  student_name: string;
+  father_name: string;
+  grandfather_name: string;
+  // Gujarati address fields
+  address_gu: string;
+  village_gu: string;
+  taluka_gu: string;
+  district_gu: string;
+  pincode: string;
+  // Contact & Academic metadata
+  mobile: string;
+  parent_mobile: string;
   unit: string;
   batch: string;
-  mobile: string;
-  address: string;
-  village: string;
-  taluka: string;
-  district: string;
-  pincode: string;
+  // Fallback compatibility
+  address?: string;
+  village?: string;
+  taluka?: string;
+  district?: string;
   isValid: boolean;
   error?: string;
 }
@@ -115,28 +125,25 @@ export default function TraineeImportModal({
         enrollment_no = `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/${new Date().getFullYear()}/${roll_no}`;
       }
 
-      // Names
-      let student_name = getVal(['student_name', 'name', 'trainee_name', 'નામ', 'તાલીમાર્થીનું નામ', 'તાલીમાર્થી']);
-      let surname = getVal(['surname', 'last_name', 'અટક']);
-      let father_name = getVal(['father_name', 'father', 'પિતાનું નામ', 'પિતા']);
-      let grandfather_name = getVal(['grandfather_name', 'grandfather', 'દાદાનું નામ', 'દાદા']);
+      // 1. English Names in sequence: Surname, Student Name, Father's Name, Grandfather's Name
+      let surname_en = getVal(['surname_en', 'surname_english', 'last_name_en', 'lastname_en', 'surnameen', 'surname(en)', 'english_surname']);
+      let student_name_en = getVal(['student_name_en', 'name_en', 'student_en', 'trainee_name_en', 'english_name', 'student(en)', 'firstname_en', 'nameen', 'english_student_name']);
+      let father_name_en = getVal(['father_name_en', 'father_en', 'fathers_name_en', 'father_english', 'fathername_en', 'father(en)', 'english_father_name']);
+      let grandfather_name_en = getVal(['grandfather_name_en', 'grandfather_en', 'grandfathers_name_en', 'grandfather_english', 'grandfather(en)', 'english_grandfather_name']);
 
-      let student_name_en = getVal(['student_name_en', 'name_en', 'english_name']);
-      let surname_en = getVal(['surname_en', 'last_name_en']);
-      let father_name_en = getVal(['father_name_en', 'father_en']);
-      let grandfather_name_en = getVal(['grandfather_name_en', 'grandfather_en']);
+      // 2. Gujarati Names in sequence: Surname, Student Name, Father's Name, Grandfather's Name
+      let surname = getVal(['surname', 'surname_gu', 'અટક', 'last_name']);
+      let student_name = getVal(['student_name', 'student_name_gu', 'નામ', 'તાલીમાર્થીનું નામ', 'વિદ્યાર્થીનું નામ', 'તાલીમાર્થી', 'નામ (ગુજરાતી)', 'name']);
+      let father_name = getVal(['father_name', 'father_name_gu', 'પિતાનું નામ', 'પિતા', 'father']);
+      let grandfather_name = getVal(['grandfather_name', 'grandfather_name_gu', 'દાદાનું નામ', 'દાદા', 'grandfather']);
 
       // Auto-transliterate if only English is present or vice-versa
       if (autoTransliterate) {
-        if (!student_name && student_name_en) {
-          student_name = transliterateText(student_name_en, 'Gujarati');
-        } else if (student_name && !student_name_en) {
-          // Keep as is or phonetic
-          student_name_en = student_name;
-        }
-
         if (!surname && surname_en) {
           surname = transliterateText(surname_en, 'Gujarati');
+        }
+        if (!student_name && student_name_en) {
+          student_name = transliterateText(student_name_en, 'Gujarati');
         }
         if (!father_name && father_name_en) {
           father_name = transliterateText(father_name_en, 'Gujarati');
@@ -144,27 +151,41 @@ export default function TraineeImportModal({
         if (!grandfather_name && grandfather_name_en) {
           grandfather_name = transliterateText(grandfather_name_en, 'Gujarati');
         }
+
+        if (!surname_en && surname) {
+          surname_en = surname;
+        }
+        if (!student_name_en && student_name) {
+          student_name_en = student_name;
+        }
+        if (!father_name_en && father_name) {
+          father_name_en = father_name;
+        }
+        if (!grandfather_name_en && grandfather_name) {
+          grandfather_name_en = grandfather_name;
+        }
       }
 
-      // Unit & Batch
+      // 3. Gujarati Address fields
+      let address_gu = getVal(['address_gu', 'address', 'સરનામું', 'સરનામુ', 'ગુજરાતી સરનામું', 'address(gu)', 'addr']) || 'મુ. પો. તાલુકા કેન્દ્ર';
+      let village_gu = getVal(['village_gu', 'village', 'ગામ', 'શહેર', 'ગામ/શહેર', 'ગામ (ગુજરાતી)', 'city']) || 'શંખેશ્વર';
+      let taluka_gu = getVal(['taluka_gu', 'taluka', 'તાલુકો', 'તાલુકો (ગુજરાતી)']) || 'શંખેશ્વર';
+      let district_gu = getVal(['district_gu', 'district', 'જિલ્લો', 'જિલ્લો (ગુજરાતી)']) || 'પાટણ';
+      let pincode = getVal(['pincode', 'પીનકોડ', 'pin', 'પીન કોડ', 'zip']) || '384242';
+
+      // 4. Contact Numbers & Academic Hierarchy
+      const mobile = getVal(['mobile', 'phone', 'contact', 'મોબાઈલ', 'ફોન', 'મોબાઈલ નંબર', 'mobile_no']);
+      const parent_mobile = getVal(['parent_mobile', 'parents_mobile', 'વાલીનો મોબાઈલ', 'વાલી ફોન', 'guardian_mobile', 'father_mobile']);
       const unit = getVal(['unit', 'યુનિટ', 'section']) || targetUnit;
       const batch = getVal(['batch', 'બેચ', 'year', 'session']) || targetBatch;
-      const mobile = getVal(['mobile', 'phone', 'contact', 'મોબાઈલ', 'ફોન']);
-
-      // Address
-      const address = getVal(['address', 'સરનામું', 'addr']) || 'મુ. પો. તાલુકા કેન્દ્ર';
-      const village = getVal(['village', 'ગામ', 'city', 'શહેર']) || 'શંખેશ્વર';
-      const taluka = getVal(['taluka', 'તાલુકો']) || 'શંખેશ્વર';
-      const district = getVal(['district', 'જિલ્લો']) || 'પાટણ';
-      const pincode = getVal(['pincode', 'પીનકોડ', 'pin']) || '૩૮૪૨૪૨';
 
       // Validation
       let isValid = true;
       let error = '';
 
-      if (!student_name) {
+      if (!student_name && !student_name_en) {
         isValid = false;
-        error = 'તાલીમાર્થીનું નામ ખૂટે છે (Student Name missing)';
+        error = 'વિદ્યાર્થીનું નામ ખૂટે છે (Student Name missing)';
       } else if (existingRolls.has(roll_no)) {
         error = `રોલ નં. ${roll_no} પહેલેથી હાજર છે (Duplicate roll in database)`;
       } else if (seenImportRolls.has(roll_no)) {
@@ -176,22 +197,27 @@ export default function TraineeImportModal({
       return {
         roll_no,
         enrollment_no,
-        student_name,
-        surname,
-        father_name,
-        grandfather_name,
-        student_name_en: student_name_en || student_name,
         surname_en: surname_en || surname,
+        student_name_en: student_name_en || student_name,
         father_name_en: father_name_en || father_name,
         grandfather_name_en: grandfather_name_en || grandfather_name,
+        surname: surname || surname_en,
+        student_name: student_name || student_name_en,
+        father_name: father_name || father_name_en,
+        grandfather_name: grandfather_name || grandfather_name_en,
+        address_gu,
+        village_gu,
+        taluka_gu,
+        district_gu,
+        pincode,
+        mobile,
+        parent_mobile,
         unit,
         batch,
-        mobile,
-        address,
-        village,
-        taluka,
-        district,
-        pincode,
+        address: address_gu,
+        village: village_gu,
+        taluka: taluka_gu,
+        district: district_gu,
         isValid,
         error,
       };
@@ -281,95 +307,144 @@ export default function TraineeImportModal({
     }
   };
 
-  // Generate and download sample CSV Template
-  const handleDownloadTemplate = () => {
-    const sampleHeaders = [
-      'roll_no',
-      'enrollment_no',
-      'student_name',
-      'surname',
-      'father_name',
-      'grandfather_name',
-      'student_name_en',
-      'surname_en',
-      'unit',
-      'batch',
-      'mobile',
-      'address',
-      'village',
-      'taluka',
-      'district',
-      'pincode',
-    ];
+  const sampleHeaders = [
+    'roll_no',
+    'enrollment_no',
+    'surname_en',
+    'student_name_en',
+    'father_name_en',
+    'grandfather_name_en',
+    'surname',
+    'student_name',
+    'father_name',
+    'grandfather_name',
+    'address_gu',
+    'village_gu',
+    'taluka_gu',
+    'district_gu',
+    'pincode',
+    'mobile',
+    'parent_mobile',
+    'unit',
+    'batch',
+  ];
 
-    const sampleRows = [
-      [
-        '101',
-        `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2026/101`,
-        'રમેશભાઈ',
-        'પટેલ',
-        'કાંતિલાલ',
-        'નાનજીભાઈ',
-        'Rameshbhai',
-        'Patel',
-        'Unit A',
-        targetBatch,
-        '9825012345',
-        'મુ. રામપુરા, સ્ટેશન રોડ',
-        'શંખેશ્વર',
-        'શંખેશ્વર',
-        'પાટણ',
-        '384242',
-      ],
-      [
-        '102',
-        `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2026/102`,
-        'કિરણબેન',
-        'ઠાકોર',
-        'ભવાનજી',
-        'રમેશજી',
-        'Kiranben',
-        'Thakor',
-        'Unit B',
-        targetBatch,
-        '9825054321',
-        'મુ. બક્ષીપંચ વાસ',
-        'સમી',
-        'સમી',
-        'પાટણ',
-        '384242',
-      ],
-      [
-        '103',
-        `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2026/103`,
-        'વિજયભાઈ',
-        'ચૌધરી',
-        'દિનેશભાઈ',
-        'ગણેશભાઈ',
-        'Vijaybhai',
-        'Chaudhary',
-        'Unit C',
-        targetBatch,
-        '9825098765',
-        'મુ. હાઈવે સર્કલ',
-        'શંખેશ્વર',
-        'શંખેશ્વર',
-        'પાટણ',
-        '384242',
-      ],
-    ];
+  const sampleRows = [
+    [
+      '101',
+      `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2026/101`,
+      'Patel',
+      'Rameshbhai',
+      'Kantilal',
+      'Nanjibhai',
+      'પટેલ',
+      'રમેશભાઈ',
+      'કાંતિલાલ',
+      'નાનજીભાઈ',
+      'મુ. રામપુરા, સ્ટેશન રોડ',
+      'શંખેશ્વર',
+      'શંખેશ્વર',
+      'પાટણ',
+      '384242',
+      '9825012345',
+      '9825098761',
+      'Unit A',
+      targetBatch,
+    ],
+    [
+      '102',
+      `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2026/102`,
+      'Thakor',
+      'Kiranben',
+      'Bhavanji',
+      'Rameshji',
+      'ઠાકોર',
+      'કિરણબેન',
+      'ભવાનજી',
+      'રમેશજી',
+      'મુ. બક્ષીપંચ વાસ',
+      'સમી',
+      'સમી',
+      'પાટણ',
+      '384242',
+      '9825054321',
+      '9825065432',
+      'Unit B',
+      targetBatch,
+    ],
+    [
+      '103',
+      `ITI/${instructor.trade.substring(0, 3).toUpperCase()}/2026/103`,
+      'Chaudhary',
+      'Vijaybhai',
+      'Dineshbhai',
+      'Ganeshbhai',
+      'ચૌધરી',
+      'વિજયભાઈ',
+      'દિનેશભાઈ',
+      'ગણેશભાઈ',
+      'મુ. હાઈવે સર્કલ',
+      'શંખેશ્વર',
+      'શંખેશ્વર',
+      'પાટણ',
+      '384242',
+      '9825098765',
+      '9825087654',
+      'Unit C',
+      targetBatch,
+    ],
+  ];
 
+  // Download Excel (.xlsx) Template with Styled Column Widths
+  const handleDownloadExcelTemplate = () => {
+    try {
+      const wsData = [sampleHeaders, ...sampleRows];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!cols'] = [
+        { wch: 10 }, // roll_no
+        { wch: 22 }, // enrollment_no
+        { wch: 16 }, // surname_en
+        { wch: 18 }, // student_name_en
+        { wch: 18 }, // father_name_en
+        { wch: 18 }, // grandfather_name_en
+        { wch: 16 }, // surname
+        { wch: 18 }, // student_name
+        { wch: 18 }, // father_name
+        { wch: 18 }, // grandfather_name
+        { wch: 28 }, // address_gu
+        { wch: 16 }, // village_gu
+        { wch: 16 }, // taluka_gu
+        { wch: 16 }, // district_gu
+        { wch: 12 }, // pincode
+        { wch: 15 }, // mobile
+        { wch: 15 }, // parent_mobile
+        { wch: 12 }, // unit
+        { wch: 16 }, // batch
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Trainee_Template');
+      XLSX.writeFile(wb, `ITI_${instructor.trade.replace(/[\s/]+/g, '_')}_Trainee_Template.xlsx`);
+    } catch (err) {
+      console.error('Excel template download error, falling back to CSV:', err);
+      handleDownloadCsvTemplate();
+    }
+  };
+
+  // Download CSV (.csv) Template with UTF-8 BOM for Microsoft Excel Compatibility
+  const handleDownloadCsvTemplate = () => {
     const csvContent =
-      'data:text/csv;charset=utf-8,\uFEFF' +
-      [sampleHeaders.join(','), ...sampleRows.map((e) => e.map((val) => `"${val}"`).join(','))].join('\n');
+      '\uFEFF' +
+      [sampleHeaders.join(','), ...sampleRows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\r\n');
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `ITI_${instructor.trade}_Trainee_Import_Template.csv`);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ITI_${instructor.trade.replace(/[\s/]+/g, '_')}_Trainee_Template.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Confirm and Import valid rows
@@ -388,19 +463,24 @@ export default function TraineeImportModal({
         trade: instructor.trade,
         batch: r.batch || targetBatch,
         unit: r.unit || targetUnit,
-        surname: r.surname,
-        student_name: r.student_name,
-        father_name: r.father_name,
-        grandfather_name: r.grandfather_name,
         surname_en: r.surname_en,
         student_name_en: r.student_name_en,
         father_name_en: r.father_name_en,
         grandfather_name_en: r.grandfather_name_en,
+        surname: r.surname,
+        student_name: r.student_name,
+        father_name: r.father_name,
+        grandfather_name: r.grandfather_name,
         mobile: r.mobile,
-        address: r.address,
-        village: r.village,
-        taluka: r.taluka,
-        district: r.district,
+        parent_mobile: r.parent_mobile,
+        address: r.address_gu || r.address || '',
+        address_gu: r.address_gu,
+        village: r.village_gu || r.village || '',
+        village_gu: r.village_gu,
+        taluka: r.taluka_gu || r.taluka || '',
+        taluka_gu: r.taluka_gu,
+        district: r.district_gu || r.district || '',
+        district_gu: r.district_gu,
         pincode: r.pincode,
         created_at: new Date().toISOString(),
       }));
@@ -465,53 +545,76 @@ export default function TraineeImportModal({
         {/* Content Body */}
         <div className="p-6 overflow-y-auto space-y-5 flex-1">
           {/* Top Options: Batch & Unit Selection & Template Download */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
-                <BookOpen className="w-3.5 h-3.5 text-blue-700" />
-                <span>લક્ષ્ય બેચ (Target Batch)</span>
-              </label>
-              <select
-                value={targetBatch}
-                onChange={(e) => setTargetBatch(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg font-bold text-slate-800"
-              >
-                {availableBatches.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
+          {/* Top Options: Batch & Unit Selection & Dual Template Downloads */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5 text-blue-700" />
+                  <span>લક્ષ્ય બેચ (Target Batch)</span>
+                </label>
+                <select
+                  value={targetBatch}
+                  onChange={(e) => setTargetBatch(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg font-bold text-slate-800"
+                >
+                  {availableBatches.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>ડિફોલ્ટ યુનિટ (Unit A / B / C)</span>
+                </label>
+                <select
+                  value={targetUnit}
+                  onChange={(e) => setTargetUnit(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg font-bold text-emerald-800"
+                >
+                  {availableUnits.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadExcelTemplate}
+                  className="flex-1 py-2 px-2.5 text-xs font-bold rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                  title="Download formatted Excel (.xlsx) template with column headers"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Excel નમૂનો (.xlsx)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadCsvTemplate}
+                  className="flex-1 py-2 px-2.5 text-xs font-bold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-300 flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                  title="Download standard CSV (.csv) template with UTF-8 encoding"
+                >
+                  <Download className="w-3.5 h-3.5 text-blue-700" />
+                  <span>CSV નમૂનો (.csv)</span>
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5 text-emerald-700" />
-                <span>ડિફોલ્ટ યુનિટ (Unit A / B / C)</span>
-              </label>
-              <select
-                value={targetUnit}
-                onChange={(e) => setTargetUnit(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg font-bold text-emerald-800"
-              >
-                {availableUnits.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col justify-end">
-              <button
-                type="button"
-                onClick={handleDownloadTemplate}
-                className="w-full py-2 px-3 text-xs font-bold rounded-lg bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 flex items-center justify-center gap-1.5 shadow-2xs transition-colors"
-                title="Download ready-to-use CSV template"
-              >
-                <Download className="w-3.5 h-3.5 text-blue-700" />
-                <span>સેમ્પલ નમૂનો ડાઉનલોડ કરો (Template)</span>
-              </button>
+            {/* Column Sequence Legend */}
+            <div className="pt-2 border-t border-slate-200/80 text-[11px] text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="font-bold text-slate-800">નમૂના કોલમ ક્રમ:</span>
+              <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">1. Roll</span>
+              <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">2. Enrol</span>
+              <span className="text-blue-800 font-semibold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px]">3. English (Surname, Name, Father, Grandfather)</span>
+              <span className="text-emerald-800 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px]">4. ગુજરાતી નામો (અટક, નામ, પિતા, દાદા)</span>
+              <span className="text-amber-800 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[10px]">5. સરનામું (સરનામું, ગામ, તાલુકો, જિલ્લો, પીનકોડ)</span>
+              <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">6. Mobile &amp; Unit/Batch</span>
             </div>
           </div>
 
@@ -597,7 +700,7 @@ export default function TraineeImportModal({
                 rows={5}
                 value={rawPastedText}
                 onChange={(e) => setRawPastedText(e.target.value)}
-                placeholder="Excel અથવા Google Sheets માંથી રો કોપી કરીને અહીં પેસ્ટ કરો (Ctrl+V)...&#10;ઉદાહરણ:&#10;Roll&#9;Name&#9;Surname&#9;Father&#9;Unit&#9;Mobile&#10;101&#9;Ramesh&#9;Patel&#9;Kantibhai&#9;Unit A&#9;9825012345"
+                placeholder="Excel અથવા Google Sheets માંથી રો કોપી કરીને અહીં પેસ્ટ કરો (Ctrl+V)...&#10;ઉદાહરણ (નવી કોલમ સિક્વન્સ):&#10;Roll&#9;Enrollment&#9;Surname(EN)&#9;Name(EN)&#9;Father(EN)&#9;Grandfather(EN)&#9;Surname(GU)&#9;Name(GU)&#9;Father(GU)&#9;Grandfather(GU)&#9;Address(GU)&#9;Village(GU)&#9;Taluka(GU)&#9;District(GU)&#9;Pincode&#9;Mobile&#9;ParentMobile&#9;Unit&#9;Batch&#10;101&#9;ITI/COPA/2026/101&#9;Patel&#9;Rameshbhai&#9;Kantilal&#9;Nanjibhai&#9;પટેલ&#9;રમેશભાઈ&#9;કાંતિલાલ&#9;નાનજીભાઈ&#9;મુ. રામપુરા, સ્ટેશન રોડ&#9;શંખેશ્વર&#9;શંખેશ્વર&#9;પાટણ&#9;384242&#9;9825012345&#9;9825098761&#9;Unit A&#9;૨૦૨૫–૨૦૨૬"
                 className="w-full p-3 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
               />
               <div className="flex justify-end">
@@ -605,7 +708,7 @@ export default function TraineeImportModal({
                   type="button"
                   onClick={handleParsePastedText}
                   disabled={!rawPastedText.trim()}
-                  className="px-4 py-2 text-xs font-bold rounded-lg bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white shadow-xs"
+                  className="px-4 py-2 text-xs font-bold rounded-lg bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white shadow-xs cursor-pointer"
                 >
                   ડેટા તપાસો (Parse Pasted Rows)
                 </button>
@@ -648,18 +751,17 @@ export default function TraineeImportModal({
                 </span>
               </div>
 
-              <div className="border border-slate-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+              <div className="border border-slate-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-slate-100 sticky top-0 border-b border-slate-200 text-slate-700 text-[11px] uppercase">
                     <tr>
-                      <th className="py-2 px-3 w-14 text-center">રોલ</th>
-                      <th className="py-2 px-3">તાલીમાર્થીનું નામ</th>
-                      <th className="py-2 px-3">અટક / પિતા</th>
-                      <th className="py-2 px-3">યુનિટ (Unit)</th>
-                      <th className="py-2 px-3">બેચ</th>
-                      <th className="py-2 px-3">મોબાઈલ</th>
-                      <th className="py-2 px-3">ગામ / સરનામું</th>
-                      <th className="py-2 px-3 text-center">સ્થિતિ</th>
+                      <th className="py-2.5 px-3 w-16 text-center">રોલ નં.</th>
+                      <th className="py-2.5 px-3">અંગ્રેજી નામ (Surname, Student, Father, Grandfather)</th>
+                      <th className="py-2.5 px-3">ગુજરાતી નામ (અટક, વિદ્યાર્થી, પિતા, દાદા)</th>
+                      <th className="py-2.5 px-3">ગુજરાતી સરનામું (ગામ / તાલુકો / જિલ્લો)</th>
+                      <th className="py-2.5 px-3">યુનિટ / બેચ</th>
+                      <th className="py-2.5 px-3">સંપર્ક નંબર</th>
+                      <th className="py-2.5 px-3 text-center">સ્થિતિ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
@@ -668,43 +770,57 @@ export default function TraineeImportModal({
                         key={idx}
                         className={r.isValid ? 'hover:bg-slate-50' : 'bg-rose-50/60'}
                       >
-                        <td className="py-2 px-3 text-center font-mono font-bold text-slate-800">
-                          {r.roll_no}
-                        </td>
-                        <td className="py-2 px-3 text-blue-900 font-semibold">
-                          <div>{r.student_name}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">
-                            {r.student_name_en}
+                        <td className="py-2.5 px-3 text-center">
+                          <div className="font-mono font-bold text-slate-900">{r.roll_no}</div>
+                          <div className="text-[10px] text-slate-400 font-mono truncate max-w-[80px]" title={r.enrollment_no}>
+                            {r.enrollment_no}
                           </div>
                         </td>
-                        <td className="py-2 px-3 text-slate-700">
-                          {r.surname} {r.father_name}
+                        <td className="py-2.5 px-3 text-slate-900">
+                          <div className="font-semibold text-xs">
+                            {r.surname_en} {r.student_name_en} {r.father_name_en} {r.grandfather_name_en}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono">
+                            EN Sequence: {r.surname_en || '—'} / {r.student_name_en || '—'} / {r.father_name_en || '—'} / {r.grandfather_name_en || '—'}
+                          </div>
                         </td>
-                        <td className="py-2 px-3">
-                          <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                            {r.unit}
-                          </span>
+                        <td className="py-2.5 px-3 text-emerald-950 font-gujarati">
+                          <div className="font-bold text-xs">
+                            {r.surname} {r.student_name} {r.father_name} {r.grandfather_name}
+                          </div>
+                          <div className="text-[10px] text-emerald-800/70">
+                            ગુજરાતી: {r.surname} {r.student_name}
+                          </div>
                         </td>
-                        <td className="py-2 px-3 text-slate-600 font-mono text-[11px]">
-                          {r.batch}
+                        <td className="py-2.5 px-3 font-gujarati">
+                          <div className="text-slate-800 text-xs font-medium truncate max-w-[190px]" title={`${r.address_gu}, ${r.village_gu}, તા. ${r.taluka_gu}, જિ. ${r.district_gu} - ${r.pincode}`}>
+                            {r.village_gu}, તા. {r.taluka_gu}
+                          </div>
+                          <div className="text-[10px] text-slate-500">
+                            જિ. {r.district_gu} ({r.pincode})
+                          </div>
                         </td>
-                        <td className="py-2 px-3 font-mono text-slate-600">
-                          {r.mobile || '—'}
+                        <td className="py-2.5 px-3">
+                          <div className="font-bold text-slate-800 text-[11px]">{r.unit}</div>
+                          <div className="text-[10px] text-slate-500 font-mono">{r.batch}</div>
                         </td>
-                        <td className="py-2 px-3 text-slate-600 truncate max-w-[120px]">
-                          {r.village}
+                        <td className="py-2.5 px-3 font-mono text-slate-700">
+                          <div>{r.mobile || '—'}</div>
+                          {r.parent_mobile && (
+                            <div className="text-[10px] text-slate-400">વાલી: {r.parent_mobile}</div>
+                          )}
                         </td>
-                        <td className="py-2 px-3 text-center">
+                        <td className="py-2.5 px-3 text-center">
                           {r.isValid ? (
                             <span className="inline-flex items-center text-emerald-600 text-[11px] font-bold">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <CheckCircle2 className="w-4 h-4" />
                             </span>
                           ) : (
                             <span
                               className="inline-flex items-center text-rose-600 text-[11px] font-bold cursor-help"
                               title={r.error}
                             >
-                              <AlertCircle className="w-3.5 h-3.5 mr-0.5" />
+                              <AlertCircle className="w-4 h-4 mr-0.5" />
                               <span className="text-[10px]">ક્ષતિ</span>
                             </span>
                           )}

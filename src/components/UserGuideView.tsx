@@ -967,9 +967,9 @@ export default function UserGuideView({
                     <div className="grid grid-cols-4 gap-2.5 text-center">
                       <div className="bg-white border border-slate-300 rounded-lg p-2.5">
                         <div className="text-[10px] font-black text-white bg-[#346739] px-2 py-0.5 rounded inline-block">STEP 1</div>
-                        <div className="text-xs font-bold text-slate-900 mt-1.5">Download Sample</div>
+                        <div className="text-xs font-bold text-slate-900 mt-1.5">Download Template</div>
                         <div className="text-[10px] text-slate-600 mt-0.5 leading-snug">
-                          Click <em>Sample Excel</em> to get the pre-formatted column headers.
+                          Download <em>Excel (.xlsx)</em> or <em>CSV (.csv)</em> with sequenced English &amp; Gujarati name columns.
                         </div>
                       </div>
                       <div className="bg-white border border-slate-300 rounded-lg p-2.5">

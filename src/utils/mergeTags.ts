@@ -139,13 +139,13 @@ export const DEFAULT_CUSTOM_TABLE_TEMPLATES: CustomTableTemplate[] = [
     name: 'નામ, સરનામું અને ખાલી નોંધ પત્રક (Name, Address & Blank Remarks)',
     tag_key: '{{Custom_Table:Student_Address_Remarks}}',
     description: 'તાલીમાર્થીનું નામ, રોલ નંબર, સંપૂર્ણ સરનામું અને પ્રિન્ટ બાદ હાથથી લખવા માટે ખાલી નોંધ/સહી કોલમ',
-    row_min_height_px: 34,
+    row_min_height_px: 36,
     columns: [
-      { id: 'c1', header: 'ક્રમ', cell_template: '{{Sr_No_Gu}}', align: 'center', width: '6%', bold: true },
-      { id: 'c2', header: 'રોલ નં.', cell_template: '{{Trainee_Roll_No}}', align: 'center', width: '10%', bold: true },
-      { id: 'c3', header: 'તાલીમાર્થીનું નામ', cell_template: '{{Full_Name}}', align: 'left', width: '24%', bold: true },
-      { id: 'c4', header: 'સંપૂર્ણ સરનામું અને મોબાઈલ', cell_template: '{{Full_Address}} (મો: {{Parent_Mobile}})', align: 'left', width: '36%' },
-      { id: 'c5', header: 'નોંધ / સહી', cell_template: '', is_blank_for_handwriting: true, align: 'left', width: '24%' },
+      { id: 'c1', header: 'ક્રમ', cell_template: '{{Sr_No_Gu}}', align: 'center', width: '7%', min_width_px: 45, bold: true },
+      { id: 'c2', header: 'રોલ નં.', cell_template: '{{Trainee_Roll_No}}', align: 'center', width: '10%', min_width_px: 65, bold: true },
+      { id: 'c3', header: 'તાલીમાર્થીનું નામ', cell_template: '{{Full_Name}}', align: 'left', width: '25%', min_width_px: 140, bold: true },
+      { id: 'c4', header: 'સંપૂર્ણ સરનામું અને મોબાઈલ', cell_template: '{{Full_Address}} (મો: {{Parent_Mobile}})', align: 'left', width: '35%', min_width_px: 180 },
+      { id: 'c5', header: 'નોંધ / સહી', cell_template: '', is_blank_for_handwriting: true, align: 'left', width: '23%', min_width_px: 110 },
     ],
     created_at: '2025-08-01T10:00:00Z',
   },
@@ -154,13 +154,13 @@ export const DEFAULT_CUSTOM_TABLE_TEMPLATES: CustomTableTemplate[] = [
     name: 'વાલી મીટિંગ સહી અને સંપર્ક પત્રક (Parent Meeting Sign Sheet)',
     tag_key: '{{Custom_Table:Parent_Meeting_Sign}}',
     description: 'વાલી મીટિંગ કે રૂબરૂ મુલાકાત વખતે પ્રિન્ટ કાઢી વાલીની સહી અને અભિપ્રાય લેવા માટેનું તૈયાર ટેબલ',
-    row_min_height_px: 38,
+    row_min_height_px: 40,
     columns: [
-      { id: 'c1', header: 'ક્રમ', cell_template: '{{Sr_No_Gu}}', align: 'center', width: '6%', bold: true },
-      { id: 'c2', header: 'તાલીમાર્થીનું નામ (રોલ નં.)', cell_template: '{{Full_Name}} ({{Trainee_Roll_No}})', align: 'left', width: '26%', bold: true },
-      { id: 'c3', header: 'વાલીનું નામ અને મોબાઈલ', cell_template: '{{Parent_Full_Name}} - {{Parent_Mobile}}', align: 'left', width: '28%' },
-      { id: 'c4', header: 'હાજરી %', cell_template: '{{Attendance_Percentage}}', align: 'center', width: '12%', bold: true },
-      { id: 'c5', header: 'વાલીની સહી / રૂબરૂ નોંધ', cell_template: '', is_blank_for_handwriting: true, align: 'left', width: '28%' },
+      { id: 'c1', header: 'ક્રમ', cell_template: '{{Sr_No_Gu}}', align: 'center', width: '7%', min_width_px: 45, bold: true },
+      { id: 'c2', header: 'તાલીમાર્થીનું નામ (રોલ નં.)', cell_template: '{{Full_Name}} ({{Trainee_Roll_No}})', align: 'left', width: '27%', min_width_px: 150, bold: true },
+      { id: 'c3', header: 'વાલીનું નામ અને મોબાઈલ', cell_template: '{{Parent_Full_Name}} - {{Parent_Mobile}}', align: 'left', width: '28%', min_width_px: 150 },
+      { id: 'c4', header: 'હાજરી %', cell_template: '{{Attendance_Percentage}}', align: 'center', width: '13%', min_width_px: 75, bold: true },
+      { id: 'c5', header: 'વાલીની સહી / રૂબરૂ નોંધ', cell_template: '', is_blank_for_handwriting: true, align: 'left', width: '25%', min_width_px: 120 },
     ],
     created_at: '2025-08-01T10:00:00Z',
   },
@@ -178,14 +178,20 @@ export function getEffectiveCustomTables(
     try {
       const raw = localStorage.getItem('iti_custom_table_templates');
       if (raw) {
-        storedLocal = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          storedLocal = parsed;
+        }
       }
     } catch {
       // ignore parse errors
     }
   }
 
-  const fromInstructor = instructor?.custom_table_templates || [];
+  const fromInstructor = Array.isArray(instructor?.custom_table_templates)
+    ? instructor!.custom_table_templates
+    : [];
+
   const combined = [
     ...(extraCustomTables || []),
     ...fromInstructor,
@@ -193,15 +199,37 @@ export function getEffectiveCustomTables(
     ...DEFAULT_CUSTOM_TABLE_TEMPLATES,
   ];
 
+  const seenIds = new Set<string>();
   const seenTags = new Set<string>();
   const unique: CustomTableTemplate[] = [];
+
   for (const item of combined) {
-    if (!item || !item.tag_key) continue;
-    const normKey = item.tag_key.trim().toLowerCase();
-    if (!seenTags.has(normKey)) {
-      seenTags.add(normKey);
-      unique.push(item);
+    if (!item) continue;
+    const rawId = item.id ? String(item.id).trim() : '';
+    const rawTag = item.tag_key ? String(item.tag_key).trim() : '';
+
+    if (!rawId && !rawTag) continue;
+
+    const normId = rawId.toLowerCase();
+    const normTag = rawTag.toLowerCase();
+
+    // Deduplicate by both ID and Tag Key to prevent React duplicate key crashes
+    if (normId && seenIds.has(normId)) {
+      continue;
     }
+    if (normTag && seenTags.has(normTag)) {
+      continue;
+    }
+
+    if (normId) seenIds.add(normId);
+    if (normTag) seenTags.add(normTag);
+
+    unique.push({
+      ...item,
+      id: rawId || `ctbl-${seenIds.size}-${Date.now()}`,
+      tag_key: rawTag || `{{Custom_Table:Table_${seenTags.size}}}`,
+      columns: Array.isArray(item.columns) ? item.columns : [],
+    });
   }
   return unique;
 }
@@ -866,12 +894,13 @@ export function generateCustomTableHtml(
     .map((col) => {
       const align = col.align || 'left';
       const widthStyle = col.width ? `width: ${col.width};` : '';
-      return `<th style="border: 1px solid #333; padding: 7px 8px; text-align: ${align}; background-color: #f1f5f9; font-size: 12.5px; font-weight: bold; ${widthStyle}">${col.header}</th>`;
+      const minWidthStyle = col.min_width_px ? `min-width: ${col.min_width_px}px;` : 'min-width: 48px;';
+      return `<th style="border: 1px solid #333; padding: 7px 8px; text-align: ${align}; background-color: #f1f5f9; font-size: 12.5px; font-weight: bold; word-break: break-word; overflow-wrap: anywhere; white-space: normal; ${widthStyle} ${minWidthStyle}">${col.header}</th>`;
     })
     .join('');
 
   if (!traineesList || traineesList.length === 0) {
-    return `<table style="width: 100%; border-collapse: collapse; margin: 12px 0 16px 0; font-size: 12.5px;" border="1" cellpadding="6">
+    return `<table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: 12px 0 16px 0; font-size: 12.5px;" border="1" cellpadding="6">
       <thead>
         <tr>${headerCells}</tr>
       </thead>
@@ -964,10 +993,11 @@ export function generateCustomTableHtml(
           const align = col.align || 'left';
           const weightStyle = col.bold ? 'font-weight: bold;' : '';
           const widthStyle = col.width ? `width: ${col.width};` : '';
+          const minWidthStyle = col.min_width_px ? `min-width: ${col.min_width_px}px;` : 'min-width: 48px;';
 
           if (col.is_blank_for_handwriting || !col.cell_template || !col.cell_template.trim()) {
-            // Blank column to write by hand after printing on paper
-            return `<td style="border: 1px solid #333; padding: 6px 8px; text-align: ${align}; vertical-align: middle; height: ${minHeight}px; ${widthStyle}"><div style="min-height: ${Math.max(18, minHeight - 12)}px;">&nbsp;</div></td>`;
+            // Blank column to write by hand after printing on paper - enforces minimum height
+            return `<td style="border: 1px solid #333; padding: 6px 8px; text-align: ${align}; vertical-align: middle; height: ${minHeight}px; min-height: ${minHeight}px; word-break: break-word; overflow-wrap: anywhere; ${widthStyle} ${minWidthStyle}"><div style="min-height: ${Math.max(22, minHeight - 12)}px; line-height: 1;">&nbsp;</div></td>`;
           }
 
           let evaluated = col.cell_template;
@@ -975,7 +1005,9 @@ export function generateCustomTableHtml(
             evaluated = evaluated.split(k).join(v);
           }
 
-          return `<td style="border: 1px solid #333; padding: 6px 8px; text-align: ${align}; vertical-align: top; line-height: 1.4; height: ${minHeight}px; ${weightStyle} ${widthStyle}">${evaluated}</td>`;
+          // In standard HTML table, cell height behaves as minimum height floor.
+          // If text is longer, word-break auto-wraps and the row expands downward naturally.
+          return `<td style="border: 1px solid #333; padding: 6px 8px; text-align: ${align}; vertical-align: top; line-height: 1.4; height: ${minHeight}px; min-height: ${minHeight}px; word-break: break-word; overflow-wrap: anywhere; white-space: normal; ${weightStyle} ${widthStyle} ${minWidthStyle}">${evaluated}</td>`;
         })
         .join('');
 
@@ -983,7 +1015,7 @@ export function generateCustomTableHtml(
     })
     .join('\n');
 
-  return `<table style="width: 100%; border-collapse: collapse; margin: 12px 0 16px 0; font-size: 12.5px; line-height: 1.35;" border="1" cellpadding="6">
+  return `<table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: 12px 0 16px 0; font-size: 12.5px; line-height: 1.35;" border="1" cellpadding="6">
     <thead>
       <tr style="background-color: #f1f5f9;">
         ${headerCells}

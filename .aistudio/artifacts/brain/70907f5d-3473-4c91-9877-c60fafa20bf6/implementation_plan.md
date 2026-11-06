@@ -1,130 +1,109 @@
-# Custom Table Dimension Controls & True-Scale A4 Paper Print Preview
+# Fix Template Studio Toolbar & Expandable Template Name Input
 
-Deliver direct drag-to-resize column dividers and row height controls in the Custom Table Builder with natural auto-wrap content expansion, plus a realistic true-to-scale A4 paper print simulation with print margins, page-break indicators, and interactive zoom controls in the Template Studio.
+Resolve the layout clipping and overlapping issue in Template Studio on PC and desktop displays by re-architecting the editor toolbar into an elegant, responsive two-tier layout where the template title receives dedicated, unobstructed typing space and action tools are cleanly organized as compact badges.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following decisions were confirmed through interactive clarification and define the implementation strategy:
-
-- **Confirmed Decision 1 (Column Width & Height Adjustment)**: Direct drag-to-resize column divider handles directly on the live table preview in the Custom Table Builder, supplemented by precise numeric inputs and min-height sliders.
-- **Confirmed Decision 2 (Print Preview Experience)**: Realistic photorealistic A4 paper sheet simulation with standard official print margins (20mm), page-break boundary indicators, and zoom scale controls (75%, 100%, 125%, Fit-to-screen) in the Template Studio.
-- **Confirmed Decision 3 (Cell Overflow Behavior)**: Auto-wrap text with natural vertical row expansion (`word-break: break-word`, `overflow-wrap: anywhere`, `white-space: normal`), preserving the user's minimum height and width while naturally growing to prevent clipped trainee text.
+> The following layout and ergonomic decisions were confirmed based on your selections:
+> - **Two-Tier Toolbar Architecture**: Separates document identification (Template Name, Type, Letterhead toggle) onto the top primary row, and document actions (Save, Copy, Table Tag, Upload, Letterhead Editor, Report Generator) onto a dedicated secondary action bar.
+> - **Wide Expandable Template Name Input**: The title field spans the full available width of Tier 1 with clean visual boundaries, providing ample space for long Gujarati titles (e.g. *વાલી મિટિંગ આમંત્રણ પત્ર* or *તાલીમાર્થી અનિયમિતતા ચેતવણી નોટિસ*) without truncation or squeezing.
+> - **All Actions Visible as Compact Badges**: Preserves instant 1-click access to all 8 action tools formatted as compact, high-contrast badges with zero clipping or text wrapping.
 
 ---
 
-## 1. Overview & Core Concept
+## 1. Overview & Problem Diagnosis
 
-Industrial Training Institute (ITI) instructors routinely generate formal administrative letters, warning notices, and multi-student attendance rosters. Currently:
-1. **Custom Table Formatting Limitation**: Instructors could not adjust individual column widths or row heights visually, and blank columns for handwritten notes after printing lacked customized minimum vertical spacing.
-2. **Uncertain Paper Output**: In the template editor, instructors cannot accurately visualize how text, tables, and official letterheads will map to physical A4 paper, leading to accidental page overflows or awkward line wrapping during real printing.
+### Root Cause in Current Layout
+In `src/components/TemplateStudio.tsx` (lines 1229–1372), the editor header currently attempts to render 11 distinct interactive elements inside a single flex row:
+1. `← Templates` back navigation
+2. `Name:` input field (`min-w-[160px] sm:min-w-[240px]`)
+3. `Notice Type` selector
+4. `Letterhead: On/Off` toggle
+5. `Save` (primary emerald button)
+6. `Save Copy` button
+7. `Upload Image` button
+8. `+ Custom Table Tag` button
+9. `Report Generator` button
+10. `Edit Letterhead` button
+11. `Print` and `Export PDF` button group
 
-This upgrade empowers instructors to:
-- Visually drag column divider lines in real time to allocate column percentages and minimum pixel widths.
-- Set a minimum row height so printed documents leave generous physical space for handwriting remarks/signatures, while dynamically expanding row height if long trainee addresses or names require multiple lines.
-- Preview letters in a true-to-scale A4 sheet container with visible 20mm print margins, page overflow indicators, and interactive zoom scaling.
+Because the action button cluster uses `shrink-0` with fixed horizontal padding while the left container has `min-w-0 flex-wrap sm:flex-nowrap`, standard PC viewport widths (1024px to 1440px) cause the right action container to physically intrude into the left boundary, rendering the green **Save** button and adjacent tools directly over the **Template Name** input field.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### A. Custom Table Builder Drag-to-Resize Studio
-- **Interactive Drag Dividers**: The live preview table in `CustomTableBuilderModal` features vertical column divider grab handles (`cursor-col-resize`) that highlight with a subtle emerald line (`bg-[#346739]`) on hover and active drag.
-- **Live Tooltip & Metric Indicator**: As the user drags, a floating badge displays the live column width (e.g., `28% · min 110px`) with smooth mouse-tracking math.
-- **Minimum Row Height Slider**: A dedicated slider (`28px` to `120px`) with preset badges (`Compact 32px`, `Standard 40px`, `Handwriting 56px`, `Signature 72px`) for quick tactile sizing.
-- **Auto-Expansion Visualizer**: A test toggle ("Show long text sample") simulates long trainee addresses and notes to demonstrate how the table naturally wraps lines and expands downward while respecting minimum dimensions.
+### Two-Tier Responsive Toolbar Architecture
 
-### B. True-Scale A4 Paper Print Simulation (Template Studio)
-- **Realistic A4 Sheet Viewport**: The preview canvas is styled as an authentic white A4 sheet (`210mm × 297mm`, calibrated aspect ratio at `1:1.414`) resting on a neutral architectural drafting desk (`bg-slate-200/90`) with soft realistic paper shadow (`shadow-2xl ring-1 ring-slate-300`).
-- **Print Margin Boundary Guides**: Subtle hairline dashed lines mark the standard 20mm printable area margins, giving instructors immediate visual confirmation of header and table boundaries without cluttering the print output.
-- **Page Overflow & Break Indicator**: If template content exceeds a single A4 page height (approx. `1050px`), a distinct page-divider bar ("--- Page 2 Begins ---") appears, alerting the instructor before they send it to the physical printer.
-- **Interactive Zoom Toolbar**: Segmented zoom pill control (`75%`, `100% (1:1)`, `125%`, `Fit Page`) in the top bar using CSS `transform: scale(...)` and `transform-origin: top center` so instructors on any laptop screen can inspect fine print details comfortably.
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ TIER 1: TEMPLATE IDENTITY & METADATA BAR (bg-[#185abd] text-white px-4 py-2.5)                         │
+│ ┌──────────────┐   ┌───────────────────────────────────────────────────────────────┐  ┌─────────────┐  │
+│ │ ← Templates  │ │ │ Name / શીર્ષક: [ તાલીમાર્થી હાજરી પ્રમાણપત્ર ............. ] │  │ Type: [ ▼ ] │  │
+│ └──────────────┘   └───────────────────────────────────────────────────────────────┘  └─────────────┘  │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ TIER 2: ACTION & TOOLBAR ROW (bg-[#104899] text-white px-4 py-2 flex flex-wrap justify-between)         │
+│  [💾 Save Template]  [📋 Save Copy]  [🖼️ Upload Image]  [⊞ + Custom Table Tag]                         │
+│                                           [⚡ Report Generator]  [🏛️ Edit Letterhead]  [🖨️] [📥]         │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SUB-BAR: NOTICE SUBJECT & PRINT WORKSPACE CONTROLS (bg-[#f3f6f9] border-b border-slate-300 px-4 py-2)  │
+│  Subject: [ Enter official notice subject...                               ]   [Zoom: - 100% +] [📐20mm]│
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Visual Specifications
+- **Tier 1 (Identity Bar - `bg-[#185abd]` / Darker Blue)**:
+  - **Back Button**: Crisp `← Templates` link with hover state.
+  - **Template Name Input**: Takes `flex-1 min-w-[240px]`, styled with `bg-[#104899] hover:bg-[#0e3f85] focus:bg-[#0c3774] text-white font-bold text-sm px-3.5 py-1.5 rounded-lg border border-blue-400/50 shadow-inner focus:ring-2 focus:ring-white`.
+  - **Notice Type**: Select dropdown cleanly positioned alongside the title.
+  - **Letterhead Toggle**: Quick On/Off toggle indicating header state.
+- **Tier 2 (Action Bar - `bg-[#104899] border-t border-blue-500/30` / Deeper Indigo-Blue)**:
+  - **Primary Actions**:
+    - `Save`: Emerald button (`bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm`).
+    - `Save Copy`: Semi-transparent blue button (`bg-blue-800/80 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg border border-blue-400/30`).
+    - `Upload Image`: Dedicated file picker for stamps/logos.
+    - `+ Custom Table Tag`: Direct modal trigger for trainee data tables.
+  - **Workflow & Output Actions**:
+    - `Report Generator`: Amber accent button (`bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg`).
+    - `Edit Letterhead`: Gold gradient button (`from-amber-400 to-amber-500`).
+    - `Print` & `Download PDF`: Integrated icon buttons.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-### Decision 1: Table Layout & Sizing Model (CSS Table Algorithm)
-- **Chosen Approach**: `table-layout: fixed; width: 100%;` combined with individual column `width: X%` and `min-width: Ypx`, with cells styled as `word-break: break-word; overflow-wrap: anywhere; vertical-align: top;`.
-- **Why**: Pure `table-layout: auto` causes columns to jitter unpredictably based on trainee name lengths, ruining column alignment across different pages. Using `table-layout: fixed` with explicit percentages and minimum pixel constraints ensures stable columns while letting HTML `<tr>` height expand naturally downward when text wraps onto multiple lines.
-- **Alternatives Considered**: Pure `div` CSS Grid tables were considered, but standard HTML `<table>` elements have superior cross-browser fidelity when printed via `@media print` and exported to PDF via `html2pdf.js` / browser print engines.
-
-### Decision 2: Drag Divider Calculation
-- **Chosen Approach**: Normalizes adjacent column percentage widths during mouse drag events (`clientX` delta relative to total table bounding client rect), clamping each column between `5%` and `70%`.
-- **Why**: Preserves total table width at exactly 100% so the table never spills past the page margins during resize.
+- **Decision 1: Two-Tier Separation vs Dropdown Collapse**:
+  - *Chosen Approach*: Two explicit tiers with dedicated rows for Identity vs Actions.
+  - *Why*: Instructors frequently switch between naming/saving templates and inserting table tags or adjusting letterheads. Hiding primary tools inside a dropdown menu would add unnecessary clicks, while the two-tier layout permanently eliminates overlapping while keeping every action immediately accessible.
+- **Decision 2: Expandable Full-Width Name Input**:
+  - *Chosen Approach*: `flex-1` width on the title input container with clear labels in both English and Gujarati (*Name / શીર્ષક*).
+  - *Why*: ITI notices have long formal titles (e.g., *અભ્યાસક્રમ પૂર્ણતા પ્રમાણપત્ર અને ચારિત્ર્ય સર્ટીફીકેટ*). An expandable input ensures the entire title remains legible without horizontal scroll or truncated text.
 
 ---
 
-## 4. Technical Architecture & Data Strategy
+## 4. Technical Architecture & Component Mapping
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Template Studio / Canvas                        │
-├────────────────────────────────────────────────────────────────────────┤
-│  Top Action Bar: Zoom Toolbar (75% · 100% · 125% · Fit)                │
-│  Mode Switcher: [Rich Editor]  ⇄  [A4 Print Sheet Preview]             │
-├────────────────────────────────────────────────────────────────────────┤
-│                                                                        │
-│   Realistic A4 Canvas Viewport (Desk Background: #d8dfe6)              │
-│   ┌──────────────────────────────────────────────────────────────┐     │
-│   │ A4 Paper Container (210mm x 297mm, aspect ratio 1:1.414)     │     │
-│   │ [Margin Guides: 20mm dashed hairline boundary]               │     │
-│   │                                                              │     │
-│   │ • Header / Letterhead Workspace                              │     │
-│   │ • Letter Body Prose                                          │     │
-│   │ • Dynamic Custom Table:                                      │     │
-│   │   ┌────────────┬──────────────────┬────────────────────────┐ │     │
-│   │   │ Col 1 (7%) │ Col 2 (30%)      │ Col 3 (63%)            │ │     │
-│   │   │ (Sr No)    │ (Trainee Name)   │ (Address & Remarks)    │ │     │
-│   │   │ Min: 45px  │ Min: 140px       │ Min: 200px             │ │     │
-│   │   └────────────┴──────────────────┴────────────────────────┘ │     │
-│   │                                                              │     │
-│   │ [- - - - - - Page Break Boundary (approx 1050px) - - - - -]  │     │
-│   │ Page 2 Overflow Zone (if content exceeds 1 sheet)            │     │
-│   └──────────────────────────────────────────────────────────────┘     │
-└────────────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│               Custom Table Builder Modal (Resize Studio)               │
-├────────────────────────────────────────────────────────────────────────┤
-│  Interactive Preview Grid with Drag Divider Handles (col-resize)       │
-│  Slider: Row Minimum Height (28px - 120px)                             │
-│  Per-column min-width & width percentage sync                          │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### Component & State Mapping
-
-1. **`src/types.ts`**:
-   - Update `CustomTableColumn`: add optional `min_width_px?: number`.
-   - Ensure `CustomTableTemplate.row_min_height_px?: number` is strongly typed.
-
-2. **`src/utils/mergeTags.ts`**:
-   - Update `generateCustomTableHtml`:
-     - Style `<table>` with `table-layout: fixed; width: 100%; border-collapse: collapse;`.
-     - Style `<th>` and `<td>` with `width: ${col.width}; min-width: ${col.min_width_px || 60}px; word-break: break-word; overflow-wrap: anywhere; white-space: normal; vertical-align: top;`.
-     - Blank handwriting cells render `<div style="min-height: ${Math.max(22, minHeight - 12)}px;">&nbsp;</div>` to enforce handwriting physical gap.
-
-3. **`src/components/CustomTableBuilderModal.tsx`**:
-   - Implement `isDraggingCol` state, `dragColIndex`, and global `mousemove`/`mouseup` listeners.
-   - Render vertical draggable divider handles between headers.
-   - Provide row height slider with quick preset buttons (`32px`, `42px`, `56px`, `72px`).
-   - Add test toggle to preview long content auto-wrapping.
-
-4. **`src/components/TemplateStudio.tsx`**:
-   - Add A4 zoom state (`zoomLevel`: `0.75 | 0.9 | 1.0 | 1.25 | 'fit'`).
-   - Wrap A4 document in an A4 sheet presentation container with:
-     - 20mm margin guide toggle.
-     - Dynamic height observer calculating page break thresholds (at multiples of `1050px` / `297mm`).
-     - Zoom controller toolbar in preview mode.
+### Component Modification Scope
+- **File**: `src/components/TemplateStudio.tsx`
+  - Refactor lines 1229–1372:
+    - Split single parent `<div className="bg-[#185abd] ...">` into:
+      1. `<div className="template-identity-bar bg-[#185abd] ...">` (Tier 1: Back, Name input, Notice type, Letterhead toggle).
+      2. `<div className="template-action-bar bg-[#104899] ...">` (Tier 2: Save, Save Copy, Upload Image, Custom Table Tag, Report Generator, Edit Letterhead, Print, Export PDF).
+  - Ensure all event handlers (`handleSaveCurrentTemplate`, `setIsSaveAsModalOpen`, `handleInsertImageIntoTemplate`, `setIsCustomTableBuilderOpen`, `onUseTemplateForReport`, `setIsHeaderModalOpen`, `handlePrint`, `handleExportPdf`) remain identical and bound with zero regressions.
 
 ---
 
-## 5. Verification & Acceptance Criteria
+## 5. Verification Plan
 
-1. **Column Dragging**: Instructors can grab any column divider line and drag horizontally to resize widths smoothly; percentage values and pixel minimums update live.
-2. **Auto-Wrap & Natural Height Growth**: Trainees with long addresses or lengthy text do not get truncated or pushed outside cell borders; the row height automatically grows to fit the content cleanly.
-3. **Handwriting Height Preservation**: Blank columns maintain at least the instructor's configured minimum height floor for pen handwriting.
-4. **Realistic A4 Paper Preview**: In Template Studio, instructors can zoom in/out, view the exact 20mm print margins, and clearly see if the document fits on 1 page or spills onto a 2nd page before printing.
-5. **Compilation & Linting**: Zero TypeScript errors (`tsc --noEmit`), build passes cleanly with `npm run build`.
+1. **Compilation & Lint Verification**:
+   - Run `compile_applet` to confirm clean build.
+   - Run `lint_applet` (`tsc --noEmit`) to verify zero TypeScript errors.
+2. **Browser Layout & Responsive Testing**:
+   - Verify on desktop viewport (1024px, 1280px, 1440px, 1920px):
+     - Template Name input has ample width and is 100% clickable with no buttons overlapping.
+     - Long Gujarati names (*વાલી મિટિંગ આમંત્રણ પત્ર (Parent-Teacher Meeting Notice)*) can be typed and edited comfortably.
+     - All 8 action buttons in Tier 2 remain clickable with proper visual feedback.
+   - Verify on mobile/tablet viewports to ensure seamless wrapping without horizontal overflow.

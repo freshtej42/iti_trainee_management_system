@@ -1226,51 +1226,59 @@ export default function TemplateStudio({
             }}
           />
 
-          {/* Top Bar: Back to gallery, Template Name, Category, Save, Duplicate */}
-          <div className="bg-[#185abd] text-white px-3 sm:px-5 py-2.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 shadow-md">
-            {/* Left: Back button + Name & Type Input */}
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap min-w-0">
+          {/* TIER 1: Template Identity & Metadata Bar */}
+          <div className="bg-[#185abd] text-white px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-sm border-b border-blue-500/30">
+            {/* Left: Back button + Wide Expandable Template Name Input */}
+            <div className="flex items-center gap-2.5 flex-1 min-w-[280px]">
               <button
                 type="button"
                 onClick={() => setViewMode('gallery')}
-                className="flex items-center gap-1 bg-[#104899] hover:bg-blue-800 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg border border-blue-400/30 transition-colors shrink-0 cursor-pointer"
+                className="flex items-center gap-1.5 bg-[#104899] hover:bg-blue-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-blue-400/30 transition-colors shrink-0 cursor-pointer shadow-2xs"
                 title="Back to Templates Gallery"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Templates</span>
               </button>
 
-              <div className="flex items-center gap-1.5 grow sm:grow-0 min-w-0">
-                <span className="text-xs font-bold text-blue-200 whitespace-nowrap">Name:</span>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <label className="text-xs font-bold text-blue-200 whitespace-nowrap shrink-0">
+                  Name / શીર્ષક:
+                </label>
                 <input
                   type="text"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
-                  placeholder="Enter template name..."
-                  className="bg-[#104899] text-white text-xs font-bold px-2.5 py-1.5 rounded-lg border border-blue-400/40 focus:outline-hidden focus:ring-2 focus:ring-white min-w-[160px] sm:min-w-[240px] truncate"
+                  placeholder="Enter template name (e.g. વાલી મિટિંગ આમંત્રણ પત્ર)..."
+                  className="bg-[#104899] hover:bg-[#0c3c82] focus:bg-[#0d3f8a] text-white placeholder:text-blue-300/60 text-xs sm:text-sm font-bold px-3 py-1.5 rounded-lg border border-blue-400/40 focus:outline-hidden focus:ring-2 focus:ring-white transition-all w-full min-w-0"
                 />
               </div>
+            </div>
 
-              <select
-                value={noticeType}
-                onChange={(e) => setNoticeType(e.target.value)}
-                className="bg-[#104899] text-white text-xs font-semibold px-2 py-1.5 rounded-lg border border-blue-400/40 focus:outline-hidden shrink-0 cursor-pointer"
-              >
-                <option value="1st Warning" className="text-slate-900 bg-white">1st Warning</option>
-                <option value="2nd Warning" className="text-slate-900 bg-white">2nd Warning</option>
-                <option value="Final Notice" className="text-slate-900 bg-white">Final Notice</option>
-                <option value="Parent Notice" className="text-slate-900 bg-white">Parent Notice</option>
-                <option value="General Notice" className="text-slate-900 bg-white">General Notice</option>
-                <option value="Report" className="text-slate-900 bg-white">Principal Report</option>
-              </select>
+            {/* Right: Notice Type Select & Letterhead Toggle */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-blue-200 hidden md:inline">Type:</span>
+                <select
+                  value={noticeType}
+                  onChange={(e) => setNoticeType(e.target.value)}
+                  className="bg-[#104899] text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-blue-400/40 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="1st Warning" className="text-slate-900 bg-white">1st Warning</option>
+                  <option value="2nd Warning" className="text-slate-900 bg-white">2nd Warning</option>
+                  <option value="Final Notice" className="text-slate-900 bg-white">Final Notice</option>
+                  <option value="Parent Notice" className="text-slate-900 bg-white">Parent Notice</option>
+                  <option value="General Notice" className="text-slate-900 bg-white">General Notice</option>
+                  <option value="Report" className="text-slate-900 bg-white">Principal Report</option>
+                </select>
+              </div>
 
               {/* Per-Template Letterhead Toggle Button */}
               <button
                 type="button"
                 onClick={() => setShowLetterhead(!showLetterhead)}
-                className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
                   showLetterhead
-                    ? 'bg-blue-950/70 border-blue-300 text-white shadow-2xs'
+                    ? 'bg-blue-950/80 border-amber-400/60 text-white shadow-2xs ring-1 ring-amber-400/30'
                     : 'bg-[#104899] border-blue-400/40 text-blue-200 hover:text-white'
                 }`}
                 title="Toggle Letterhead: show official header or hide for pre-printed stationery"
@@ -1279,13 +1287,16 @@ export default function TemplateStudio({
                 <span>Letterhead: {showLetterhead ? 'On' : 'Off'}</span>
               </button>
             </div>
+          </div>
 
-            {/* Right: Actions (Save, Save As, Generator, Print, PDF, Upload Image) */}
-            <div className="flex items-center justify-between sm:justify-end gap-1.5 shrink-0">
+          {/* TIER 2: Action & Toolbar Row - Compact badges with zero overlap */}
+          <div className="bg-[#104899] text-white px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-2 shadow-xs border-b border-blue-400/30">
+            {/* Left Action Badges: Save, Save Copy, Upload Image, + Custom Table Tag */}
+            <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 type="button"
                 onClick={handleSaveCurrentTemplate}
-                className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-xs shrink-0 cursor-pointer"
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer active:scale-95 border border-emerald-400/40"
                 title="Save changes to this template"
               >
                 <Save className="w-3.5 h-3.5" />
@@ -1298,61 +1309,64 @@ export default function TemplateStudio({
                   setSaveAsName(`${templateName} (Copy)`);
                   setIsSaveAsModalOpen(true);
                 }}
-                className="flex items-center gap-1 bg-[#104899] hover:bg-blue-800 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-blue-400/30 transition-colors shadow-xs shrink-0 cursor-pointer"
+                className="flex items-center gap-1.5 bg-blue-800/80 hover:bg-blue-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-blue-400/30 transition-colors shadow-2xs cursor-pointer"
                 title="Save as new template"
               >
-                <Copy className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Save Copy</span>
+                <Copy className="w-3.5 h-3.5 text-blue-200" />
+                <span>Save Copy</span>
               </button>
 
               {/* Upload Image from Device into Template */}
               <button
                 type="button"
                 onClick={() => templateImageInputRef.current?.click()}
-                className="flex items-center gap-1 bg-[#104899] hover:bg-blue-800 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-blue-400/30 transition-colors shadow-xs shrink-0 cursor-pointer"
+                className="flex items-center gap-1.5 bg-blue-800/80 hover:bg-blue-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-blue-400/30 transition-colors shadow-2xs cursor-pointer"
                 title="Upload image or stamp from your device into the template"
               >
                 <Upload className="w-3.5 h-3.5 text-blue-200" />
-                <span className="hidden sm:inline">Upload Image</span>
+                <span>Upload Image</span>
               </button>
 
               {/* Custom Table Tag Maker Button */}
               <button
                 type="button"
                 onClick={() => setIsCustomTableBuilderOpen(true)}
-                className="flex items-center gap-1 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg border border-emerald-400/40 transition-colors shadow-xs shrink-0 cursor-pointer"
+                className="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg border border-emerald-400/40 transition-colors shadow-2xs cursor-pointer"
                 title="Create & insert custom multi-student table merge tag (with student data & blank remarks columns)"
               >
                 <Table2 className="w-3.5 h-3.5 text-emerald-200" />
-                <span className="hidden sm:inline">+ Custom Table Tag</span>
+                <span>+ Custom Table Tag</span>
               </button>
+            </div>
 
+            {/* Right Action Badges: Report Generator, Edit Letterhead, Print, PDF */}
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               <button
                 type="button"
                 onClick={() => onUseTemplateForReport(currentTemplate)}
-                className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black px-2.5 py-1.5 rounded-lg transition-colors shadow-xs shrink-0 cursor-pointer"
+                className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-3 py-1.5 rounded-lg transition-colors shadow-xs cursor-pointer"
                 title="Use in Report Generator"
               >
-                <ArrowRight className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Report Generator</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-950" />
+                <span>Report Generator</span>
               </button>
 
               {/* Prominent Edit Letterhead Facility Button */}
               <button
                 type="button"
                 onClick={() => setIsHeaderModalOpen(true)}
-                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black px-3 py-1.5 rounded-lg transition-all shadow-md active:scale-95 shrink-0 cursor-pointer border border-amber-300"
+                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black px-3 py-1.5 rounded-lg transition-all shadow-xs active:scale-95 cursor-pointer border border-amber-300"
                 title="Edit institute letterhead and logos"
               >
                 <Building2 className="w-3.5 h-3.5 text-slate-950" />
                 <span>Edit Letterhead</span>
               </button>
 
-              <div className="flex items-center gap-0.5 bg-[#104899] p-1 rounded-lg border border-blue-400/40 shrink-0">
+              <div className="flex items-center gap-0.5 bg-blue-950/70 p-0.5 rounded-lg border border-blue-400/40">
                 <button
                   type="button"
                   onClick={handlePrint}
-                  className="p-1 rounded hover:bg-blue-700 text-white"
+                  className="p-1.5 rounded hover:bg-blue-800 text-white cursor-pointer transition-colors"
                   title="Print Clean A4"
                 >
                   <Printer className="w-3.5 h-3.5" />
@@ -1362,7 +1376,7 @@ export default function TemplateStudio({
                   type="button"
                   onClick={handleExportPdf}
                   disabled={isExportingPdf}
-                  className="p-1 rounded hover:bg-blue-700 text-white disabled:opacity-50"
+                  className="p-1.5 rounded hover:bg-blue-800 text-white disabled:opacity-50 cursor-pointer transition-colors"
                   title="Export PDF"
                 >
                   <Download className="w-3.5 h-3.5" />

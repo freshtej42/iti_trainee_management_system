@@ -1,4 +1,4 @@
-# Completed: Custom Table Column Width/Height Controls & Realistic A4 Paper Print Simulation
+# Completed: Custom Table Column Width/Height Controls, Realistic A4 Paper Print Simulation & Two-Tier Editor Toolbar
 
 ## 1. Custom Table Merge Tag Column Width & Row Height Facility
 - **Minimum Row Height & Column Widths**:
@@ -22,3 +22,14 @@
   - Real-time height measurement detects whether letter content and tables fit neatly onto a single A4 sheet (`✓ Fits 1 Page`) or flow over into Page 2 (`⚠️ Page 1 Overflow`).
 - **Pristine Print & PDF Export**:
   - `@media print` rules ensure zoom wrappers, margin guides, and status badges are cleanly hidden during physical printing and PDF export, outputting pure official letters.
+
+## 3. Two-Tier Editor Toolbar & Expandable Template Name Input
+- **Tier 1 (Template Identity & Metadata Bar)**:
+  - **Back Navigation**: `← Templates` button cleanly isolated on the left.
+  - **Wide Expandable Template Name Input**: Takes `flex-1` width across the screen with bilingual label `Name / શીર્ષક:`, comfortably fitting long Gujarati and English notice titles with zero overlap.
+  - **Notice Type & Letterhead State**: Select dropdown and `Letterhead: On / Off` toggle neatly placed on the right.
+- **Tier 2 (Action Bar with Compact Badges)**:
+  - Organized secondary bar (`bg-[#104899]`) grouping editing and export tools into compact badges:
+    - Left tools: `Save`, `Save Copy`, `Upload Image`, `+ Custom Table Tag`.
+    - Right tools: `Report Generator`, `Edit Letterhead`, `Print`, `Export PDF`.
+  - Fully responsive across desktop, laptop, tablet, and mobile screens without horizontal clipping.

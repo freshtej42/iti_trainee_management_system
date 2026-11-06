@@ -18,6 +18,7 @@ import {
   Eye,
   BookOpen,
   Home,
+  Award,
 } from 'lucide-react';
 import ImeFloatWidget from './ImeFloatWidget';
 import LanguageSelector from './LanguageSelector';
@@ -30,6 +31,7 @@ export type ActiveTab =
   | 'trainees'
   | 'templates'
   | 'report'
+  | 'formative_assessment'
   | 'attendance'
   | 'dispatch'
   | 'guide'
@@ -359,6 +361,19 @@ export default function Header({
               </button>
 
               <button
+                onClick={() => onTabChange('formative_assessment')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
+                  activeTab === 'formative_assessment'
+                    ? 'bg-[#346739] text-[#f2edc2] font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+                title="નમૂનો - ૨ (FAR-1) Format for Internal Assessment"
+              >
+                <Award className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>{tText('આકારણી (FAR-1)', 'मूल्यांकन (FAR-1)', 'Assessment (FAR-1)')}</span>
+              </button>
+
+              <button
                 onClick={() => onTabChange('attendance')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap min-h-[36px] ${
                   activeTab === 'attendance'
@@ -622,6 +637,18 @@ export default function Header({
                 >
                   <Printer className="w-5 h-5" />
                   <span>{t('tabReportGenerator')}</span>
+                </button>
+
+                <button
+                  onClick={() => handleMobileTabSelect('formative_assessment')}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${
+                    activeTab === 'formative_assessment'
+                      ? 'bg-[#346739] text-[#f2edc2]'
+                      : 'text-slate-700 hover:bg-[#f2edc2]/40'
+                  }`}
+                >
+                  <Award className="w-5 h-5 text-amber-500" />
+                  <span>{tText('આકારણી (FAR-1)', 'मूल्यांकन (FAR-1)', 'Assessment (FAR-1)')}</span>
                 </button>
 
                 <button

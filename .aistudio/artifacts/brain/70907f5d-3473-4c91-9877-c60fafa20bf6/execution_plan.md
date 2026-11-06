@@ -1,35 +1,24 @@
-# Completed: Custom Table Column Width/Height Controls, Realistic A4 Paper Print Simulation & Two-Tier Editor Toolbar
+# Formative Assessment (FAR-1) Implementation Status
 
-## 1. Custom Table Merge Tag Column Width & Row Height Facility
-- **Minimum Row Height & Column Widths**:
-  - Instructors can specify custom minimum row heights (`min_row_height_px`) ranging from `24px` to `120px` with presets for `Compact (30px)`, `Standard (38px)`, `Handwriting (54px)`, and `Sign / Remarks (72px)`.
-  - Column width controls: numeric percentage widths (`width_percent`) and minimum widths (`min_width_px`) editable per column in the Custom Table Builder.
-- **Direct Drag-to-Resize Column Handles**:
-  - Live preview table in Step 3 of the Custom Table Builder features interactive draggable column divider handles (`cursor-col-resize`) with live percentage indicator badges.
-- **Natural Auto-Wrap & Row Expansion**:
-  - Generated table HTML applies `table-layout: fixed; width: 100%; border-collapse: collapse;` with cell styling `word-break: break-word; overflow-wrap: anywhere; white-space: normal; vertical-align: top;`.
-  - When trainee data (such as long Gujarati addresses or names) exceeds minimum dimensions, rows automatically expand vertically to accommodate the text without clipping or horizontal blowout.
-  - Interactive "ટેસ્ટ મોડ: લાંબા લખાણ સાથે ટેસ્ટ કરો" (Test with Long Content) toggle lets instructors verify auto-wrapping behavior directly inside the builder modal before inserting tags.
+## Implemented Enhancements
 
-## 2. Realistic A4 Paper Print Simulation in Template Studio
-- **True A4 Physical Dimensions (210 × 297 mm)**:
-  - The document workspace in Template Studio renders on a textured desk canvas with realistic A4 aspect ratio (`210mm` width, `297mm` minimum height) and soft elevation shadow (`shadow-2xl`).
-- **Interactive Zoom Toolbar**:
-  - Easy zoom controls (`75%`, `90%`, `100%`, `110%`, `125%`, and 1:1 reset) allow instructors to inspect typography and tables comfortably at any screen resolution.
-- **20mm Official Printable Margin Guide**:
-  - Toggleable visual guide displays the standard 20mm printable margin boundary (`print:hidden`), marking safe printing zones.
-- **Dynamic Page 1 Fit & Page 2 Overflow Detector**:
-  - Real-time height measurement detects whether letter content and tables fit neatly onto a single A4 sheet (`✓ Fits 1 Page`) or flow over into Page 2 (`⚠️ Page 1 Overflow`).
-- **Pristine Print & PDF Export**:
-  - `@media print` rules ensure zoom wrappers, margin guides, and status badges are cleanly hidden during physical printing and PDF export, outputting pure official letters.
+1. **Strict Whole-Number Rounding (પૂર્ણાંક ગુણ)**:
+   - All 24 sub-parameters, 9 category totals, LO averages, and Grand Average scores now use standard mathematical rounding (`Math.round(val)`, where $\ge 0.5$ rounds up and $< 0.5$ rounds down).
+   - Zero fractional or decimal numbers appear in any cell, average row, or printout.
 
-## 3. Two-Tier Editor Toolbar & Expandable Template Name Input
-- **Tier 1 (Template Identity & Metadata Bar)**:
-  - **Back Navigation**: `← Templates` button cleanly isolated on the left.
-  - **Wide Expandable Template Name Input**: Takes `flex-1` width across the screen with bilingual label `Name / શીર્ષક:`, comfortably fitting long Gujarati and English notice titles with zero overlap.
-  - **Notice Type & Letterhead State**: Select dropdown and `Letterhead: On / Off` toggle neatly placed on the right.
-- **Tier 2 (Action Bar with Compact Badges)**:
-  - Organized secondary bar (`bg-[#104899]`) grouping editing and export tools into compact badges:
-    - Left tools: `Save`, `Save Copy`, `Upload Image`, `+ Custom Table Tag`.
-    - Right tools: `Report Generator`, `Edit Letterhead`, `Print`, `Export PDF`.
-  - Fully responsive across desktop, laptop, tablet, and mobile screens without horizontal clipping.
+2. **Dedicated Curriculum Management Section (Practicals per LO per Semester)**:
+   - Added a dedicated **"સેમેસ્ટર પ્રેક્ટિકલ્સ સિલેબસ (LO Master)"** tab.
+   - Allows instructors to manage Learning Outcomes (LO1, LO2, etc.) and their practical exercises (e.g., P1 to P7, P33 to P52) for each semester.
+   - Instructors can add new practicals with customized titles and codes under any LO, delete practicals, add new LOs, or reset to standard NCVT syllabus defaults.
+
+3. **Engineering (4 Semesters) vs Non-Engineering (2 Semesters) Configuration**:
+   - Integrated into **Academic Hierarchy Manager** under Trade details.
+   - Instructors can select between **Non-Engineering (2 Semesters / 1 Year)** and **Engineering (4 Semesters / 2 Years)** with automated preset detection (e.g. COPA/Stenographer $\to$ 2 Semesters, Fitter/Electrician/Turner $\to$ 4 Semesters) and interactive toggle badges.
+   - Formative Assessment tab provides quick semester navigation tabs: `Sem 1`, `Sem 2` (plus `Sem 3`, `Sem 4` for engineering).
+
+4. **Batch Trainee Marks Entry Roster (૧૦૦ માંથી ગુણ)**:
+   - Primary view mode with a complete roster table of all trainees in the batch.
+   - Shows Roll No, Gujarati & English Trainee Name, Attendance %, and a direct numeric input for Marks out of 100.
+   - Quick mark presets (`70`, `75`, `80`, `82`, `85`, `90`, and `હાજરી મુજબ` based on attendance %).
+   - **"તમામ તાલીમાર્થીઓના ગુણ વહેંચો (Distribute All)"**: In 1 click, iterates through all trainees in the batch, reverses their score into the 27 parameters of the active semester's practicals, and persists their individual FAR-1 sheets.
+   - Quick export to Excel and Landscape A4 PDF preview/print per student or batch.

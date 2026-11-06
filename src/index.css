@@ -148,6 +148,31 @@
   body.is-printing-clean-doc > :not(#print-modal-root):not(#batch-print-modal-root) {
     display: none !important;
   }
+
+  /* Formative Assessment FAR-1 Landscape A4 Print Rules */
+
+  body.is-printing-landscape #far1-print-modal-root {
+    position: static !important;
+    background: #ffffff !important;
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  body.is-printing-landscape > :not(#far1-print-modal-root) {
+    display: none !important;
+  }
+
+  .far1-landscape-sheet {
+    width: 297mm !important;
+    max-width: 297mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    background-color: #ffffff !important;
+  }
 }
 
 /* Indic Typography and Font Rendering Rules to Prevent Jumbled / Overlapped Letters */

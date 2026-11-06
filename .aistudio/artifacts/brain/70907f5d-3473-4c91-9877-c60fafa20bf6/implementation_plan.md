@@ -1,109 +1,143 @@
-# Fix Template Studio Toolbar & Expandable Template Name Input
+# Randomized Practical Score Distribution for Formative Assessment
 
-Resolve the layout clipping and overlapping issue in Template Studio on PC and desktop displays by re-architecting the editor toolbar into an elegant, responsive two-tier layout where the template title receives dedicated, unobstructed typing space and action tools are cleanly organized as compact badges.
+Realistic, natural variation across individual practical marks under each Learning Outcome (LO) while strictly preserving the instructor's target whole-number average.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following layout and ergonomic decisions were confirmed based on your selections:
-> - **Two-Tier Toolbar Architecture**: Separates document identification (Template Name, Type, Letterhead toggle) onto the top primary row, and document actions (Save, Copy, Table Tag, Upload, Letterhead Editor, Report Generator) onto a dedicated secondary action bar.
-> - **Wide Expandable Template Name Input**: The title field spans the full available width of Tier 1 with clean visual boundaries, providing ample space for long Gujarati titles (e.g. *વાલી મિટિંગ આમંત્રણ પત્ર* or *તાલીમાર્થી અનિયમિતતા ચેતવણી નોટિસ*) without truncation or squeezing.
-> - **All Actions Visible as Compact Badges**: Preserves instant 1-click access to all 8 action tools formatted as compact, high-contrast badges with zero clipping or text wrapping.
+> The following parameters were confirmed during clarification and govern the distribution algorithm:
+> - **Score Variance**: Subtle, realistic score spread between $\pm 3$ and $\pm 5$ marks around the target average (e.g., for target 81: practical marks vary across 78, 83, 79, 84, 82, 81).
+> - **Zero Uniformity Guarantee**: For any LO with 2 or more practicals, marks are guaranteed not to be all identical.
+> - **Average Invariance**: The whole-number standard average ($\text{round}(\sum S_i / N)$) is mathematically anchored to equal the exact target score entered by the instructor.
+> - **Automatic Execution**: Distribution runs seamlessly whenever LO marks or overall 100-mark targets are input in the batch trainee roster or sheet editor.
 
 ---
 
-## 1. Overview & Problem Diagnosis
+## 1. Overview & Core Concept
 
-### Root Cause in Current Layout
-In `src/components/TemplateStudio.tsx` (lines 1229–1372), the editor header currently attempts to render 11 distinct interactive elements inside a single flex row:
-1. `← Templates` back navigation
-2. `Name:` input field (`min-w-[160px] sm:min-w-[240px]`)
-3. `Notice Type` selector
-4. `Letterhead: On/Off` toggle
-5. `Save` (primary emerald button)
-6. `Save Copy` button
-7. `Upload Image` button
-8. `+ Custom Table Tag` button
-9. `Report Generator` button
-10. `Edit Letterhead` button
-11. `Print` and `Export PDF` button group
+When an ITI instructor enters a target mark for a Learning Outcome (e.g., **81** for LO1 or LO2), the system currently assigns 81 to every practical under that LO. In genuine classroom assessment, student performance naturally fluctuates across different practical exercises (some tasks executed at 78, others at 83, 85, or 80) while yielding an authentic overall average of 81.
 
-Because the action button cluster uses `shrink-0` with fixed horizontal padding while the left container has `min-w-0 flex-wrap sm:flex-nowrap`, standard PC viewport widths (1024px to 1440px) cause the right action container to physically intrude into the left boundary, rendering the green **Save** button and adjacent tools directly over the **Template Name** input field.
+This feature introduces an **integer partitioning algorithm with bounded random noise ($\pm 3$ to $\pm 5$)** that distributes varying whole-number scores to each practical in the LO such that:
+1. Every practical receives a whole-number score out of 100 with realistic variance.
+2. The practicals do not all share the same score.
+3. The average of all active practicals in that LO strictly equals the target score entered by the instructor.
+4. Each practical's assigned score is partitioned into the 27 formative assessment sub-parameters matching the ITI FAR-1 blueprint.
 
 ---
 
-## 2. User Experience & Visual Design
+## 2. User Experience & Visual Flow
 
-### Two-Tier Responsive Toolbar Architecture
-
+### Instructor Workflow
 ```
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ TIER 1: TEMPLATE IDENTITY & METADATA BAR (bg-[#185abd] text-white px-4 py-2.5)                         │
-│ ┌──────────────┐   ┌───────────────────────────────────────────────────────────────┐  ┌─────────────┐  │
-│ │ ← Templates  │ │ │ Name / શીર્ષક: [ તાલીમાર્થી હાજરી પ્રમાણપત્ર ............. ] │  │ Type: [ ▼ ] │  │
-│ └──────────────┘   └───────────────────────────────────────────────────────────────┘  └─────────────┘  │
-└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ TIER 2: ACTION & TOOLBAR ROW (bg-[#104899] text-white px-4 py-2 flex flex-wrap justify-between)         │
-│  [💾 Save Template]  [📋 Save Copy]  [🖼️ Upload Image]  [⊞ + Custom Table Tag]                         │
-│                                           [⚡ Report Generator]  [🏛️ Edit Letterhead]  [🖨️] [📥]         │
-└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ SUB-BAR: NOTICE SUBJECT & PRINT WORKSPACE CONTROLS (bg-[#f3f6f9] border-b border-slate-300 px-4 py-2)  │
-│  Subject: [ Enter official notice subject...                               ]   [Zoom: - 100% +] [📐20mm]│
-└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│ Trainee Roster / Marks Entry (LO-Wise or Batch 100)    │
+│ Instructor inputs: "81" for LO2 (contains 6 practicals) │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│ Randomized Practical Marks Generator                   │
+│ • Bounded noise generation: [-4, +3, -2, +4, -1, 0]   │
+│ • Integer balance adjustment: sum = N * Target         │
+│ • Generated practical scores: [77, 84, 79, 85, 80, 81] │
+│ • Verified Average: 486 / 6 = 81.00 (Exact match)     │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│ Sub-Parameter Reverse Distribution                     │
+│ Each practical's score (e.g. 77, 84...) is distributed │
+│ across 27 sub-parameters as whole numbers             │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│ Live Assessment Sheet & Exports                        │
+│ • Formative table displays unique marks per practical  │
+│ • LO summary row displays exact average: 81            │
+│ • Footer Vertical Average reflects exact performance   │
+│ • Print preview & Excel exports reflect real variation │
+└────────────────────────────────────────────────────────┘
 ```
 
-### Visual Specifications
-- **Tier 1 (Identity Bar - `bg-[#185abd]` / Darker Blue)**:
-  - **Back Button**: Crisp `← Templates` link with hover state.
-  - **Template Name Input**: Takes `flex-1 min-w-[240px]`, styled with `bg-[#104899] hover:bg-[#0e3f85] focus:bg-[#0c3774] text-white font-bold text-sm px-3.5 py-1.5 rounded-lg border border-blue-400/50 shadow-inner focus:ring-2 focus:ring-white`.
-  - **Notice Type**: Select dropdown cleanly positioned alongside the title.
-  - **Letterhead Toggle**: Quick On/Off toggle indicating header state.
-- **Tier 2 (Action Bar - `bg-[#104899] border-t border-blue-500/30` / Deeper Indigo-Blue)**:
-  - **Primary Actions**:
-    - `Save`: Emerald button (`bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm`).
-    - `Save Copy`: Semi-transparent blue button (`bg-blue-800/80 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg border border-blue-400/30`).
-    - `Upload Image`: Dedicated file picker for stamps/logos.
-    - `+ Custom Table Tag`: Direct modal trigger for trainee data tables.
-  - **Workflow & Output Actions**:
-    - `Report Generator`: Amber accent button (`bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg`).
-    - `Edit Letterhead`: Gold gradient button (`from-amber-400 to-amber-500`).
-    - `Print` & `Download PDF`: Integrated icon buttons.
+### Key UI Features
+- **Instant Visual Feedback**: Entering `81` immediately populates practical rows with natural scores (e.g., P33: 82, P34: 78, P35: 84, P36: 80, P37: 85, P38: 77).
+- **Badge Indicators**: The practical row total column highlights the computed mark for that practical.
+- **Cleared Trainee Safety**: Any practical marked as cleared (e.g. student who left after P36) remains at `0 [Left]` and is untouched by the distribution algorithm.
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
+## 3. Technical Architecture & Algorithm Strategy
 
-- **Decision 1: Two-Tier Separation vs Dropdown Collapse**:
-  - *Chosen Approach*: Two explicit tiers with dedicated rows for Identity vs Actions.
-  - *Why*: Instructors frequently switch between naming/saving templates and inserting table tags or adjusting letterheads. Hiding primary tools inside a dropdown menu would add unnecessary clicks, while the two-tier layout permanently eliminates overlapping while keeping every action immediately accessible.
-- **Decision 2: Expandable Full-Width Name Input**:
-  - *Chosen Approach*: `flex-1` width on the title input container with clear labels in both English and Gujarati (*Name / શીર્ષક*).
-  - *Why*: ITI notices have long formal titles (e.g., *અભ્યાસક્રમ પૂર્ણતા પ્રમાણપત્ર અને ચારિત્ર્ય સર્ટીફીકેટ*). An expandable input ensures the entire title remains legible without horizontal scroll or truncated text.
+### System Architecture
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    FormativeAssessmentView                   │
+│          Batch Trainee Roster & LO-Wise Input Modal          │
+└──────────────────────────────┬───────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  formativeScoring.ts Engine                  │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ generateVaryingPracticalScores(target, count, spread) │  │
+│  │ • Computes delta array with sum = 0                    │  │
+│  │ • Enforces non-identical values                        │  │
+│  │ • Clamps within [0, 100]                               │  │
+│  └───────────────────────────┬────────────────────────────┘  │
+│                              ▼                               │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ distributeTargetMarksToLO(practicals, loNumber, score) │  │
+│  │ • Identifies active practicals in target LO            │  │
+│  │ • Assigns randomized total score per practical         │  │
+│  │ • Runs distributeTarget100Marks per practical score    │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────┬───────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────┐
+│               Data Consumers (Print, PDF, Excel)             │
+│ • Main Sheet Table & Footer Average                          │
+│ • FAR-1 Government Print Preview Modal                       │
+│ • Formative Excel Export (.xlsx)                             │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Mathematical Formulation
+For an LO with $N$ active practicals and target score $T$:
+1. If $N = 1$: Assign $S_1 = T$.
+2. If $N \ge 2$:
+   - Generate initial random deviations $d_i \in [-\text{spread}, +\text{spread}]$ where $\text{spread} = 4$ (providing $\pm 3$ to $\pm 5$ range).
+   - Check condition: Ensure not all $d_i$ are equal (if all equal, perturb at least two items: $d_1 \gets d_1 + 2, d_2 \gets d_2 - 2$).
+   - Balance step: Let $R = \sum_{i=1}^N d_i$. Distribute $-R$ across the practicals by adding $\pm 1$ iteratively until $\sum d_i = 0$.
+   - Calculate raw scores: $S_i = \text{clamp}(T + d_i, 0, 100)$.
+   - Final balancing: If clamping changed the sum, redistribute the difference to unclamped indices so $\sum S_i = N \times T$ (or within $| \sum S_i - N \times T | < N / 2$).
+   - Standard rounding check: $\text{round}\left(\frac{\sum S_i}{N}\right) = T$ is mathematically guaranteed.
 
 ---
 
-## 4. Technical Architecture & Component Mapping
+## 4. Verification Plan
 
-### Component Modification Scope
-- **File**: `src/components/TemplateStudio.tsx`
-  - Refactor lines 1229–1372:
-    - Split single parent `<div className="bg-[#185abd] ...">` into:
-      1. `<div className="template-identity-bar bg-[#185abd] ...">` (Tier 1: Back, Name input, Notice type, Letterhead toggle).
-      2. `<div className="template-action-bar bg-[#104899] ...">` (Tier 2: Save, Save Copy, Upload Image, Custom Table Tag, Report Generator, Edit Letterhead, Print, Export PDF).
-  - Ensure all event handlers (`handleSaveCurrentTemplate`, `setIsSaveAsModalOpen`, `handleInsertImageIntoTemplate`, `setIsCustomTableBuilderOpen`, `onUseTemplateForReport`, `setIsHeaderModalOpen`, `handlePrint`, `handleExportPdf`) remain identical and bound with zero regressions.
+1. **Unit Verification via Script/Tests**:
+   - Test with target 81 across various practical counts ($N = 2, 4, 7, 12$).
+   - Verify that all generated scores are in range $[76, 86]$.
+   - Verify that $\text{round}(\text{average}) === 81$.
+   - Verify that not all practical scores are identical.
+2. **Applet Compilation & Linting**:
+   - Run `compile_applet` and `lint_applet` to confirm clean build.
+3. **End-to-End Verification**:
+   - Enter marks in LO-Wise batch input.
+   - Verify live table rows display varied marks and LO average matches target.
+   - Verify PDF preview and Excel export reflect the randomized values.
 
 ---
 
-## 5. Verification Plan
-
-1. **Compilation & Lint Verification**:
-   - Run `compile_applet` to confirm clean build.
-   - Run `lint_applet` (`tsc --noEmit`) to verify zero TypeScript errors.
-2. **Browser Layout & Responsive Testing**:
-   - Verify on desktop viewport (1024px, 1280px, 1440px, 1920px):
-     - Template Name input has ample width and is 100% clickable with no buttons overlapping.
-     - Long Gujarati names (*વાલી મિટિંગ આમંત્રણ પત્ર (Parent-Teacher Meeting Notice)*) can be typed and edited comfortably.
-     - All 8 action buttons in Tier 2 remain clickable with proper visual feedback.
-   - Verify on mobile/tablet viewports to ensure seamless wrapping without horizontal overflow.
+## 5. Updates Applied (Current Turn)
+- **Removed LO-Wise Bulk Presets**: Cleared the preset buttons strip (`LO1: 75, 80...`) from the Batch Trainee Roster so instructors enter marks directly per trainee or via attendance calculation without clutter.
+- **Added Column 36 (TOTAL / 100)**: Added Column 36 to:
+  1. Main Interactive Assessment Table
+  2. A4 Landscape Print Preview & PDF Dialog
+  3. Formative Excel Export (`.xlsx`)
+- **Column 36 Vertical Average Calculation**: In the bottom vertical summary row (`AVERAGE / ઊભી સરેરાશ`), Column 36 is calculated strictly as the **average of all the LO marks assessed by the Instructor**.
+- **Batch Roster LO Average Column**: Added a calculated `LO સરેરાશ / ૧૦૦ (Avg of All LOs)` column in the Batch Trainee Roster table.

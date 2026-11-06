@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Instructor, Trainee, AcademicTrade, AcademicBatch, AcademicUnit } from '../types';
+import { Instructor, Trainee, AcademicTrade, AcademicBatch, AcademicUnit, TradeType } from '../types';
 import {
   Layers,
   FolderPlus,
@@ -21,6 +21,7 @@ import {
   X,
   Phone,
   AlertTriangle,
+  GraduationCap,
 } from 'lucide-react';
 
 interface AcademicHierarchyManagerProps {
@@ -93,6 +94,8 @@ export default function AcademicHierarchyManager({
           {
             id: `trade-${Date.now()}`,
             name: instructor.trade || 'કોપા (COPA)',
+            trade_type: 'non_engineering',
+            semester_count: 2,
             batches: [
               {
                 id: `batch-${Date.now()}`,
@@ -112,6 +115,7 @@ export default function AcademicHierarchyManager({
 
   // Add Trade Modal
   const [newTradeName, setNewTradeName] = useState('');
+  const [newTradeType, setNewTradeType] = useState<TradeType>('non_engineering');
   const [isAddingTrade, setIsAddingTrade] = useState(false);
 
   // Add Batch Modal
@@ -198,9 +202,12 @@ export default function AcademicHierarchyManager({
   const handleAddTrade = () => {
     if (isGuest) return;
     if (!newTradeName.trim()) return;
+    const isEngg = newTradeType === 'engineering';
     const newTrade: AcademicTrade = {
       id: `trade-${Date.now()}`,
       name: newTradeName.trim(),
+      trade_type: newTradeType,
+      semester_count: isEngg ? 4 : 2,
       batches: [
         {
           id: `batch-${Date.now()}`,
@@ -214,7 +221,30 @@ export default function AcademicHierarchyManager({
     setActiveBatchId(newTrade.batches[0].id);
     setNewTradeName('');
     setIsAddingTrade(false);
-    persistHierarchy(next, `ટ્રેડ "${newTrade.name}" સફળતાપૂર્વક ઉમેરાયો.`);
+    persistHierarchy(
+      next,
+      `ટ્રેડ "${newTrade.name}" (${isEngg ? 'એન્જિનિયરિંગ - ૪ સેમેસ્ટર' : 'નોન-એન્જિનિયરિંગ - ૨ સેમેસ્ટર'}) સફળતાપૂર્વક ઉમેરાયો.`
+    );
+  };
+
+  // Toggle Trade Type (Engineering vs Non-Engineering / Semesters)
+  const handleToggleTradeType = (tradeId: string) => {
+    if (isGuest) return;
+    const updated = hierarchy.map((trade) => {
+      if (trade.id !== tradeId) return trade;
+      const currentIsEngg = trade.trade_type === 'engineering' || trade.semester_count === 4;
+      const nextType: TradeType = currentIsEngg ? 'non_engineering' : 'engineering';
+      const nextSemesters: 2 | 4 = nextType === 'engineering' ? 4 : 2;
+      return {
+        ...trade,
+        trade_type: nextType,
+        semester_count: nextSemesters,
+      };
+    });
+    persistHierarchy(
+      updated,
+      'ટ્રેડ કેટેગરી અને સેમેસ્ટર સંખ્યા સફળતાપૂર્વક અપડેટ કરવામાં આવી.'
+    );
   };
 
   // Delete Trade
@@ -589,19 +619,104 @@ export default function AcademicHierarchyManager({
             <input
               type="text"
               value={newTradeName}
-              onChange={(e) => setNewTradeName(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setNewTradeName(val);
+                const lower = val.toLowerCase();
+                if (
+                  lower.includes('fitter') ||
+                  lower.includes('electrician') ||
+                  lower.includes('wireman') ||
+                  lower.includes('turner') ||
+                  lower.includes('machinist') ||
+                  lower.includes('mmv') ||
+                  lower.includes('motor') ||
+                  lower.includes('diesel')
+                ) {
+                  setNewTradeType('engineering');
+                } else if (
+                  lower.includes('copa') ||
+                  lower.includes('steno') ||
+                  lower.includes('sewing') ||
+                  lower.includes('dress')
+                ) {
+                  setNewTradeType('non_engineering');
+                }
+              }}
               placeholder="દા.ત. કોપા (COPA) અથવા ઇલેક્ટ્રિશિયન (Electrician)"
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium"
             />
           </div>
 
+          {/* Trade Type / Semester Configuration */}
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+            <label className="block text-[11px] font-bold text-slate-700">
+              ટ્રેડ કેટેગરી અને સેમેસ્ટર માળખું (Trade Type & Semesters)
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setNewTradeType('non_engineering')}
+                className={`p-2.5 rounded-xl border text-left transition-all ${
+                  newTradeType === 'non_engineering'
+                    ? 'bg-emerald-50 border-[#346739] text-[#264e2b] shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs">નોન-એન્જિનિયરિંગ</span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
+                    ૨ સેમેસ્ટર
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-1">
+                  ૧ વર્ષીય કોર્સ (દા.ત. COPA, Steno, Sewing)
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNewTradeType('engineering')}
+                className={`p-2.5 rounded-xl border text-left transition-all ${
+                  newTradeType === 'engineering'
+                    ? 'bg-blue-50 border-blue-600 text-blue-900 shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs">એન્જિનિયરિંગ</span>
+                  <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">
+                    ૪ સેમેસ્ટર
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-1">
+                  ૨ વર્ષીય કોર્સ (દા.ત. Fitter, Electrician, Wireman)
+                </div>
+              </button>
+            </div>
+          </div>
+
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] text-slate-500 font-semibold">ઝડપી પસંદગી:</span>
-            {PRESET_TRADES.slice(0, 5).map((preset) => (
+            {PRESET_TRADES.slice(0, 6).map((preset) => (
               <button
                 key={preset}
                 type="button"
-                onClick={() => setNewTradeName(preset)}
+                onClick={() => {
+                  setNewTradeName(preset);
+                  const lower = preset.toLowerCase();
+                  if (
+                    lower.includes('fitter') ||
+                    lower.includes('electrician') ||
+                    lower.includes('wireman') ||
+                    lower.includes('turner') ||
+                    lower.includes('machinist')
+                  ) {
+                    setNewTradeType('engineering');
+                  } else {
+                    setNewTradeType('non_engineering');
+                  }
+                }}
                 className="px-2 py-0.5 text-[10px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium"
               >
                 {preset}
@@ -650,6 +765,15 @@ export default function AcademicHierarchyManager({
             {hierarchy.map((trade) => {
               const isSelected = trade.id === (currentTrade?.id || '');
               const tradeTrainees = effectiveTrainees.filter((tr) => doesTradeMatch(tr.trade, trade.name));
+              const isEngg =
+                trade.trade_type === 'engineering' ||
+                trade.semester_count === 4 ||
+                trade.name.toLowerCase().includes('fitter') ||
+                trade.name.toLowerCase().includes('electrician') ||
+                trade.name.toLowerCase().includes('wireman') ||
+                trade.name.toLowerCase().includes('turner') ||
+                trade.name.toLowerCase().includes('machinist');
+              const semCount = isEngg ? 4 : 2;
 
               return (
                 <div
@@ -664,13 +788,30 @@ export default function AcademicHierarchyManager({
                       : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
                   }`}
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 pr-2">
                     <div className="font-bold text-xs text-slate-900 truncate">{trade.name}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                    <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleTradeType(trade.id);
+                        }}
+                        title="ક્લિક કરીને સેમેસ્ટર માળખું બદલો (૨ કે ૪ સેમેસ્ટર)"
+                        className={`font-semibold px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1 border transition-colors ${
+                          isEngg
+                            ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <GraduationCap className="w-3 h-3" />
+                        <span>{semCount} સેમેસ્ટર ({isEngg ? 'Engg' : 'Non-Engg'})</span>
+                      </button>
+                      <span className="text-slate-300">•</span>
                       <span>{trade.batches.length} બેચ</span>
                       <span className="text-slate-300">•</span>
                       <span className="font-bold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.2 rounded-full text-[10px]">
-                        {tradeTrainees.length} તાલીમાર્થીઓ
+                        {tradeTrainees.length} તાલીમાર્થી
                       </span>
                     </div>
                   </div>

@@ -14,9 +14,13 @@ export interface AcademicBatch {
   units: AcademicUnit[];
 }
 
+export type TradeType = 'engineering' | 'non_engineering';
+
 export interface AcademicTrade {
   id: string;
   name: string; // e.g. "કોપા (COPA)" or "ઇલેક્ટ્રિશિયન (Electrician)"
+  trade_type?: TradeType; // 'engineering' or 'non_engineering'
+  semester_count?: 2 | 4; // 2 for non-engineering, 4 for engineering
   batches: AcademicBatch[];
 }
 
@@ -260,4 +264,137 @@ export interface MergedNoticeData {
   aiCommentary?: string;
   renderedHtml: string;
 }
+
+// ----------------------------------------------------
+// FORMATIVE ASSESSMENT (FAR-1) TYPES
+// ----------------------------------------------------
+
+export interface FormativeScores {
+  // 1. Safety consciousness (Max: 15)
+  safety_dress: number; // Max 2
+  safety_ppe: number; // Max 5
+  safety_apply: number; // Max 8
+
+  // 2. Workplace hygiene & economical use of materials (Max: 10)
+  hygiene_clean: number; // Max 3
+  hygiene_scrap: number; // Max 2
+  hygiene_material: number; // Max 5
+
+  // 3. Attendance/Punctuality (Max: 10)
+  attendance_initiative: number; // Max 3
+  attendance_accountability: number; // Max 3
+  attendance_participative: number; // Max 4
+
+  // 4. Ability to follow manuals (Max: 5)
+  manuals_select: number; // Max 1
+  manuals_search: number; // Max 2
+  manuals_interpret: number; // Max 2
+
+  // 5. Application of knowledge (Max: 10)
+  knowledge_plan: number; // Max 4
+  knowledge_tools: number; // Max 3
+  knowledge_review: number; // Max 3
+
+  // 6. Skills to handle tools & equipment (Max: 10)
+  tools_handle: number; // Max 4
+  tools_safety: number; // Max 3
+  tools_maintain: number; // Max 3
+
+  // 7. Speed in doing work (Max: 10)
+  speed_sequence: number; // Max 3
+  speed_technique: number; // Max 5
+  speed_review: number; // Max 2
+
+  // 8. Quality in workmanship (Max: 15)
+  quality_accuracy: number; // Max 7
+  quality_conform: number; // Max 3
+  quality_purpose: number; // Max 5
+
+  // 9. VIVA (Max: 15)
+  viva_clarity: number; // Max 15
+}
+
+export type FormativeScoreKey = keyof FormativeScores;
+
+export interface FormativeCategoryTotals {
+  safety_total: number; // Max 15
+  hygiene_total: number; // Max 10
+  attendance_total: number; // Max 10
+  manuals_total: number; // Max 5
+  knowledge_total: number; // Max 10
+  tools_total: number; // Max 10
+  speed_total: number; // Max 10
+  quality_total: number; // Max 15
+  viva_total: number; // Max 15
+  grand_total: number; // Max 100
+}
+
+export interface FormativePracticalEntry {
+  id: string;
+  semester?: number; // 1, 2, 3, or 4
+  lo_number: string; // e.g. "LO1", "LO2"
+  practical_number: string; // e.g. "P1", "P2", "P33"
+  practical_title?: string; // Optional descriptive title
+  target_marks_100: number; // Target score out of 100 (e.g. 82)
+  scores: FormativeScores;
+  is_cleared?: boolean; // True if trainee left institute / absent for this practical
+  cleared_reason?: string; // e.g. "Left institute after P36 on 05-11-2026"
+}
+
+export interface FormativeAssessmentSheet {
+  id: string;
+  instructor_id: string;
+  trainee_id: string;
+  trainee_name: string;
+  roll_no: string | number;
+  trade_name: string;
+  trade_type?: TradeType;
+  semester: number; // 1, 2, 3, or 4
+  total_semesters?: 2 | 4;
+  batch_no: string;
+  session_year: string; // e.g. "2026-27"
+  assessment_date: string;
+  iti_name: string;
+  industry_name?: string;
+  assessment_location: 'ITI' | 'Industry';
+  duration: string; // e.g. "1 Year" or "2 Years"
+  practicals: FormativePracticalEntry[];
+  sign_fi?: string;
+  left_institute?: boolean; // Trainee left institute
+  leaving_date?: string; // Date trainee left
+  last_appeared_practical?: string; // Cutoff practical e.g. "P36"
+  updated_at: string;
+}
+
+export interface PracticalCurriculumItem {
+  id: string;
+  practical_number: string; // e.g. "P1"
+  practical_title: string;
+}
+
+export interface LOCurriculumItem {
+  id: string;
+  lo_number: string; // e.g. "LO1"
+  lo_title: string;
+  practicals: PracticalCurriculumItem[];
+}
+
+export interface SemesterCurriculum {
+  semester: number; // 1, 2, 3, 4
+  learning_outcomes: LOCurriculumItem[];
+}
+
+export interface BatchTraineeScoreRow {
+  trainee: Trainee;
+  target_marks_100: number;
+  lo_marks?: Record<string, number>; // Marks per LO e.g. { LO1: 85, LO2: 80 }
+  is_distributed: boolean;
+  total_practical_count: number;
+  attendance_percentage: number;
+  left_institute?: boolean;
+  leaving_date?: string;
+  last_appeared_practical?: string;
+  last_updated?: string;
+}
+
 

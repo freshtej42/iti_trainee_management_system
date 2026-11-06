@@ -64,6 +64,7 @@ import TemplateStudio from './components/TemplateStudio';
 import ReportGenerator from './components/ReportGenerator';
 import UserGuideView from './components/UserGuideView';
 import LandingPageView from './components/LandingPageView';
+import FormativeAssessmentView from './components/FormativeAssessmentView';
 import { HeaderConfig } from './types';
 import { Calendar, Eye, ShieldAlert, Sparkles, AlertCircle } from 'lucide-react';
 import { isAccountExpired, formatValidityDate } from './utils/validityHelper';
@@ -931,6 +932,14 @@ export default function App() {
                 templates={templates}
                 dispatchLogs={dispatchLogs}
                 onBatchLogDispatch={handleBatchLogDispatch}
+              />
+            )}
+
+            {activeTab === 'formative_assessment' && (
+              <FormativeAssessmentView
+                instructor={currentInstructor}
+                trainees={instructorTrainees}
+                attendanceRecords={attendanceRecords}
               />
             )}
 

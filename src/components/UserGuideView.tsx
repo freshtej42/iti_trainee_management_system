@@ -21,6 +21,9 @@ import {
   Eye,
   HelpCircle,
   X,
+  Award,
+  UserX,
+  Percent,
 } from 'lucide-react';
 import { exportBatchElementsToPdf, printCleanDocument } from '../utils/pdfExport';
 import GujaratiInfographicPage, { PUBLISHED_LIVE_URL } from './GujaratiInfographicPage';
@@ -105,6 +108,14 @@ const GUIDE_SECTIONS: GuideSectionMeta[] = [
     badge: 'Page 8',
     icon: ShieldCheck,
   },
+  {
+    id: 'page-9',
+    pageNumber: 9,
+    titleEn: '8. Formative Assessment (FAR-1) Evaluation System',
+    titleGu: '૮. આંતરિક મૂલ્યાંકન (નમૂનો-૨ / FAR-1) અને LO મુજબ ગુણ વહેંચણી',
+    badge: 'Page 9',
+    icon: Award,
+  },
 ];
 
 export default function UserGuideView({
@@ -181,7 +192,7 @@ export default function UserGuideView({
               </h2>
             </div>
             <p className="text-xs text-slate-600 mt-1">
-              લાઈવ વેબ એપ્લિકેશન લિંક ({PUBLISHED_LIVE_URL}) સાથે ૧-પેજ ગુજરાતી સંક્ષિપ્ત ઈન્ફોગ્રાફિક પોસ્ટર અથવા ૮-પેજની સંપૂર્ણ વિગતવાર માર્ગદર્શિકા PDF ડાઉનલોડ કરો.
+              લાઈવ વેબ એપ્લિકેશન લિંક ({PUBLISHED_LIVE_URL}) સાથે ૧-પેજ ગુજરાતી સંક્ષિપ્ત ઈન્ફોગ્રાફિક પોસ્ટર અથવા ૯-પેજની સંપૂર્ણ વિગતવાર માર્ગદર્શિકા PDF ડાઉનલોડ કરો.
             </p>
           </div>
         </div>
@@ -209,7 +220,7 @@ export default function UserGuideView({
                   : 'text-slate-700 hover:text-slate-900'
               }`}
             >
-              ૮-પેજ સંપૂર્ણ માર્ગદર્શિકા (8-Page Manual)
+              ૯-પેજ સંપૂર્ણ માર્ગદર્શિકા (9-Page Manual)
             </button>
           </div>
 
@@ -228,7 +239,7 @@ export default function UserGuideView({
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    <span>Download 8-Page PDF</span>
+                    <span>Download 9-Page PDF</span>
                   </>
                 )}
               </button>
@@ -259,7 +270,7 @@ export default function UserGuideView({
       {/* Render 1-Page Gujarati Infographic when selected */}
       {guideMode === 'infographic-gu' && <GujaratiInfographicPage showToolbar={true} />}
 
-      {/* Progress Banner when exporting 8-page manual */}
+      {/* Progress Banner when exporting 9-page manual */}
       {guideMode === 'full-manual' && isExportingPdf && (
         <div className="bg-emerald-950 text-emerald-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3 border border-emerald-800 shadow-md print:hidden">
           <div className="flex items-center gap-3 text-xs sm:text-sm font-semibold">
@@ -279,7 +290,7 @@ export default function UserGuideView({
         <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs lg:sticky lg:top-20 print:hidden">
           <div className="text-xs font-extrabold uppercase tracking-wider text-slate-500 px-2 pb-2.5 border-b border-slate-100 flex items-center justify-between">
             <span>Sections & Pages</span>
-            <span className="text-[11px] font-mono text-[#346739]">8 Pages</span>
+            <span className="text-[11px] font-mono text-[#346739]">9 Pages</span>
           </div>
           <div className="mt-2 space-y-1">
             <button
@@ -290,8 +301,8 @@ export default function UserGuideView({
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
-              <span>Show All 8 A4 Pages</span>
-              <span className="text-[10px] opacity-80">1–8</span>
+              <span>Show All 9 A4 Pages</span>
+              <span className="text-[10px] opacity-80">1–9</span>
             </button>
 
             {GUIDE_SECTIONS.map((sec) => {
@@ -370,7 +381,7 @@ export default function UserGuideView({
                   <div className="text-right">
                     <div className="text-xs font-extrabold text-[#346739] uppercase">USER GUIDE PDF</div>
                     <div className="text-[11px] text-slate-500 font-mono">Edition: 2026–2027</div>
-                    <div className="text-[11px] text-slate-500 font-mono">Pages: 08 (A4)</div>
+                    <div className="text-[11px] text-slate-500 font-mono">Pages: 09 (A4)</div>
                   </div>
                 </div>
 
@@ -380,7 +391,7 @@ export default function UserGuideView({
                     Executive Summary & Purpose of the Application (પોર્ટલનો મુખ્ય હેતુ)
                   </h2>
                   <p className="text-xs text-slate-700 leading-relaxed mt-1.5">
-                    The <strong>ITI Trainee Attendance & Notice Management Portal</strong> is a specialized multi-tenant web application engineered for Supervisor Instructors, Trade Instructors, and Principals across Industrial Training Institutes (ITIs). It automates monthly and session-wide progressive attendance calculation under the mandatory <strong>80% NCVT/GCVT examination eligibility rule</strong>, generates Gujarati/Hindi/English parent warning notices with dynamic merge tags, produces Principal Monthly Reports, and maintains an audited Inward/Outward Dispatch Register.
+                    The <strong>ITI Trainee Attendance & Notice Management Portal</strong> is a specialized multi-tenant web application engineered for Supervisor Instructors, Trade Instructors, and Principals across Industrial Training Institutes (ITIs). It automates monthly and session-wide progressive attendance calculation under the mandatory <strong>80% NCVT/GCVT examination eligibility rule</strong>, generates Gujarati/Hindi/English parent warning notices with dynamic merge tags, produces Principal Monthly Reports, maintains an audited Inward/Outward Dispatch Register, and provides official <strong>Formative Assessment (FAR-1 / નમૂનો-૨)</strong> evaluation with LO-wise marks, natural randomization, and left-student cutoff tools.
                   </p>
                 </div>
 
@@ -390,7 +401,7 @@ export default function UserGuideView({
                     <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
                       Diagram 1.1 — End-to-End Application Workflow Architecture (સિસ્ટમ વર્કફ્લો ડાયાગ્રામ)
                     </h3>
-                    <span className="text-[10px] font-mono text-slate-500">7-Stage Operational Pipeline</span>
+                    <span className="text-[10px] font-mono text-slate-500">8-Stage Operational Pipeline</span>
                   </div>
 
                   <div className="border border-slate-300 rounded-xl p-4 bg-slate-50/70">
@@ -443,11 +454,11 @@ export default function UserGuideView({
 
                     {/* Connector Arrow Row */}
                     <div className="flex items-center justify-center my-2.5 text-[11px] font-bold text-[#346739]">
-                      <span>▼ Automated Data Flow from Attendance Engine to Official Documentation & Dispatch ▼</span>
+                      <span>▼ Automated Data Flow from Attendance Engine to Official Documentation, Assessment & Dispatch ▼</span>
                     </div>
 
                     {/* Row 2 of Architecture Flowchart */}
-                    <div className="grid grid-cols-3 gap-3 items-stretch">
+                    <div className="grid grid-cols-4 gap-2.5 items-stretch">
                       <div className="bg-white border border-slate-300 rounded-lg p-2.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-black text-amber-950 bg-amber-200 px-1.5 py-0.5 rounded">STAGE 5</span>
@@ -480,6 +491,17 @@ export default function UserGuideView({
                           Log Outward numbers, send 1-click Parent WhatsApp advisories, and record parent replies.
                         </div>
                       </div>
+
+                      <div className="bg-white border border-[#9fcb98] rounded-lg p-2.5 bg-[#f7f9f6]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-[#f2edc2] bg-[#346739] px-1.5 py-0.5 rounded">STAGE 8</span>
+                          <span className="text-[10px] font-mono text-[#346739]">FAR-1</span>
+                        </div>
+                        <div className="font-bold text-xs text-slate-900 mt-1.5">Formative Assessment</div>
+                        <div className="text-[10px] text-slate-600 mt-0.5 leading-snug">
+                          36-col blueprint, LO-wise marks, natural variance, left-student cutoff & A4/Excel exports.
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -501,7 +523,7 @@ export default function UserGuideView({
                       <tr>
                         <td className="border border-slate-300 px-3 py-2 font-mono font-bold text-[#346739]">Page 1</td>
                         <td className="border border-slate-300 px-3 py-2 font-bold">Executive Overview & Architecture</td>
-                        <td className="border border-slate-300 px-3 py-2 text-slate-600">System Purpose, 7-Stage Pipeline Diagram, Role Matrix</td>
+                        <td className="border border-slate-300 px-3 py-2 text-slate-600">System Purpose, 8-Stage Pipeline Diagram, Role Matrix</td>
                       </tr>
                       <tr>
                         <td className="border border-slate-300 px-3 py-2 font-mono font-bold text-[#346739]">Page 2</td>
@@ -538,6 +560,11 @@ export default function UserGuideView({
                         <td className="border border-slate-300 px-3 py-2 font-bold">7. Super Admin & Best Practices</td>
                         <td className="border border-slate-300 px-3 py-2 text-slate-600">UTR Payment Approval, Dynamic UPI Settings, Phonetic Gujarati Typing & Print Tips</td>
                       </tr>
+                      <tr>
+                        <td className="border border-slate-300 px-3 py-2 font-mono font-bold text-[#346739]">Page 9</td>
+                        <td className="border border-slate-300 px-3 py-2 font-bold">8. Formative Assessment (FAR-1 / નમૂનો-૨)</td>
+                        <td className="border border-slate-300 px-3 py-2 text-slate-600">36-Column Matrix, Mandatory LO-Wise Marks & Natural Variance, Left Trainee Cutoff Tool, Signatures & Excel Export</td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -568,7 +595,7 @@ export default function UserGuideView({
               {/* Page Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
                 <span>ITI Trainee Attendance & Notice Management Portal — Operational User Guide</span>
-                <span className="font-mono font-bold text-slate-700">Page 1 of 8</span>
+                <span className="font-mono font-bold text-slate-700">Page 1 of 9</span>
               </div>
             </div>
 
@@ -745,7 +772,7 @@ export default function UserGuideView({
               {/* Page Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
                 <span>Section 1: Authentication, Demo Mode & Account Validity</span>
-                <span className="font-mono font-bold text-slate-700">Page 2 of 8</span>
+                <span className="font-mono font-bold text-slate-700">Page 2 of 9</span>
               </div>
             </div>
 
@@ -900,7 +927,7 @@ export default function UserGuideView({
               {/* Page Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
                 <span>Section 2: Academic Hierarchy Manager (Trades, Batches 84–95 & Units)</span>
-                <span className="font-mono font-bold text-slate-700">Page 3 of 8</span>
+                <span className="font-mono font-bold text-slate-700">Page 3 of 9</span>
               </div>
             </div>
 
@@ -1067,7 +1094,7 @@ export default function UserGuideView({
               {/* Page Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
                 <span>Section 3: Trainee Directory & Bulk Excel/CSV Import</span>
-                <span className="font-mono font-bold text-slate-700">Page 4 of 8</span>
+                <span className="font-mono font-bold text-slate-700">Page 4 of 9</span>
               </div>
             </div>
 
@@ -1224,7 +1251,7 @@ export default function UserGuideView({
               {/* Page Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
                 <span>Section 4: Monthly Attendance Tracker & Progressive Calculation Engine</span>
-                <span className="font-mono font-bold text-slate-700">Page 5 of 8</span>
+                <span className="font-mono font-bold text-slate-700">Page 5 of 9</span>
               </div>
             </div>
 
@@ -1357,7 +1384,7 @@ export default function UserGuideView({
               {/* Page Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
                 <span>Section 5: Template Studio, Custom Letterhead & Dynamic Merge Tags</span>
-                <span className="font-mono font-bold text-slate-700">Page 6 of 8</span>
+                <span className="font-mono font-bold text-slate-700">Page 6 of 9</span>
               </div>
             </div>
 
@@ -1493,7 +1520,7 @@ export default function UserGuideView({
               {/* Page Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
                 <span>Section 6: Notice Generator, Principal Report & Dispatch Register</span>
-                <span className="font-mono font-bold text-slate-700">Page 7 of 8</span>
+                <span className="font-mono font-bold text-slate-700">Page 7 of 9</span>
               </div>
             </div>
 
@@ -1632,8 +1659,196 @@ export default function UserGuideView({
 
               {/* Page Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
-                <span>Section 7: Super Admin Console, Bilingual IME & Best Practices — End of Manual</span>
-                <span className="font-mono font-bold text-slate-700">Page 8 of 8</span>
+                <span>Section 7: Super Admin Console, Bilingual IME & Best Practices</span>
+                <span className="font-mono font-bold text-slate-700">Page 8 of 9</span>
+              </div>
+            </div>
+
+            {/* =====================================================================
+                PAGE 9: SECTION 8 — FORMATIVE ASSESSMENT (FAR-1) EVALUATION SYSTEM
+               ===================================================================== */}
+            <div
+              id="guide-page-9"
+              className="guide-a4-page bg-white text-slate-900 border border-slate-300 shadow-md print:shadow-none print:border-0 box-border flex flex-col justify-between"
+              style={{ width: '794px', minHeight: '1123px', padding: '42px 46px', pageBreakAfter: 'always' }}
+            >
+              <div>
+                {/* Section Header */}
+                <div className="border-b-2 border-[#346739] pb-3 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#346739] bg-[#eef5ed] px-2 py-0.5 rounded border border-[#9fcb98]">
+                      Official Directorate Formative Assessment Blueprint • નમૂનો - ૨ / FAR-1
+                    </span>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight mt-1">
+                      Section 8: Formative Assessment (FAR-1) &amp; LO Evaluation
+                    </h2>
+                    <p className="text-xs font-semibold text-slate-600 mt-0.5">
+                      ૮. આંતરિક મૂલ્યાંકન (નમૂનો-૨ / FAR-1) પત્રક, LO મુજબ ગુણ એન્ટ્રી અને કટઓફ ટૂલ માર્ગદર્શિકા
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-black text-white bg-[#346739] px-2.5 py-1 rounded">SECTION 8</span>
+                    <div className="text-[10px] font-mono text-slate-500 mt-1">Assessment Engine</div>
+                  </div>
+                </div>
+
+                {/* 8.1 Official 36-Column Blueprint Architecture */}
+                <div className="mt-4">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5 flex items-center justify-between">
+                    <span>8.1 Official 36-Column Matrix &amp; Blueprint Architecture (૩૬-કોલમ માળખું)</span>
+                    <span className="text-[10px] font-mono text-[#346739]">Cols 1–36 Complete Specification</span>
+                  </h3>
+                  <div className="bg-[#f7f9f6] border border-slate-200 rounded-xl p-3 text-xs leading-relaxed text-slate-700">
+                    The Formative Assessment subsystem strictly adheres to the Gujarat State Directorate of Employment &amp; Training (DET) <strong>નમૂનો - ૨ / Form FAR-1</strong> standard. It structures trainee evaluations across a standardized 36-column evaluation sheet with 90° anti-clockwise rotated column headers for print clarity:
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2.5 mt-2.5 text-[11px]">
+                    <div className="border border-slate-200 rounded-lg p-2.5 bg-white">
+                      <div className="font-extrabold text-[#346739] flex items-center justify-between">
+                        <span>Cols 1–9: Identification</span>
+                        <span className="text-[9px] bg-slate-100 px-1 rounded">Basic Data</span>
+                      </div>
+                      <p className="text-slate-600 text-[10.5px] mt-1 leading-snug">
+                        SR No., Roll Number, Trainee Full Name (Gujarati &amp; English), Shift, Unit (A/B/C), and Social Category (General/SEBC/SC/ST/EWS).
+                      </p>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-lg p-2.5 bg-white">
+                      <div className="font-extrabold text-[#346739] flex items-center justify-between">
+                        <span>Cols 10–33: 24 Sub-Parameters</span>
+                        <span className="text-[9px] bg-slate-100 px-1 rounded">9 Core Groups</span>
+                      </div>
+                      <p className="text-slate-600 text-[10.5px] mt-1 leading-snug">
+                        Safety, Hand Tools, Machine Operation, Precision/Quality, Speed, Drawing Comprehension, Teamwork &amp; Sub-Totals across all skills.
+                      </p>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-lg p-2.5 bg-[#f2edc2]/40 border-[#9fcb98]">
+                      <div className="font-extrabold text-[#1b381e] flex items-center justify-between">
+                        <span>Cols 34–36: Final Evaluation</span>
+                        <span className="text-[9px] bg-[#346739] text-white px-1 rounded">100 Marks</span>
+                      </div>
+                      <p className="text-slate-700 text-[10.5px] mt-1 leading-snug">
+                        <strong>Col 34:</strong> Practical Sub-Total (85m) • <strong>Col 35:</strong> VIVA VOCE (15m) • <strong>Col 36:</strong> TOTAL / 100 (Instructor LO Average).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 8.2 Mandatory LO-Wise Marks Entry & Natural Randomization Engine */}
+                <div className="mt-4">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5 flex items-center justify-between">
+                    <span>8.2 Mandatory LO-Wise Marks Entry &amp; Natural Randomization Engine</span>
+                    <span className="text-[10px] font-mono text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-bold">±3 to ±5 Subtle Variance</span>
+                  </h3>
+                  <div className="border border-slate-200 rounded-xl p-3 bg-white space-y-2">
+                    <p className="text-xs text-slate-700 leading-relaxed">
+                      To prevent artificial, identical scores across dozens of practical exercises, instructors input target marks exclusively <strong>Learning Outcome (LO) wise</strong> (e.g. <code>LO1</code>, <code>LO2</code>...). The system automatically activates a mathematical randomization algorithm:
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3 text-[11px] pt-1">
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                        <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                          <Percent className="w-3.5 h-3.5 text-[#346739]" />
+                          <span>Natural Realistic Variance (વાસ્તવિક ગુણ વૈવિધ્ય)</span>
+                        </div>
+                        <ul className="text-slate-600 text-[10.5px] mt-1.5 space-y-1 list-disc list-inside">
+                          <li>Target marks (e.g. <strong>81</strong>) are distributed with subtle variance (<strong>±3 to ±5 marks</strong>).</li>
+                          <li>Individual practicals receive realistic totals (e.g. 78, 83, 80, 84, 79, 81).</li>
+                          <li>Multiple practicals may share scores, but identical scores across all practicals are prevented.</li>
+                          <li>The exact arithmetic mean across the LO strictly matches the instructor target (81).</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                        <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                          <Award className="w-3.5 h-3.5 text-[#346739]" />
+                          <span>Attendance % Auto-Fill Engine (હાજરી % મુજબ ઓટો-ફિલ)</span>
+                        </div>
+                        <ul className="text-slate-600 text-[10.5px] mt-1.5 space-y-1 list-disc list-inside">
+                          <li>Click <strong>&ldquo;હાજરી % મુજબ તમામ LO ગુણ આપો&rdquo;</strong> to auto-fill all LOs instantly.</li>
+                          <li>Maps progressive attendance % directly to realistic baseline marks (55 to 95).</li>
+                          <li>Sub-parameters (24 items) and VIVA (15m) are auto-weighted proportionally.</li>
+                          <li>Instructors can fine-tune any trainee LO score at any time in the live roster.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 8.3 Left Institute Trainee Marks Clearing Facility */}
+                <div className="mt-4">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5 flex items-center justify-between">
+                    <span>8.3 Left Institute Trainee Marks Clearing Facility (સંસ્થા છોડેલ તાલીમાર્થી - કટઓફ ટૂલ)</span>
+                    <span className="text-[10px] font-mono text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded font-bold">Cutoff Clearing Tool</span>
+                  </h3>
+                  <div className="border border-rose-200 rounded-xl p-3 bg-rose-50/50 flex items-start gap-3 text-xs leading-relaxed">
+                    <div className="p-2 rounded-lg bg-rose-100 text-rose-800 shrink-0 mt-0.5">
+                      <UserX className="w-4 h-4" />
+                    </div>
+                    <div className="space-y-1.5 text-slate-700">
+                      <div className="font-bold text-rose-950">
+                        Real-World Practical Scenario &amp; Automatic Zero-Clearing Workflow:
+                      </div>
+                      <p className="text-[11px]">
+                        <strong>Case Example:</strong> A trainee leaves the institute mid-session on date <code>05-11-2026</code>. The student actually appeared up to practical <strong>P36</strong>, but practical exercises are scheduled up to <strong>P50</strong>.
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 text-[10.5px] pt-1">
+                        <div className="bg-white border border-rose-200 rounded-lg p-2">
+                          <span className="font-bold text-rose-900">Step 1: Set Cutoff</span>
+                          <p className="text-slate-600 mt-0.5">Select trainee, enter dropout date (05-11-2026) and last appeared practical (P36).</p>
+                        </div>
+                        <div className="bg-white border border-rose-200 rounded-lg p-2">
+                          <span className="font-bold text-rose-900">Step 2: Auto-Clearing</span>
+                          <p className="text-slate-600 mt-0.5">All marks from P37 to P50 are instantly zeroed and badged with <code>[Left / સંસ્થા છોડેલ]</code>.</p>
+                        </div>
+                        <div className="bg-white border border-rose-200 rounded-lg p-2">
+                          <span className="font-bold text-rose-900">Step 3: Average Protection</span>
+                          <p className="text-slate-600 mt-0.5">Cleared exercises are excluded from vertical class averages, preserving genuine class statistics.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 8.4 Multi-Filtering, Vertical Averages & Government Exports */}
+                <div className="mt-4">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                    8.4 Multi-Filtering, Vertical Averages &amp; Government Exports (A4 &amp; Excel)
+                  </h3>
+                  <table className="w-full text-left border-collapse border border-slate-300 text-[11px]">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-800">
+                        <th className="border border-slate-300 px-2.5 py-1.5 font-bold w-1/3">Feature / Capability</th>
+                        <th className="border border-slate-300 px-2.5 py-1.5 font-bold">Operational Implementation &amp; Compliance Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="border border-slate-300 px-2.5 py-1.5 font-bold">Multi-Filter Bar</td>
+                        <td className="border border-slate-300 px-2.5 py-1.5">Filter evaluation view dynamically by Learning Outcome (All LOs, LO1, LO2...), specific practical exercise number range (P1 to P50), and trainee score bracket.</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-slate-300 px-2.5 py-1.5 font-bold">Vertical Summary: AVERAGE (સરેરાશ)</td>
+                        <td className="border border-slate-300 px-2.5 py-1.5">Displays live class vertical averages for every sub-parameter. <strong>Column 36</strong> bottom cell is strictly calculated as the arithmetic average of all LO marks assessed by the instructor. Sum totals row is omitted per official guidelines.</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-slate-300 px-2.5 py-1.5 font-bold">Government A4 Landscape PDF</td>
+                        <td className="border border-slate-300 px-2.5 py-1.5">Generates official vector PDF printouts with Gujarat ITI headers, 90° rotated headers, and official sign blocks: <strong>Sign of F.I. (Trade Instructor)</strong> and <strong>Supervisor Instructor (સુપરવાઈઝર ઇન્સ્ટ્રક્ટર)</strong>.</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-slate-300 px-2.5 py-1.5 font-bold">36-Column Excel (.xlsx) Export</td>
+                        <td className="border border-slate-300 px-2.5 py-1.5">Produces audit-ready Excel spreadsheets with all 36 columns, formulas, student Gujarati/English rosters, and LO averages formatted for DET inspection submissions.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Page Footer */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
+                <span>Section 8: Formative Assessment (FAR-1) Evaluation System — End of Manual</span>
+                <span className="font-mono font-bold text-slate-700">Page 9 of 9</span>
               </div>
             </div>
           </div>

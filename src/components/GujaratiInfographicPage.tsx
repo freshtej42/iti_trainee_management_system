@@ -105,7 +105,7 @@ export default function GujaratiInfographicPage({
               </span>
               <span className="text-slate-300">·</span>
               <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                વાર્ષિક સબ્સ્ક્રિપ્શન: માત્ર ₹199 / વર્ષ
+                વાર્ષિક સબ્સ્ક્રિપ્શન: માત્ર ₹49 / વર્ષ
               </span>
               <span className="text-slate-300">·</span>
               <span className="text-xs font-semibold text-slate-600">
@@ -113,7 +113,7 @@ export default function GujaratiInfographicPage({
               </span>
             </div>
             <p className="text-xs text-slate-600">
-              આ ૧-પેજની રંગીન બ્રોશરમાં પોર્ટલની તમામ સુવિધાઓ, નવીનતમ FAR-1 આંતરિક મૂલ્યાંકન (નમૂનો-૨), ₹199 સબ્સ્ક્રિપ્શન વિગત, લાઈવ વેબસાઈટ URL અને સ્કેન કરી શકાય તેવો QR કોડ સામેલ છે.
+              આ ૧-પેજની રંગીન બ્રોશરમાં પોર્ટલની તમામ સુવિધાઓ, નવીનતમ FAR-1 આંતરિક મૂલ્યાંકન (નમૂનો-૨), ₹49 સબ્સ્ક્રિપ્શન વિગત, લાઈવ વેબસાઈટ URL અને સ્કેન કરી શકાય તેવો QR કોડ સામેલ છે.
             </p>
           </div>
 
@@ -229,7 +229,7 @@ export default function GujaratiInfographicPage({
                   વાર્ષિક સબ્સ્ક્રિપ્શન
                 </span>
                 <div className="text-base font-black text-amber-300 leading-tight">
-                  માત્ર ₹199 <span className="text-[10px] font-normal text-white">/ વર્ષ</span>
+                  માત્ર ₹49 <span className="text-[10px] font-normal text-white">/ વર્ષ</span>
                 </div>
                 <span className="text-[9px] text-emerald-200 font-medium mt-0.5">
                   ૧-વર્ષ માન્યતા • ફ્રી લાઈવ ડેમો
@@ -426,13 +426,13 @@ export default function GujaratiInfographicPage({
                     <span>વાર્ષિક સબ્સ્ક્રિપ્શન ઓફર</span>
                   </span>
                   <span className="text-xs font-black text-[#f2edc2]">
-                    માત્ર ₹199 / વર્ષ (મહિને માત્ર ~₹16)
+                    માત્ર ₹49 / વર્ષ (મહિને માત્ર ~₹4)
                   </span>
                 </div>
                 <div className="text-[10px] text-emerald-100 leading-snug">
                   • <strong>અમર્યાદિત ઉપયોગ:</strong> તમારા તમામ ટ્રેડ, બેચ (84–95), યુનિટ અને વિદ્યાર્થીઓ માટે ૧ વર્ષ સુધી સંપૂર્ણ છૂટ.
                   <br />
-                  • <strong>સરળ પેમેન્ટ:</strong> UPI QR સ્કેન કરી ₹199 ચૂકવો અને UTR નંબર નાખી તુરંત એકાઉન્ટ એક્ટિવેટ કરો.
+                  • <strong>સરળ પેમેન્ટ:</strong> UPI QR સ્કેન કરી ₹49 ચૂકવો અને UTR નંબર નાખી તુરંત એકાઉન્ટ એક્ટિવેટ કરો.
                   <br />
                   • <strong>૧૦૦% સલામત &amp; વ્યક્તિગત:</strong> તમારો ડેટા સંપૂર્ણ સુરક્ષિત રહે છે અને ક્લાઉડ પર સચવાય છે.
                 </div>
